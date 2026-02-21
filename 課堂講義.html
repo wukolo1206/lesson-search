@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>國語字音形 — 課堂講義</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; background: var(--gray-50); color: var(--gray-800); }
+
+    /* ── 載入 ── */
+    #loading {
+      position: fixed; inset: 0; background: white;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 1000; gap: 14px;
+    }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── 頁首 ── */
+    header {
+      background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+      color: white; padding: 18px 32px;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header p  { opacity: .8; font-size: .85rem; margin-top: 3px; }
+
+    /* ── 篩選列 ── */
+    .filter-bar {
+      background: white; border-bottom: 1px solid var(--gray-200);
+      padding: 12px 32px; display: flex; flex-wrap: wrap;
+      gap: 10px; align-items: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .fg { display: flex; align-items: center; gap: 5px; }
+    .fg label { font-size: .78rem; color: var(--gray-600); white-space: nowrap; font-weight: 500; }
+    select {
+      border: 1px solid var(--gray-200); border-radius: 8px;
+      padding: 5px 9px; font-size: .85rem; color: var(--gray-700);
+      background: var(--gray-50); outline: none; cursor: pointer;
+    }
+    select:focus { border-color: var(--primary); background: white; }
+
+    /* ── 操作列 ── */
+    .action-bar {
+      background: white; border-bottom: 1px solid var(--gray-200);
+      padding: 10px 32px; display: flex; gap: 10px; align-items: center;
+    }
+    .btn {
+      padding: 8px 20px; border-radius: 8px; font-size: .88rem;
+      font-weight: 600; cursor: pointer; border: none;
+      transition: background .15s, transform .1s;
+      font-family: inherit;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-proj   { background: #1e40af; color: white; }
+    .btn-proj:hover { background: #1e3a8a; }
+    .btn-print  { background: var(--gray-100); color: var(--gray-700); border: 1px solid var(--gray-200); }
+    .btn-print:hover { background: var(--gray-200); }
+    .btn-reset  { background: none; color: var(--gray-600); border: 1px solid var(--gray-200); font-weight: 400; }
+    .btn-reset:hover { background: var(--gray-100); }
+    .cnt-info   { font-size: .85rem; color: var(--gray-600); margin-left: auto; }
+    .cnt-info strong { color: var(--primary); }
+
+    /* ── 主內容 ── */
+    main { padding: 24px 32px 56px; max-width: 960px; margin: 0 auto; }
+
+    /* ── 教學單元 ── */
+    .lesson-unit {
+      background: white; border-radius: 14px;
+      border: 2px solid var(--gray-200);
+      margin-bottom: 28px; overflow: hidden;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .lesson-unit.selected {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px #dbeafe;
+    }
+
+    /* 單元標頭 */
+    .unit-head {
+      padding: 14px 20px;
+      background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+      border-bottom: 2px solid var(--gray-200);
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    }
+    .lesson-unit.selected .unit-head {
+      background: linear-gradient(135deg, #dbeafe, #ede9fe);
+    }
+    .unit-title {
+      width: 100%; font-size: 1.05rem; font-weight: 700;
+      color: var(--gray-800); margin-top: 6px;
+    }
+
+    /* 勾選框 */
+    .unit-cb {
+      width: 20px; height: 20px; cursor: pointer;
+      accent-color: var(--primary); flex-shrink: 0;
+      margin-right: 4px;
+    }
+
+    /* 考古題模式：隱藏所有表格與教學內容 */
+    body.kaoguti-mode .table-section { display: none; }
+    body.kaoguti-mode .question-section {
+      border-left: none; background: white; padding: 16px 20px;
+    }
+    body.kaoguti-mode .q-label { display: none; }
+    body.kaoguti-mode .q-text  { font-size: 1rem; }
+
+    /* 已教過狀態 */
+    .lesson-unit.taught {
+      border-color: #059669;
+      box-shadow: 0 0 0 3px #d1fae5;
+    }
+    .lesson-unit.taught .unit-head {
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    }
+    .btn-taught-toggle {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 10px; border-radius: 20px;
+      font-size: .74rem; font-weight: 600;
+      cursor: pointer; border: 1px solid transparent;
+      font-family: inherit; transition: background .15s;
+      margin-left: auto;
+    }
+    .btn-taught-toggle.is-taught   { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+    .btn-taught-toggle.not-taught  { background: var(--gray-100); color: var(--gray-600); border-color: var(--gray-200); }
+    .btn-taught-toggle:hover { filter: brightness(.95); }
+
+    /* 徽章 */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 9px; border-radius: 20px;
+      font-size: .74rem; font-weight: 600;
+    }
+    .b-g3 { background: #dbeafe; color: #1e40af; }
+    .b-g4 { background: #d1fae5; color: #065f46; }
+    .b-g5 { background: #fef3c7; color: #92400e; }
+    .b-g6 { background: #fce7f3; color: #9d174d; }
+    .b-yr { background: var(--gray-100); color: var(--gray-600); }
+    .b-ct { background: #ede9fe; color: #4c1d95; }
+    .b-ez { background: #d1fae5; color: #065f46; }
+    .b-md { background: #fef3c7; color: #92400e; }
+    .b-hd { background: #fee2e2; color: #991b1b; }
+
+    /* 表格區 */
+    .table-section { padding: 20px; border-bottom: 2px dashed var(--gray-200); }
+    .sec-label {
+      font-size: .78rem; font-weight: 700; color: var(--gray-600);
+      text-transform: uppercase; letter-spacing: .05em;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .sec-label::before {
+      content: ''; display: block;
+      width: 3px; height: 14px;
+      background: var(--primary); border-radius: 2px;
+    }
+    .spacer { height: 18px; }
+
+    /* 比較表 */
+    .teach-tbl { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    .teach-tbl th {
+      background: #1e40af; color: white;
+      padding: 9px 13px; text-align: left; font-size: .82rem; font-weight: 600;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .teach-tbl td {
+      padding: 10px 13px; border-bottom: 1px solid var(--gray-200);
+      vertical-align: top; line-height: 1.55;
+    }
+    .teach-tbl tr:last-child td { border-bottom: none; }
+    .teach-tbl tr:nth-child(even) td { background: var(--gray-50); }
+    .row-ok td { background: #f0fdf4 !important; }
+    .row-err td { background: #fff1f2 !important; }
+    .char-big  { font-size: 1.15rem; font-weight: 700; color: #1e40af; }
+    .reading   { font-size: 1rem; color: #7c3aed; font-weight: 600; }
+
+    /* 題目區 */
+    .question-section {
+      padding: 18px 20px;
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+    }
+    .q-label {
+      font-size: .8rem; font-weight: 700; color: #92400e;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 5px;
+    }
+    .q-text { font-size: .95rem; line-height: 1.85; white-space: pre-wrap; color: var(--gray-800); }
+
+    /* ── 測驗模式 ── */
+    .quiz-section { padding: 16px 20px; }
+    .q-question {
+      font-size: .95rem; line-height: 1.8; color: var(--gray-800);
+      white-space: pre-wrap; margin-bottom: 14px;
+    }
+    .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+    .opt-btn {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 14px; border: 2px solid var(--gray-200);
+      border-radius: 8px; background: white; cursor: pointer;
+      font-size: .9rem; text-align: left; font-family: inherit; width: 100%;
+      transition: background .12s, border-color .12s;
+    }
+    .opt-btn:hover:not(:disabled) { background: #eff6ff; border-color: var(--primary); }
+    .opt-btn.correct  { background: #f0fdf4 !important; border-color: #16a34a !important; color: #14532d; font-weight: 600; }
+    .opt-btn.wrong    { background: #fff1f2 !important; border-color: #dc2626 !important; color: #7f1d1d; }
+    .opt-btn.revealed { opacity: .55; }
+    .opt-btn:disabled { cursor: default; }
+    .opt-key { font-weight: 700; min-width: 22px; flex-shrink: 0; }
+    .quiz-set-hint {
+      margin-top: 10px; font-size: .78rem; color: #9ca3af;
+      text-align: center; padding: 6px;
+      border: 1px dashed #d1d5db; border-radius: 6px;
+    }
+    .quiz-score-bar {
+      padding: 8px 20px; background: #eff6ff;
+      border-top: 1px solid #bfdbfe;
+      font-size: .82rem; color: #1e40af; display: flex; gap: 14px;
+    }
+    /* 測驗模式開關時隱藏不需要的區塊 */
+    body.quiz-mode .table-section  { display: none; }
+    body.quiz-mode .question-section { display: none; }
+    body.quiz-mode .ref-toggle     { display: none !important; }
+    body.quiz-mode .ref-body       { display: none !important; }
+    body.quiz-mode .quiz-section   { display: block; }
+    /* 非測驗模式時隱藏測驗區塊 */
+    .quiz-section { display: none; }
+
+    /* 測驗模式按鈕外觀（active 狀態） */
+    .btn-quiz-active { background: #dc2626 !important; color: white !important; }
+
+    /* 分數統計列 */
+    #scoreBar {
+      display: none; position: sticky; top: 44px; z-index: 99;
+      background: #1e40af; color: white;
+      padding: 8px 32px; font-size: .88rem;
+      display: none; align-items: center; gap: 20px;
+    }
+    #scoreBar.visible { display: flex; }
+
+    /* 備課參考區塊 */
+    .ref-toggle {
+      width: 100%; padding: 9px 20px;
+      background: none; border: none; border-top: 1px solid var(--gray-200);
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; font-size: .82rem; color: #7c3aed; font-weight: 600;
+      font-family: inherit; transition: background .12s;
+    }
+    .ref-toggle:hover { background: #faf5ff; }
+    .ref-toggle .arrow { transition: transform .2s; display: inline-block; }
+    .ref-toggle.open .arrow { transform: rotate(180deg); }
+
+    .ref-body {
+      display: none; padding: 14px 20px;
+      border-top: 1px solid #ede9fe;
+      background: #faf5ff;
+      flex-direction: column; gap: 10px;
+    }
+    .ref-body.open { display: flex; }
+
+    .ref-item { font-size: .85rem; line-height: 1.6; }
+    .ref-lbl {
+      font-size: .75rem; font-weight: 700; color: #7c3aed;
+      margin-bottom: 4px; display: flex; align-items: center; gap: 4px;
+    }
+    .box-y { background:#fffbeb; border-left:3px solid #f59e0b; padding:7px 10px; border-radius:0 6px 6px 0; }
+    .box-g { background:#f0fdf4; border-left:3px solid #22c55e; padding:7px 10px; border-radius:0 6px 6px 0; }
+    .box-b { background:#eff6ff; border-left:3px solid #3b82f6; padding:7px 10px; border-radius:0 6px 6px 0; }
+
+    /* 考古題模式下隱藏備課參考 */
+    body.kaoguti-mode .ref-toggle,
+    body.kaoguti-mode .ref-body { display: none; }
+
+    /* 空結果 */
+    .empty { text-align: center; padding: 60px; color: var(--gray-600); }
+
+    /* ════════ 投影模式 ════════ */
+    #projector {
+      display: none; position: fixed; inset: 0;
+      background: #0f172a; color: white;
+      flex-direction: column; z-index: 9999;
+      font-family: 'Microsoft JhengHei', sans-serif;
+    }
+    #projector.active { display: flex; }
+
+    .proj-topbar {
+      background: #1e293b; padding: 12px 28px;
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+      border-bottom: 1px solid #334155;
+    }
+    .proj-badges { display: flex; gap: 7px; }
+    .proj-title  { font-size: 1.05rem; font-weight: 700; flex: 1; }
+    .proj-counter{ font-size: .9rem; color: #94a3b8; white-space: nowrap; }
+    .btn-exit {
+      padding: 6px 14px; border-radius: 6px;
+      background: #374151; color: #e2e8f0; border: none;
+      cursor: pointer; font-size: .85rem; font-family: inherit;
+    }
+    .btn-exit:hover { background: #4b5563; }
+
+    .proj-content {
+      flex: 1; overflow-y: auto;
+      padding: 28px 48px;
+      display: flex; flex-direction: column; gap: 28px;
+    }
+    .proj-sec-label {
+      font-size: .82rem; color: #94a3b8; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: 10px;
+    }
+
+    .proj-tbl { width: 100%; border-collapse: collapse; font-size: 1.25rem; }
+    .proj-tbl th {
+      background: #1d4ed8; color: white;
+      padding: 11px 16px; text-align: left; font-size: .95rem;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .proj-tbl td {
+      padding: 13px 16px; border-bottom: 1px solid #1e293b;
+      vertical-align: middle; line-height: 1.5;
+    }
+    .proj-tbl tr:last-child td { border-bottom: none; }
+    .proj-tbl tr:nth-child(even) td { background: #1e293b; }
+    .proj-row-ok  td { background: #14532d !important; }
+    .proj-row-err td { background: #450a0a !important; }
+    .proj-char    { font-size: 1.5rem; font-weight: 700; color: #60a5fa; }
+    .proj-reading { font-size: 1.3rem; color: #a78bfa; font-weight: 700; }
+
+    .proj-question {
+      background: #1e293b; border-radius: 12px;
+      border-left: 5px solid #f59e0b;
+      padding: 22px 28px;
+    }
+    .proj-question.hidden { display: none; }
+    .proj-q-label { font-size: .85rem; color: #fbbf24; font-weight: 700; margin-bottom: 12px; }
+    .proj-q-text  { font-size: 1.25rem; line-height: 2; white-space: pre-wrap; color: #f1f5f9; }
+
+    /* 進度條 */
+    .proj-progress-bar {
+      height: 3px; background: #1e293b; flex-shrink: 0;
+    }
+    .proj-progress-fill {
+      height: 100%; background: #3b82f6;
+      transition: width .3s ease;
+    }
+
+    .proj-nav {
+      background: #1e293b; padding: 14px 28px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 14px; flex-shrink: 0;
+    }
+    .btn-nav {
+      padding: 10px 28px; border-radius: 8px;
+      background: #374151; color: white; border: none;
+      cursor: pointer; font-size: .95rem; font-weight: 600; font-family: inherit;
+    }
+    .btn-nav:hover:not(:disabled) { background: #4b5563; }
+    .btn-nav:disabled { opacity: .3; cursor: not-allowed; }
+    .btn-reveal {
+      padding: 10px 28px; border-radius: 8px;
+      background: #d97706; color: white; border: none;
+      cursor: pointer; font-size: .95rem; font-weight: 600; font-family: inherit;
+    }
+    .btn-reveal:hover { background: #b45309; }
+    .proj-hint {
+      font-size: .75rem; color: #475569;
+      text-align: center; padding: 0 28px 10px;
+      flex-shrink: 0;
+    }
+
+    /* ── 列印樣式 ── */
+    @media print {
+      #loading, .filter-bar, .action-bar, #projector { display: none !important; }
+      header { padding: 12px 20px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      body { background: white; }
+      main { padding: 12px 0 0; max-width: 100%; }
+      .lesson-unit {
+        border: 1px solid #ccc; border-radius: 8px;
+        margin-bottom: 16px; page-break-inside: avoid; break-inside: avoid;
+      }
+      .unit-head { background: #f0f4ff !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .teach-tbl th { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .row-ok td { background: #f0fdf4 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .row-err td { background: #fff1f2 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .question-section { background: #fffbeb !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+
+    @media (max-width: 700px) {
+      header, .filter-bar, .action-bar { padding: 12px 16px; }
+      main { padding: 16px 14px 40px; }
+      .proj-content { padding: 16px 18px; }
+      .proj-tbl, .proj-q-text { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 載入畫面 -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="font-size:1rem;font-weight:600;color:#374151">正在載入教學資料庫…</div>
+  <div style="font-size:.85rem;color:#9ca3af">只載入有細目資料的題目</div>
+</div>
+
+<!-- 頁首 -->
+<header>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <div>
+      <h1>🎓 國語字音形 — 課堂講義</h1>
+      <p>字音形比較表為主 · 搭配考題 · 支援投影 / 列印</p>
+    </div>
+    <a href="備課搜尋引擎.html"
+       style="display:inline-block;padding:8px 18px;background:rgba(255,255,255,.2);
+              color:white;border-radius:8px;text-decoration:none;font-size:.88rem;
+              font-weight:600;border:1px solid rgba(255,255,255,.4);white-space:nowrap"
+       onmouseover="this.style.background='rgba(255,255,255,.35)'"
+       onmouseout="this.style.background='rgba(255,255,255,.2)'">
+      📚 切換到備課搜尋引擎 →
+    </a>
+  </div>
+</header>
+
+<!-- 篩選列 -->
+<div class="filter-bar">
+  <div class="fg">
+    <label>年級</label>
+    <select id="fGrade"><option value="">全部年級</option></select>
+  </div>
+  <div class="fg">
+    <label>年度</label>
+    <select id="fYear"><option value="">全部年度</option></select>
+  </div>
+  <div class="fg">
+    <label>類別</label>
+    <select id="fCat"><option value="">全部類別</option></select>
+  </div>
+  <div class="fg">
+    <label>難易度</label>
+    <select id="fDiff">
+      <option value="">全部</option>
+      <option value="基礎">基礎</option>
+      <option value="中階">中階</option>
+      <option value="進階">進階</option>
+    </select>
+  </div>
+  <div class="fg">
+    <label>教學進度</label>
+    <select id="fTaught">
+      <option value="">全部</option>
+      <option value="0">未教過</option>
+      <option value="1">已教過</option>
+    </select>
+  </div>
+  <div class="fg">
+    <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+      <input type="checkbox" id="fKaoguti" onchange="applyFilter()"
+             style="width:16px;height:16px;accent-color:#2563eb;cursor:pointer">
+      只顯示考古題
+    </label>
+  </div>
+  <button class="btn btn-reset" onclick="reset()">清除條件</button>
+</div>
+
+<!-- 分數統計列 -->
+<div id="scoreBar">
+  <span>🎯 測驗模式</span>
+  <span>答對 <strong id="scoreRight">0</strong> 題</span>
+  <span>答錯 <strong id="scoreWrong">0</strong> 題</span>
+  <span id="scoreTotal" style="opacity:.7"></span>
+  <button onclick="resetQuizScore()" style="margin-left:auto;padding:4px 12px;border-radius:6px;background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.4);cursor:pointer;font-family:inherit;font-size:.82rem">重置分數</button>
+</div>
+
+<!-- 操作列 -->
+<div class="action-bar">
+  <button class="btn btn-proj"   onclick="enterProjector()">▶ 投影模式</button>
+  <button class="btn btn-print"  id="btnQuiz" onclick="toggleQuizMode()" style="background:#7c3aed;color:white">📝 測驗模式</button>
+  <button class="btn btn-print"  onclick="window.print()">🖨️ 列印講義</button>
+  <button class="btn btn-reset"  onclick="selectAll()">全選</button>
+  <button class="btn btn-reset"  onclick="selectNone()">取消全選</button>
+  <button class="btn btn-reset"  onclick="clearTaught()" title="清除所有已教過的記錄">🗑️ 清除教學記錄</button>
+  <span class="cnt-info" id="selInfo" style="display:none">
+    已勾選 <strong id="selCnt" style="color:#2563eb">0</strong> 題（投影將只播勾選的）
+  </span>
+  <span class="cnt-info" id="totalInfo">
+    共 <strong id="cnt">0</strong> 道題目
+    <span id="kaogutiNote" style="display:none;color:#059669;font-size:.8rem">（考古題模式）</span>
+  </span>
+</div>
+
+<!-- 主列表 -->
+<main><div id="grid"></div></main>
+
+<!-- 投影模式（全螢幕覆蓋） -->
+<div id="projector">
+  <div class="proj-topbar">
+    <div class="proj-badges" id="projBadges"></div>
+    <div class="proj-title"  id="projTitle"></div>
+    <div class="proj-counter" id="projCounter"></div>
+    <button class="btn-exit" onclick="exitProjector()">✕ 離開</button>
+  </div>
+  <div class="proj-progress-bar"><div class="proj-progress-fill" id="projProgress"></div></div>
+  <div class="proj-content" id="projContent"></div>
+  <div class="proj-nav">
+    <button class="btn-nav" id="btnPrev" onclick="prevSlide()">← 上一題</button>
+    <button class="btn-reveal" id="btnReveal" onclick="revealQuestion()">📝 顯示題目</button>
+    <button class="btn-nav" id="btnTaught" onclick="markTaughtInProjector()"
+            style="background:#047857;color:white;min-width:110px">○ 標記已教</button>
+    <button class="btn-nav" id="btnNext" onclick="nextSlide()">下一題 →</button>
+  </div>
+  <div class="proj-hint">← → 切換題目 &nbsp;|&nbsp; 空白鍵 顯示題目 / 下一題 &nbsp;|&nbsp; T 標記已教 &nbsp;|&nbsp; Esc 離開</div>
+</div>
+
+<script>
+/* ═══ 設定 ═══════════════════════════════════════════════ */
+const SHEET_ID = '1MoZ0VhgJ9fSWktZUjunX1IMJwDuFBP_qyZFuEnH6uGo';
+const TABS = { q:'題目主表', m:'教材資料庫', py:'破音字細目', cz:'錯別字細目', xj:'形近字細目' };
+const csvUrl = name =>
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+
+/* ═══ 全域資料 ════════════════════════════════════════════ */
+let ALL = [], SHOWN = [];
+let projData = [], projIdx = 0, projRevealed = false;
+
+/* ═══ 教學記憶（localStorage）════════════════════════════ */
+const STORAGE_KEY = 'taught_questions_v1';
+let TAUGHT = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+
+function saveTaught() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...TAUGHT]));
+}
+
+function toggleTaught(uid) {
+  if (TAUGHT.has(uid)) TAUGHT.delete(uid); else TAUGHT.add(uid);
+  saveTaught();
+  // 直接更新卡片，不重新渲染整個列表
+  const unit = document.getElementById('unit-' + uid);
+  if (!unit) return;
+  const isTaught = TAUGHT.has(uid);
+  unit.classList.toggle('taught', isTaught);
+  const btn = unit.querySelector('.btn-taught-toggle');
+  if (btn) {
+    btn.textContent = isTaught ? '✅ 已教過' : '○ 未教過';
+    btn.className = `btn-taught-toggle ${isTaught ? 'is-taught' : 'not-taught'}`;
+  }
+}
+
+function clearTaught() {
+  if (!confirm(`確定清除所有教學記錄？\n（目前已記錄 ${TAUGHT.size} 道題目）`)) return;
+  TAUGHT.clear();
+  saveTaught();
+  renderList();
+}
+
+function markTaughtInProjector() {
+  const q = projData[projIdx];
+  const uid = q['題目ID'] || q['題號'];
+  TAUGHT.add(uid);
+  saveTaught();
+  // 更新投影按鈕
+  const btn = $('btnTaught');
+  btn.textContent = '✅ 已教過';
+  btn.style.background = '#059669';
+  // 同步更新列表卡片（如果存在）
+  const unit = document.getElementById('unit-' + uid);
+  if (unit) {
+    unit.classList.add('taught');
+    const tb = unit.querySelector('.btn-taught-toggle');
+    if (tb) { tb.textContent = '✅ 已教過'; tb.className = 'btn-taught-toggle is-taught'; }
+  }
+}
+
+/* ═══ 工具 ════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const gradeClass = g => ({'三年級':'b-g3','四年級':'b-g4','五年級':'b-g5','六年級':'b-g6'}[g]||'b-yr');
+const diffClass  = d => ({'基礎':'b-ez','中階':'b-md','進階':'b-hd'}[d]||'b-yr');
+
+function fetch_csv(name) {
+  return new Promise((ok, err) =>
+    Papa.parse(csvUrl(name), { download:true, header:true, skipEmptyLines:true, complete:r=>ok(r.data), error:e=>err(e) })
+  );
+}
+
+/* ═══ 載入 ════════════════════════════════════════════════ */
+async function loadData() {
+  try {
+    const [q, m, py, cz, xj] = await Promise.all([
+      fetch_csv(TABS.q), fetch_csv(TABS.m),
+      fetch_csv(TABS.py), fetch_csv(TABS.cz), fetch_csv(TABS.xj),
+    ]);
+
+    const matMap = {};
+    m.forEach(r => matMap[r['教材編號']] = r);
+
+    const pyMap = {}, czMap = {}, xjMap = {};
+    py.forEach(r => { (pyMap[r['題目ID']] || (pyMap[r['題目ID']] = [])).push(r); });
+    cz.forEach(r => { (czMap[r['題目ID']] || (czMap[r['題目ID']] = [])).push(r); });
+    xj.forEach(r => { (xjMap[r['題目ID']] || (xjMap[r['題目ID']] = [])).push(r); });
+
+    ALL = q.map(row => ({
+      ...row,
+      _mat: matMap[row['對應教材編號']] || null,
+      _py:  pyMap[row['題目ID']] || [],
+      _cz:  czMap[row['題目ID']] || [],
+      _xj:  xjMap[row['題目ID']] || [],
+    }));
+
+    fillSelects();
+    applyFilter();
+    $('loading').style.display = 'none';
+  } catch(e) {
+    $('loading').innerHTML = `
+      <div style="text-align:center;padding:40px">
+        <div style="font-size:2.5rem">⚠️</div>
+        <div style="font-size:1rem;font-weight:600;margin-top:10px">資料載入失敗</div>
+        <div style="font-size:.85rem;color:#6b7280;margin-top:8px">請確認 Google Sheets 已設為公開</div>
+        <div style="font-size:.75rem;color:#9ca3af;margin-top:6px">${esc(String(e))}</div>
+      </div>`;
+  }
+}
+
+/* ═══ 填充選單 ════════════════════════════════════════════ */
+function fillSelects() {
+  const uniq = (arr, key) => [...new Set(arr.map(d=>d[key]).filter(Boolean))];
+  uniq(ALL,'年級').sort()
+    .forEach(v => $('fGrade').innerHTML += `<option value="${esc(v)}">${esc(v)}</option>`);
+  uniq(ALL,'年度').sort((a,b)=>b-a)
+    .forEach(v => $('fYear').innerHTML += `<option value="${esc(v)}">${esc(v)} 年度</option>`);
+  uniq(ALL,'類別').sort()
+    .forEach(v => $('fCat').innerHTML += `<option value="${esc(v)}">${esc(v)}</option>`);
+}
+
+/* ═══ 篩選 ════════════════════════════════════════════════ */
+function applyFilter() {
+  const grade   = $('fGrade').value,  year   = $('fYear').value;
+  const cat     = $('fCat').value,    diff   = $('fDiff').value;
+  const tFilter  = $('fTaught').value;        // '' | '0' | '1'
+  const kaogutiOnly = $('fKaoguti').checked; // 只顯示有完整題目的考古題
+
+  SHOWN = ALL.filter(q => {
+    if (grade && q['年級']       !== grade) return false;
+    if (year  && q['年度']       !== year)  return false;
+    if (cat   && q['類別']       !== cat)   return false;
+    if (diff  && q['難易度分級'] !== diff)  return false;
+    if (kaogutiOnly && !q['完整題目與選項']) return false;
+    const uid = q['題目ID'] || q['題號'];
+    if (tFilter === '0' &&  TAUGHT.has(uid)) return false;
+    if (tFilter === '1' && !TAUGHT.has(uid)) return false;
+    return true;
+  });
+  $('cnt').textContent = SHOWN.length;
+  $('kaogutiNote').style.display = kaogutiOnly ? '' : 'none';
+  document.body.classList.toggle('kaoguti-mode', kaogutiOnly);
+  renderList();
+}
+
+function reset() {
+  ['fGrade','fYear','fCat','fDiff','fTaught'].forEach(id => $(id).value = '');
+  $('fKaoguti').checked = false;
+  applyFilter();
+}
+
+/* ═══ 列表渲染 ════════════════════════════════════════════ */
+function renderList() {
+  const grid = $('grid');
+  if (!SHOWN.length) {
+    grid.innerHTML = '<div class="empty">🔍 找不到符合條件的題目，請調整篩選條件</div>';
+    return;
+  }
+  grid.innerHTML = SHOWN.map(q => unitHtml(q)).join('');
+}
+
+function unitHtml(q) {
+  const uid      = q['題目ID'] || q['題號'];
+  const isTaught = TAUGHT.has(uid);
+  const badges = `
+    <span class="badge ${gradeClass(q['年級'])}">${esc(q['年級'])}</span>
+    <span class="badge b-yr">${esc(q['年度'])} 年</span>
+    <span class="badge b-yr">第 ${esc(q['題號'])} 題</span>
+    ${q['類別']       ? `<span class="badge b-ct">${esc(q['類別'])}</span>`                     : ''}
+    ${q['難易度分級'] ? `<span class="badge ${diffClass(q['難易度分級'])}">${esc(q['難易度分級'])}</span>` : ''}`;
+
+  const qText = q['完整題目與選項'] || '';
+
+  return `
+<div class="lesson-unit${isTaught ? ' taught' : ''}" id="unit-${esc(uid)}">
+  <div class="unit-head">
+    <input type="checkbox" class="unit-cb" data-id="${esc(uid)}" onchange="onCheck(this)">
+    ${badges}
+    <button class="btn-taught-toggle ${isTaught ? 'is-taught' : 'not-taught'}"
+            onclick="toggleTaught('${esc(uid)}')" title="點擊切換教學狀態">
+      ${isTaught ? '✅ 已教過' : '○ 未教過'}
+    </button>
+    <div class="unit-title">${esc(q['題目重點'])}</div>
+  </div>
+  <div class="table-section">
+    ${buildListTables(q)}
+  </div>
+  ${qText ? `
+  <div class="question-section">
+    <div class="q-label">📝 題目與選項</div>
+    <div class="q-text">${esc(qText)}</div>
+  </div>` : ''}
+  ${buildQuizSection(q, uid)}
+  ${buildRefSection(q, uid)}
+</div>`;
+}
+
+/* ═══ 測驗模式 ════════════════════════════════════════════ */
+const ANS_KEY = 'question_answers_v1';
+let ANSWERS = JSON.parse(localStorage.getItem(ANS_KEY) || '{}');
+let quizActive = false;
+let qRight = 0, qWrong = 0;
+
+function saveAnswers() { localStorage.setItem(ANS_KEY, JSON.stringify(ANSWERS)); }
+
+/* 解析題目選項 (1)(2)(3)(4) */
+function parseOptions(text) {
+  if (!text) return null;
+  const re = /[（(]([1-4１-４])[)）]\s*([^(（）)]+?)(?=[（(][1-4１-４][)）]|$)/g;
+  const opts = [...text.matchAll(re)].map(m => ({
+    key: m[1].replace(/[１２３４]/g, c => '１２３４'.indexOf(c) + 1),
+    text: m[2].trim()
+  }));
+  return opts.length >= 2 ? opts : null;
+}
+
+/* 自動推算：破音字 — 注音為少數的那個選項 */
+function deriveAnswerPY(q) {
+  if (!q._py.length) return null;
+  const map = {};
+  for (const r of q._py) {
+    const m = r['來源'].match(/選項\((\d)\)/);
+    if (m) map[m[1]] = r['注音'];
+  }
+  const freq = {};
+  for (const v of Object.values(map)) freq[v] = (freq[v]||0) + 1;
+  const odd = Object.entries(freq).find(([,c]) => c === 1)?.[0];
+  if (!odd) return null;
+  return Object.entries(map).find(([,v]) => v === odd)?.[0] || null;
+}
+
+/* 自動推算：錯別字 — ✓ 正確那行對應的選項 */
+function deriveAnswerCZ(q) {
+  const correctRow = q._cz.find(r => (r['正誤']||'').includes('✓'));
+  if (!correctRow) return null;
+  const opts = parseOptions(q['完整題目與選項']);
+  if (!opts) return null;
+  const bracket = (correctRow['錯誤寫法']||'').match(/【(.+?)】/);
+  if (!bracket) return null;
+  const char = bracket[1];
+  const found = opts.find(o => o.text.includes(`【${char}】`) || o.text.includes(`「${char}」`));
+  return found ? String(found.key) : null;
+}
+
+function getAnswer(q) {
+  const uid = q['題目ID'] || q['題號'];
+  if (ANSWERS[uid] != null) return String(ANSWERS[uid]);
+  if (q._cz.length) return deriveAnswerCZ(q);
+  if (q._py.length) return deriveAnswerPY(q);
+  return null;
+}
+
+/* 測驗區塊 HTML */
+function buildQuizSection(q, uid) {
+  const qText = q['完整題目與選項'];
+  if (!qText) return '';
+  const opts = parseOptions(qText);
+  const qPart = opts
+    ? qText.substring(0, qText.search(/[（(][1-4１-４][)）]/)).trim()
+    : qText;
+  const answer = getAnswer(q);
+  const hasAnswer = answer != null;
+
+  const optButtons = opts ? opts.map(o => `
+    <button class="opt-btn" data-key="${o.key}"
+            onclick="selectOpt(this,'${esc(uid)}','${o.key}')">
+      <span class="opt-key">(${o.key})</span>
+      <span>${esc(o.text)}</span>
+    </button>`).join('') : '';
+
+  const hint = !hasAnswer ? `
+    <div class="quiz-set-hint">⚠️ 尚未設定答案 — 點選正確選項即可儲存</div>` : '';
+
+  return `
+<div class="quiz-section" id="quiz-${esc(uid)}">
+  <div class="q-question">${esc(qPart)}</div>
+  ${opts ? `<div class="quiz-options" id="opts-${esc(uid)}">${optButtons}</div>${hint}` :
+           `<div style="font-size:.9rem;color:#6b7280;padding:4px 0">（無法解析選項格式）</div>`}
+</div>`;
+}
+
+/* 點選選項 */
+function selectOpt(btn, uid, key) {
+  const container = document.getElementById('opts-' + uid);
+  if (!container) return;
+  const btns = container.querySelectorAll('.opt-btn');
+  const answer = ANSWERS[uid] != null ? String(ANSWERS[uid]) : null;
+
+  if (answer == null) {
+    // 老師設定答案模式
+    if (!confirm(`設定 (${key}) 為正確答案？`)) return;
+    ANSWERS[uid] = key;
+    saveAnswers();
+    btns.forEach(b => b.classList.add('revealed'));
+    btn.classList.remove('revealed');
+    btn.classList.add('correct');
+    document.querySelector(`#quiz-${uid} .quiz-set-hint`)?.remove();
+    return;
+  }
+
+  // 學生作答模式
+  btns.forEach(b => {
+    b.disabled = true;
+    b.classList.add('revealed');
+    if (String(b.dataset.key) === answer) b.classList.add('correct');
+  });
+  const isRight = String(key) === answer;
+  if (!isRight) btn.classList.add('wrong');
+
+  // 計分
+  if (isRight) { qRight++; } else { qWrong++; }
+  updateScore();
+}
+
+/* 切換測驗模式 */
+function toggleQuizMode() {
+  quizActive = !quizActive;
+  document.body.classList.toggle('quiz-mode', quizActive);
+  const btn = $('btnQuiz');
+  btn.textContent = quizActive ? '✕ 結束測驗' : '📝 測驗模式';
+  btn.style.background = quizActive ? '#dc2626' : '#7c3aed';
+  $('scoreBar').classList.toggle('visible', quizActive);
+  if (quizActive) { qRight = 0; qWrong = 0; updateScore(); resetOptButtons(); }
+}
+
+function resetOptButtons() {
+  document.querySelectorAll('.opt-btn').forEach(b => {
+    b.disabled = false;
+    b.classList.remove('correct','wrong','revealed');
+  });
+}
+
+function updateScore() {
+  $('scoreRight').textContent = qRight;
+  $('scoreWrong').textContent = qWrong;
+  const total = qRight + qWrong;
+  $('scoreTotal').textContent = total ? `正確率 ${Math.round(qRight/total*100)}%` : '';
+}
+
+function resetQuizScore() {
+  qRight = 0; qWrong = 0;
+  updateScore();
+  resetOptButtons();
+}
+
+/* 備課參考區塊 */
+function buildRefSection(q, uid) {
+  const items = [
+    ['💡 學生常見迷思', q['學生迷思'],     'box-y'],
+    ['🎯 教學策略',     q['教學策略'],     'box-g'],
+    ['🧠 記憶訣竅',     q['記憶訣竅'],     'box-b'],
+    ['🔤 讀音區分',     q['讀音區分摘要'], 'box-b'],
+  ].filter(([, v]) => v && v.trim());
+
+  if (!items.length) return '';
+
+  const inner = items.map(([lbl, val, cls]) => `
+    <div class="ref-item">
+      <div class="ref-lbl">${lbl}</div>
+      <div class="${cls}">${esc(val)}</div>
+    </div>`).join('');
+
+  return `
+  <button class="ref-toggle" onclick="toggleRef('ref-${esc(uid)}', this)">
+    <span>📖 備課參考（迷思・策略・訣竅）</span>
+    <span class="arrow">▼</span>
+  </button>
+  <div class="ref-body" id="ref-${esc(uid)}">${inner}</div>`;
+}
+
+function toggleRef(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const open = el.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+/* 列表版比較表 */
+function buildListTables(q) {
+  const parts = [];
+
+  if (q._py.length) parts.push(`
+    <div class="sec-label">破音字比較</div>
+    <table class="teach-tbl">
+      <thead><tr><th>來源</th><th>破音字</th><th>詞語</th><th>注音</th><th>字義說明</th></tr></thead>
+      <tbody>${q._py.map(r => `
+        <tr>
+          <td>${esc(r['來源'])}</td>
+          <td class="char-big">${esc(r['破音字'])}</td>
+          <td>${esc(r['詞語'])}</td>
+          <td class="reading">${esc(r['注音'])}</td>
+          <td>${esc(r['字義說明'])}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`);
+
+  if (q._cz.length) parts.push(`
+    <div class="sec-label">錯別字辨析</div>
+    <table class="teach-tbl">
+      <thead><tr><th>正誤</th><th>句中寫法</th><th>正確詞語</th><th>字義說明</th></tr></thead>
+      <tbody>${q._cz.map(r => `
+        <tr class="${(r['正誤']||'').includes('✓') ? 'row-ok' : 'row-err'}">
+          <td><strong>${esc(r['正誤'])}</strong></td>
+          <td>${esc(r['錯誤寫法'])}</td>
+          <td>${esc(r['正確詞語'])}</td>
+          <td>${esc(r['字義說明'])}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`);
+
+  if (q._xj.length) parts.push(`
+    <div class="sec-label">形近字 / 同音字辨析</div>
+    <table class="teach-tbl">
+      <thead><tr><th>字</th><th>語詞</th><th>解釋</th></tr></thead>
+      <tbody>${q._xj.map(r => `
+        <tr>
+          <td class="char-big">${esc(r['字'])}</td>
+          <td>${esc(r['語詞'])}</td>
+          <td>${esc(r['解釋'])}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`);
+
+  return parts.join('<div class="spacer"></div>');
+}
+
+/* ═══ 勾選控制 ════════════════════════════════════════════ */
+function onCheck(cb) {
+  const unit = document.getElementById('unit-' + cb.dataset.id);
+  if (unit) unit.classList.toggle('selected', cb.checked);
+  updateSelCount();
+}
+
+function updateSelCount() {
+  const checked = document.querySelectorAll('.unit-cb:checked').length;
+  $('selCnt').textContent = checked;
+  $('selInfo').style.display   = checked > 0 ? '' : 'none';
+  $('totalInfo').style.display = checked > 0 ? 'none' : '';
+}
+
+function selectAll() {
+  document.querySelectorAll('.unit-cb').forEach(cb => {
+    cb.checked = true;
+    const unit = document.getElementById('unit-' + cb.dataset.id);
+    if (unit) unit.classList.add('selected');
+  });
+  updateSelCount();
+}
+
+function selectNone() {
+  document.querySelectorAll('.unit-cb').forEach(cb => {
+    cb.checked = false;
+    const unit = document.getElementById('unit-' + cb.dataset.id);
+    if (unit) unit.classList.remove('selected');
+  });
+  updateSelCount();
+}
+
+/* ═══ 投影模式 ════════════════════════════════════════════ */
+function enterProjector() {
+  const checked = [...document.querySelectorAll('.unit-cb:checked')];
+  if (checked.length > 0) {
+    const selectedIds = new Set(checked.map(cb => cb.dataset.id));
+    projData = SHOWN.filter(q => selectedIds.has(q['題目ID'] || q['題號']));
+  } else {
+    projData = SHOWN;
+  }
+  if (!projData.length) { alert('請先篩選出要上課的題目'); return; }
+  projIdx = 0; projRevealed = false;
+  renderSlide();
+  $('projector').classList.add('active');
+  document.addEventListener('keydown', onKey);
+}
+
+function exitProjector() {
+  $('projector').classList.remove('active');
+  document.removeEventListener('keydown', onKey);
+}
+
+function onKey(e) {
+  if (e.key === 'Escape') { exitProjector(); return; }
+  if (e.key === 'ArrowRight' || e.key === ' ') {
+    e.preventDefault();
+    if (!projRevealed) revealQuestion();
+    else nextSlide();
+  }
+  if (e.key === 'ArrowLeft') prevSlide();
+  if (e.key === 't' || e.key === 'T') markTaughtInProjector();
+}
+
+function renderSlide() {
+  const q = projData[projIdx];
+  const total = projData.length;
+
+  /* 進度條 */
+  $('projProgress').style.width = `${((projIdx + 1) / total) * 100}%`;
+
+  /* 標頭 */
+  $('projBadges').innerHTML = `
+    <span class="badge ${gradeClass(q['年級'])}">${esc(q['年級'])}</span>
+    <span class="badge b-yr">${esc(q['年度'])} 年 第 ${esc(q['題號'])} 題</span>
+    ${q['類別']       ? `<span class="badge b-ct">${esc(q['類別'])}</span>`                     : ''}
+    ${q['難易度分級'] ? `<span class="badge ${diffClass(q['難易度分級'])}">${esc(q['難易度分級'])}</span>` : ''}`;
+  $('projTitle').textContent   = q['題目重點'] || '';
+  $('projCounter').textContent = `${projIdx + 1} / ${total}`;
+
+  /* 比較表（投影大字版） */
+  const tableHtml = buildProjTables(q);
+
+  /* 題目區 */
+  const qText = q['完整題目與選項'] || '';
+  const qHtml = qText ? `
+    <div class="proj-question${projRevealed ? '' : ' hidden'}" id="projQ">
+      <div class="proj-q-label">📝 題目與選項</div>
+      <div class="proj-q-text">${esc(qText)}</div>
+    </div>` : '';
+
+  $('projContent').innerHTML = tableHtml + qHtml;
+
+  /* 按鈕狀態 */
+  $('btnPrev').disabled = projIdx === 0;
+  $('btnNext').disabled = projIdx === total - 1;
+  $('btnReveal').style.display = (projRevealed || !qText) ? 'none' : '';
+
+  /* 已教過按鈕 */
+  const uid       = q['題目ID'] || q['題號'];
+  const taughtBtn = $('btnTaught');
+  if (TAUGHT.has(uid)) {
+    taughtBtn.textContent = '✅ 已教過';
+    taughtBtn.style.background = '#059669';
+  } else {
+    taughtBtn.textContent = '○ 標記已教';
+    taughtBtn.style.background = '#047857';
+  }
+}
+
+/* 投影版比較表（大字）*/
+function buildProjTables(q) {
+  const parts = [];
+
+  if (q._py.length) parts.push(`
+    <div>
+      <div class="proj-sec-label">▎ 破音字比較</div>
+      <table class="proj-tbl">
+        <thead><tr><th>來源</th><th>破音字</th><th>詞語</th><th>注音</th><th>字義說明</th></tr></thead>
+        <tbody>${q._py.map(r => `
+          <tr>
+            <td>${esc(r['來源'])}</td>
+            <td class="proj-char">${esc(r['破音字'])}</td>
+            <td>${esc(r['詞語'])}</td>
+            <td class="proj-reading">${esc(r['注音'])}</td>
+            <td>${esc(r['字義說明'])}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`);
+
+  if (q._cz.length) parts.push(`
+    <div>
+      <div class="proj-sec-label">▎ 錯別字辨析</div>
+      <table class="proj-tbl">
+        <thead><tr><th>正誤</th><th>句中寫法</th><th>正確詞語</th><th>字義說明</th></tr></thead>
+        <tbody>${q._cz.map(r => `
+          <tr class="${(r['正誤']||'').includes('✓') ? 'proj-row-ok' : 'proj-row-err'}">
+            <td><strong>${esc(r['正誤'])}</strong></td>
+            <td>${esc(r['錯誤寫法'])}</td>
+            <td>${esc(r['正確詞語'])}</td>
+            <td>${esc(r['字義說明'])}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`);
+
+  if (q._xj.length) parts.push(`
+    <div>
+      <div class="proj-sec-label">▎ 形近字 / 同音字辨析</div>
+      <table class="proj-tbl">
+        <thead><tr><th>字</th><th>語詞</th><th>解釋</th></tr></thead>
+        <tbody>${q._xj.map(r => `
+          <tr>
+            <td class="proj-char">${esc(r['字'])}</td>
+            <td>${esc(r['語詞'])}</td>
+            <td>${esc(r['解釋'])}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`);
+
+  return parts.join('');
+}
+
+function revealQuestion() {
+  projRevealed = true;
+  const el = $('projQ');
+  if (el) el.classList.remove('hidden');
+  $('btnReveal').style.display = 'none';
+}
+
+function nextSlide() {
+  if (projIdx < projData.length - 1) { projIdx++; projRevealed = false; renderSlide(); }
+}
+
+function prevSlide() {
+  if (projIdx > 0) { projIdx--; projRevealed = false; renderSlide(); }
+}
+
+/* ═══ 事件 & 啟動 ════════════════════════════════════════ */
+['fGrade','fYear','fCat','fDiff','fTaught'].forEach(id => $(id).addEventListener('change', applyFilter));
+loadData();
+</script>
+</body>
+</html>
