@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+      background-color: #f8fafc;
+    }
+
+    /* 卡片特效 */
+    .card {
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      border-color: #3b82f6;
+    }
+
+    /* 彈出視窗特效 */
+    .modal-backdrop {
+      background-color: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-container {
+      height: 90vh;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 卷軸美化 */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 5px;
+      border: 2px solid #f1f1f1;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .loader {
+      border-top-color: #3b82f6;
+      animation: spinner 1.0s linear infinite;
+    }
+
+    @keyframes spinner {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* 手機版彈出視窗修正 */
+    @media (max-width: 767px) {
+      .modal-container {
+        height: 95vh;
+      }
+
+      .modal-left-panel {
+        max-height: 40vh;
+        overflow-y: auto;
+        border-right: none !important;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .modal-right-panel {
+        max-height: 55vh;
+        overflow-y: auto;
+      }
+    }
+
+    /* 列印樣式 */
+    @media print {
+      body>*:not(#printArea) {
+        display: none !important;
+      }
+
+      #printArea {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        font-family: "Microsoft JhengHei", sans-serif;
+        font-size: 13pt;
+        line-height: 1.8;
+        color: #000;
+      }
+
+      #printArea h1 {
+        font-size: 18pt;
+        font-weight: bold;
+        margin-bottom: 6pt;
+      }
+
+      #printArea .print-badge {
+        display: inline-block;
+        border: 1px solid #999;
+        padding: 1pt 4pt;
+        border-radius: 3pt;
+        font-size: 10pt;
+        margin-right: 4pt;
+      }
+
+      #printArea .print-section {
+        margin-top: 14pt;
+        padding-top: 10pt;
+        border-top: 1pt solid #ccc;
+      }
+
+      #printArea .print-label {
+        font-size: 9pt;
+        font-weight: bold;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.5pt;
+      }
+
+      #printArea .print-fulltext {
+        font-size: 12pt;
+        line-height: 2;
+        white-space: pre-line;
+        background: #f8f8f8;
+        padding: 10pt;
+        border: 1pt solid #ddd;
+        border-radius: 4pt;
+        margin-top: 6pt;
+      }
+
+      #printArea .print-question-block {
+        margin-top: 16pt;
+        padding: 10pt;
+        border: 1pt solid #bbb;
+        border-radius: 4pt;
+        break-inside: avoid;
+      }
+
+      #printArea .print-misconception {
+        background: #fff0f0;
+        padding: 8pt;
+        border-left: 3pt solid #e00;
+        margin-top: 8pt;
+      }
+
+      #printArea .print-strategy {
+        background: #f0fff4;
+        padding: 8pt;
+        border-left: 3pt solid #080;
+        margin-top: 8pt;
+      }
+    }
+
+    /* 首次使用說明覆層 */
+    #onboardingOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #onboardingBox {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 2rem;
+      max-width: 540px;
+      width: 90%;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .onboard-tip {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .onboard-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      line-height: 1.4;
+    }
+
+    .copy-strategy-btn {
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .bg-green-50:hover .copy-strategy-btn {
+      opacity: 1;
+    }
+
+    /* 簡報模式 */
+    #presentModal {
+      background: #0f172a;
+      --pres-font-scale: 1;
+    }
+
+    #presentModal .pres-text {
+      font-size: calc(clamp(1.1rem, 2vw, 1.5rem) * var(--pres-font-scale));
+      line-height: 2.2;
+    }
+
+    #presentModal .pres-question {
+      font-size: calc(clamp(1.2rem, 2.2vw, 1.7rem) * var(--pres-font-scale));
+    }
+
+    .present-btn {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    }
+
+    .present-btn:hover {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    }
+
+    /* 分隔線拖曳 */
+    #presDivider {
+      width: 6px;
+      cursor: col-resize;
+      background: #334155;
+      flex-shrink: 0;
+      transition: background 0.2s;
+      user-select: none;
+    }
+
+    #presDivider:hover,
+    #presDivider.dragging {
+      background: #3b82f6;
+    }
+
+    /* 面板隱藏 */
+    #presLeftPanel.collapsed,
+    #presRightPanel.collapsed {
+      display: none;
+    }
+
+    .panel-toggle-btn {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .panel-toggle-btn.active {
+      background: #1e40af;
+      color: #bfdbfe;
+    }
+
+    /* 教師/學生模式 */
+    .teacher-only {
+      display: none;
+    }
+
+    body.teacher-mode .teacher-only {
+      display: block;
+    }
+
+    #modeToggleBtn.teacher {
+      background: #d97706;
+      border-color: #f59e0b;
+      color: white;
+    }
+
+    #modeToggleBtn.student {
+      background: #1e3a5f;
+      border-color: #3b82f6;
+      color: #93c5fd;
+    }
+  </style>
+</head>
+
+<body class="p-4 md:p-6 min-h-screen text-gray-800 bg-slate-50">
+
+  <div class="max-w-7xl mx-auto">
+    <header class="mb-6 text-center">
+      <h1 class="text-3xl font-extrabold text-gray-900 mb-1 tracking-tight">📚 閱讀教學策略資料庫</h1>
+      <p class="text-gray-500 text-sm">支援依「認知歷程」快篩文章，一次檢視完整教學策略</p>
+    </header>
+
+    <div class="bg-white p-4 rounded-xl shadow-sm mb-6 sticky top-2 z-20 border border-gray-200">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <select id="yearFilter" onchange="filterData()"
+          class="w-full p-2.5 border rounded-lg bg-gray-50 font-medium cursor-pointer hover:bg-gray-100 transition">
+          <option value="">📅 全部年度</option>
+        </select>
+        <select id="gradeFilter" onchange="filterData()"
+          class="w-full p-2.5 border rounded-lg bg-gray-50 font-medium cursor-pointer hover:bg-gray-100 transition">
+          <option value="">🏫 全部年級</option>
+        </select>
+        <select id="processFilter" onchange="filterData()"
+          class="w-full p-2.5 border rounded-lg bg-gray-50 font-medium cursor-pointer hover:bg-gray-100 transition text-blue-700 font-bold bg-blue-50/50">
+          <option value="">🧠 全部認知歷程</option>
+        </select>
+        <select id="genreFilter" onchange="filterData()"
+          class="w-full p-2.5 border rounded-lg bg-gray-50 font-medium cursor-pointer hover:bg-gray-100 transition">
+          <option value="">📖 全部文體</option>
+        </select>
+        <input type="text" id="searchInput" onkeyup="filterData()" placeholder="搜尋文章標題..."
+          class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div class="mt-2 text-right text-sm text-gray-500">共找到 <span id="count"
+          class="text-blue-600 font-bold text-lg">0</span> 篇教材</div>
+    </div>
+
+    <div id="loading" class="flex justify-center py-20">
+      <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-10 w-10"></div>
+    </div>
+
+    <div id="errorMsg" class="hidden mx-auto max-w-lg mt-10 p-5 bg-red-50 border border-red-300 rounded-lg text-center">
+      <p class="text-red-700 font-bold text-lg mb-2">⚠️ 無法連接資料庫</p>
+      <p id="errorDetail" class="text-red-600 text-sm"></p>
+    </div>
+
+    <div id="cardContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pb-10"></div>
+  </div>
+
+  <div id="detailModal" class="fixed inset-0 z-50 hidden modal-backdrop flex items-center justify-center p-4"
+    onclick="closeModal(event)">
+    <div
+      class="bg-white rounded-2xl shadow-2xl w-full max-w-[90rem] modal-container overflow-hidden ring-1 ring-gray-900/5"
+      onclick="event.stopPropagation()">
+
+      <div class="px-6 py-4 border-b flex-none bg-gray-50 flex justify-between items-center z-10 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center gap-3 overflow-hidden">
+          <div class="flex gap-2 flex-shrink-0">
+            <span id="modalGrade" class="bg-blue-600 text-white text-sm font-bold px-2.5 py-1 rounded"></span>
+            <span id="modalGenre"
+              class="bg-orange-100 text-orange-700 text-sm font-bold px-2.5 py-1 rounded border border-orange-200"></span>
+          </div>
+          <h2 id="modalTitle" class="text-2xl font-bold text-gray-900 truncate"></h2>
+          <span id="modalQuestionCount"
+            class="bg-gray-200 text-gray-700 text-xs font-bold px-2 py-1 rounded-full"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="printModal()"
+            class="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-100 transition" title="列印">
+            🖨️
+          </button>
+          <button onclick="closeModal()"
+            class="text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-gray-200 transition">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-grow flex flex-col md:flex-row overflow-hidden relative">
+
+        <div class="modal-left-panel md:w-5/12 flex flex-col border-r border-gray-200 bg-gray-50 md:h-full">
+          <div class="p-3 bg-gray-100 border-b border-gray-200 flex justify-between items-center flex-none">
+            <h3 class="text-sm font-bold text-gray-600 flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
+              </svg>
+              文章全文
+            </h3>
+          </div>
+          <div class="p-6 overflow-y-auto flex-grow scroll-smooth">
+            <div id="modalFullText"
+              class="text-lg leading-9 text-gray-800 font-serif whitespace-pre-line text-justify tracking-wide"></div>
+          </div>
+        </div>
+
+        <div class="modal-right-panel md:w-7/12 flex flex-col bg-white md:h-full relative">
+          <div class="p-3 bg-white border-b border-gray-100 shadow-sm z-10 flex-none sticky top-0">
+            <h3 class="text-sm font-bold text-blue-600 flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z">
+                </path>
+              </svg>
+              相關試題與教學策略
+            </h3>
+          </div>
+
+          <div id="modalQuestionsContainer" class="p-6 overflow-y-auto flex-grow pb-24 space-y-12">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 簡報模式 Overlay ===================== -->
+  <div id="presentModal" class="fixed inset-0 z-[100] hidden flex-col text-white" style="display:none;">
+    <!-- 頂部控制列 -->
+    <div
+      class="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 flex-shrink-0 gap-3 flex-wrap">
+      <div class="flex items-center gap-2">
+        <span id="presGrade" class="bg-blue-500 text-white text-sm font-bold px-2 py-1 rounded"></span>
+        <span id="presGenre" class="bg-amber-500 text-white text-sm font-bold px-2 py-1 rounded"></span>
+        <h2 id="presTitle" class="text-lg font-bold text-white"></h2>
+      </div>
+      <!-- 面板切換按鈕 -->
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 text-xs">顯示：</span>
+        <button id="toggleLeft" onclick="togglePanel('left')" class="panel-toggle-btn active">📄 文章</button>
+        <button id="toggleRight" onclick="togglePanel('right')" class="panel-toggle-btn active">❓ 試題</button>
+      </div>
+      <!-- 教師/學生模式切換 -->
+      <div class="flex items-center gap-2">
+        <button id="modeToggleBtn" onclick="toggleTeacherMode()"
+          class="student px-3 py-1 rounded border text-xs font-bold transition">
+          👨‍🏫 教師模式
+        </button>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="presCounter" class="text-slate-300 text-sm font-mono">1 / 1</span>
+        <!-- 字體大小調整 -->
+        <div class="flex items-center gap-1">
+          <button onclick="changePresFont(-0.1)"
+            class="w-7 h-7 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold transition" title="縮小字體">A-</button>
+          <button onclick="resetPresFont()"
+            id="presFontLabel"
+            class="px-2 h-7 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-mono transition" title="重設字體大小">100%</button>
+          <button onclick="changePresFont(0.1)"
+            class="w-7 h-7 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold transition" title="放大字體">A+</button>
+        </div>
+        <button onclick="closePresentMode()"
+          class="text-slate-400 hover:text-white px-3 py-1 rounded border border-slate-600 hover:border-white transition text-sm">
+          ✕ 結束簡報
+        </button>
+      </div>
+    </div>
+
+    <!-- 主內容區：左文章 + 拖曳分隔線 + 右題目 -->
+    <div id="presContentArea" class="flex flex-1 overflow-hidden select-none">
+      <!-- 左：文章全文 -->
+      <div id="presLeftPanel" class="flex flex-col border-r border-slate-700 bg-slate-900 overflow-hidden"
+        style="width:41.67%">
+        <div class="px-4 py-2 bg-slate-800 text-slate-400 text-xs font-bold uppercase tracking-widest flex-shrink-0">📄
+          文章全文</div>
+        <div class="flex-1 overflow-y-auto p-8">
+          <div id="presFullText"
+            class="pres-text text-slate-200 font-serif whitespace-pre-line leading-loose tracking-wide"></div>
+        </div>
+      </div>
+
+      <!-- 拖曳分隔線 -->
+      <div id="presDivider" onmousedown="startDrag(event)"></div>
+
+      <!-- 右：題目（一次一題） -->
+      <div id="presRightPanel" class="flex flex-col bg-slate-950 overflow-hidden flex-1">
+        <div class="px-4 py-2 bg-slate-800 text-blue-400 text-xs font-bold uppercase tracking-widest flex-shrink-0">❓ 試題
+        </div>
+        <div class="flex-1 overflow-y-auto p-8">
+          <div class="flex flex-wrap items-center gap-2 mb-6">
+            <span id="presCognitive" class="bg-blue-800 text-blue-200 text-sm font-bold px-3 py-1 rounded"></span>
+            <span id="presMaterial" class="bg-purple-900 text-purple-300 text-sm font-bold px-3 py-1 rounded"></span>
+            <span id="presPoint" class="text-slate-400 text-sm"></span>
+          </div>
+          <div id="presQuestion" class="pres-question text-white font-bold leading-relaxed whitespace-pre-line"></div>
+
+          <!-- 教師模式才顯示的區塊 -->
+          <div class="teacher-only mt-6 space-y-4">
+            <div class="bg-red-950 border border-red-800 rounded-xl p-5">
+              <p class="text-red-400 text-xs font-bold mb-2 uppercase tracking-widest">⚠️ 學生迷思 / 錯誤原因</p>
+              <p id="presMisconception" class="text-red-200 text-base leading-relaxed"></p>
+            </div>
+            <div class="bg-green-950 border border-green-800 rounded-xl p-5">
+              <p class="text-green-400 text-xs font-bold mb-2 uppercase tracking-widest">💡 教學策略</p>
+              <p id="presStrategyName" class="text-green-300 font-bold text-base mb-3"></p>
+              <div id="presStrategySteps"
+                class="text-green-100 text-base leading-8 whitespace-pre-line border-l-2 border-green-600 pl-4"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部導覽 -->
+    <div class="flex items-center justify-center gap-6 py-3 bg-slate-800 border-t border-slate-700 flex-shrink-0">
+      <button id="presPrevBtn" onclick="navigatePresentation(-1)"
+        class="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 transition disabled:opacity-30 disabled:cursor-not-allowed font-bold">
+        ← 上一題
+      </button>
+      <div class="flex gap-2" id="presDots"></div>
+      <button id="presNextBtn" onclick="navigatePresentation(1)"
+        class="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 transition disabled:opacity-30 disabled:cursor-not-allowed font-bold">
+        下一題 →
+      </button>
+    </div>
+  </div>
+  <!-- ===================== 簡報模式 END ===================== -->
+
+  <script>
+    let rawData = [];
+    let groupedData = [];
+    let currentFilteredData = [];
+
+    window.onload = function () {
+      google.script.run
+        .withSuccessHandler(onSuccess)
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('errorMsg').classList.remove('hidden');
+          document.getElementById('errorDetail').textContent = error.message || JSON.stringify(error);
+        })
+        .getData();
+    };
+
+    function onSuccess(data) {
+      rawData = data;
+      document.getElementById('loading').style.display = 'none';
+
+      // 分組並提取所有認知歷程
+      groupedData = groupDataByArticle(rawData);
+
+      initFilters();
+      currentFilteredData = groupedData;
+      renderCards(groupedData);
+      showOnboarding(); // 首次使用說明
+    }
+
+    // ===========================
+    // 資料處理：分組 + 收集認知歷程
+    // ===========================
+    function groupDataByArticle(data) {
+      const groups = {};
+
+      data.forEach(row => {
+        const title = row['文本標題'] || '無標題';
+        const year = row['年度'] || '';
+  const grade = row['年級'] || '';
+        const key = `${year}_${grade}_${title}`;
+
+        if (!groups[key]) {
+          groups[key] = {
+            '識別碼': key,
+            '年度': year,
+            '年級': grade,
+            '文本標題': title,
+            '文本類型': row['文本類型'],
+            '文章全文': row['文章全文'],
+            '題目列表': [],
+            '認知歷程集合': new Set() // 新增：用來收集這篇文章涵蓋的所有認知歷程
+          };
+        }
+
+        if (!groups[key]['文章全文'] && row['文章全文']) {
+          groups[key]['文章全文'] = row['文章全文'];
+        }
+
+        const process = row['認知歷程'];
+        if (process) {
+          groups[key]['認知歷程集合'].add(process); // 收集不重複的認知歷程
+        }
+
+        groups[key]['題目列表'].push({
+          '考點': row['考點/題目重點'],
+          '認知歷程': process,
+          '完整題目': row['完整題目'],
+          '學生迷思': row['學生迷思/錯誤原因'],
+          '策略名稱': row['教學策略名稱'],
+          '策略步驟': row['具體教學步驟'],
+          '教材編號': row['對應教材編號']
+        });
+      });
+
+      // 將 Set 轉回 Array 以便渲染
+      return Object.values(groups).map(g => {
+        g['認知歷程列表'] = Array.from(g['認知歷程集合']).sort();
+        return g;
+      });
+    }
+
+    // ===========================
+    // 1. 初始化篩選選單 (修改版：文體改為固定選項)
+    // ===========================
+    function initFilters() {
+      populateSelect('yearFilter', '年度');
+      populateSelect('gradeFilter', '年級');
+
+      // -始：文體選單不再自動抓取，而是固定這四個 ---
+      const genreSelect = document.getElementById('genreFilter');
+      genreSelect.innerHTML = '<option value="">📖 全部</option>'; // 清空並重設預設值
+
+      const mainGenres = ['記敘文', '說明文', '應用文', '童詩'];
+      mainGenres.forEach(val => {
+        const option = document.createElement('option');
+        option.value = val;
+        option.textContent = val;
+        genreSelect.appendChild(option);
+     });
+      // --- 修改結束 ---
+
+      // 認知歷程維持原樣
+      const processSelect = document.getElementById('processFilter');
+      const processes = new Set();
+      rawData.forEach(item => {
+        if (item['認知歷程']) processes.add(item['認知歷程']);
+      });
+      [...processes].forEach(val => {
+        const option = document.createElement('option');
+        option.value = val;
+        option.textContent = val;
+        processSelect.appendChild(option);
+      });
+    }
+
+    // 其他 populateSelect 維持不變...
+    function populateSelect(elementId, key) {
+      const select = document.getElementById(elementId);
+      const uniqueValues = [...new Set(groupedData.map(item => String(item[key] || '')).filter(v => v))].sort();
+   niqueValues.forEach(val => {
+        const option = document.createElement('option');
+        option.value = val;
+        option.textContent = val;
+        select.appendChild(option);
+      });
+    }
+
+    function populateSelect(elementId, key) {
+      const select = document.getElementById(elementId);
+      const uniqueValues = [...new Set(groupedData.map(item => String(item[key] || '')).filter(v => v))].sort();
+      uniqueValues.forEach(val => {
+        const option = document.createElement('option');
+        option.value = val;
+        option.textContent = val;
+        select.appendChild(option);
+      });
+    }
+
+    // ===========================
+    // 搜尋邏輯：包含認知歷程判斷
+    // ===========================
+    function filterData() {
+      const year = document.getElementById('yearFilter').value;
+      const grade = document.getElementById('gradeFilter').value;
+      const genre = document.getElementById('genreFilter').value; // 這裡抓到的是四大類之一
+      const process = document.getElementById('processFilter').value;
+      const keyword = document.getElementById('searchInput').value.toLowerCase();
+
+      const filtered = groupedData.filter(article => {
+        const itemYear = article['年度'] ? String(article['年度']) : '';
+        const itemGrade = article['年級'] || '';
+        const itemGenre = article['文本類型'] || ''; // 這是 Excel 裡的詳細分類 (如: 寓言)
+
+        // --- 文體智慧對應邏輯 ---
+        let isGenreMatch = false;
+        if (genre === '') {
+          isGenreMatch = true; // 沒選就全都要
+        } else if (genre === '記敘文') {
+          // 選記敘文時，同時要把 故事、寓言、傳說、傳記... 都算進來
+          if (itemGenre.includes('記敘') || itemGenre.includes('故事') || itemGenre.includes('寓言') || itemGenre.includes('傳說') || itemGenre.includes('傳記') || itemGenre.includes('小說')) isGenreMatch = true;
+        } else if (genre === '說明文') {
+          // 選說明文時，要把 非連續文本、圖文... 都算進來
+          if (itemGenre.includes('說明') || itemGenre.includes('非連續') || itemGenre.includes('圖文') || itemGenre.includes('科普')) isGenreMatch = true;
+        } else if (genre === '應用文') {
+          // 選應用文時，要把 海報、通告、書信... 都算進來
+          if (itemGenre.includes('應用') || itemGenre.includes('書信') || itemGenre.includes('便條') || itemGenre.includes('海報') || itemGenre.includes('啟事')) isGenreMatch = true;
+        } else if (genre === '童詩') {
+          // 選童詩時，要把 詩歌 都算進來
+          if (itemGenre.includes('詩')) isGenreMatch = true;
+        }
+        // 認知歷程邏輯
+        const hasProcess = process === '' || article['認知歷程列表'].includes(process);
+
+        const contentString = (article['文本標題'] + JSON.stringify(article['題目列表'])).toLowerCase();
+
+        return (year === '' || itemYear === year) &&
+          (grade === '' || itemGrade === grade) &&
+          isGenreMatch && // 使用新的判斷變數
+          hasProcess &&
+          (keyword === '' || contentString.includes(keyword));
+      });
+
+      currentFilteredData = filtered;
+      renderCards(filtered);
+    }
+
+    function renderCards(data) {
+      const container = document.getElementById('cardContainer');
+      document.getElementById('count').textContent = data.length;
+      container.innerHTML = '';
+
+      if (data.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-10">無符合資料</div>';
+        return;
+      }
+
+      data.forEach((article, index) => {
+        const qCount = article['題目列表'].length;
+
+        // 產生 (Badges)
+        const processBadges = article['認知歷程列表'].map(p =>
+          `<span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded border border-gray-200 mr-1 mb-1 inline-block">${p}</span>`
+        ).join('');
+
+        const card = `
+            <div class="card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-full relative group">
+              <div class="px-5 pt-4 flex justify-between items-start">
+                  <div class="flex gap-2">
+                     <span class="bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded">${article['年度']}</span>
+                     <span class="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">${article['年級']}</span>
+                  </div>
+                  <span class="bg-orange-50 text-orange-700 text-xs font-bold px-2 py-1 rounded border border-orange-100">${article['文本類型']}</span>
+              </div>
+              
+              <div onclick="openModal(${index})" class="px-5 pb-20 flex-grow pt-3 cursor-pointer">
+                <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition">${article['文本標題']}</h3>
+                
+                <div class="mb-3">
+                  <span class="inline-block bg-blue-50 text-blue-600 text-xs font-bold px-2 py-1 rounded-full mb-2">
+                    包含 ${qCount} 個試題
+                  </span>
+                  <div class="flex flex-wrap mt-1">
+                    ${processBadges}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="absolute bottom-0 left-0 right-0 flex border-t border-gray-100">
+                 <button onclick="openModal(${index})" class="flex-1 py-3 text-blue-600 font-bold text-sm flex items-center justify-center gap-1 hover:bg-gray-50 transition border-r border-gray-100">
+                    詳細資訊 →
+                 </button>
+                 <button onclick="openPresentMode(${index}, event)" class="px-4 py-3 present-btn text-white font-bold text-sm flex items-center justify-center gap-1 hover:opacity-90 transition" title="簡報模式">
+                    📺
+                 </button>
+              </div>
+            </div>
+          `;
+        container.innerHTML += card;
+      });
+    }
+
+    // ===========================
+    // 彈出視窗：智慧聚焦版
+    // ===================
+    function openModal(index) {
+      const article = currentFilteredData[index];
+      if (!article) return;
+      // 1. 取得目前使用者選了哪個認知歷程
+      const selectedProcess = document.getElementById('processFilter').value;
+
+      // 基本資料填寫
+      document.getElementById('modalGrade').textContent = article['年級'];
+      document.getElementById('modalGenre').textContent = article['文本類型'];
+      document.getElementById('modalTitle').textContent = article['文本標題'];
+      document.getElementById('modalQuestionCount').textContent = `共 ${article['題目列表'].length} 題`;
+      document.getElementById('modalFullText').textContent = article['文章全文'] || '（尚無全文資料）';
+
+      const container = document.getElementById('modalQuestionsContainer');
+      container.innerHTML = '';
+
+      // 用來記錄第一個符合條件的題目 ID，稍後自動捲動用
+      let firstMatchId = null;
+      article['題目列表'].forEach((q, i) => {
+        // 判斷這一題是否符合目前的篩選條件
+        // 如果沒選篩選(selectedProcess==='')，則每一題都算 isMatch
+        const isMatch = selectedProcess === '' || q['認知歷程'] === selectedProcess;
+
+        // 樣式邏輯：
+        // 如果符合：正常顯示 + 藍色粗邊框 + 背景微亮
+        // 如果不符：半透明 (opacity-40) + 灰色邊框
+        let containerClass = ""; let badgeHtml = "";
+
+        if (isMatch) {
+          containerClass = "border-l-8 border-blue-500 bg-blue-50/20 shadow-sm ring-1 ring-blue-100";
+          // 如果有選篩選條件，才顯示「命中」標籤
+          if (selectedProcess !== '') {
+            badgeHtml = `<span class="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded shadow-sm animate-pulse">🎯 本次篩選重點</span>`;
+            // 記錄第一個命中的 ID
+            if (!firstMatchId) firstMatchId = `question-${i}`;
+          }
+        } else {
+          containerClass = "border-l-4 border-gray-200 opacity-40 hover:opacity-100 transition-opacity grayscale hover:grayscale-0"; // 平常淡化，滑鼠移過去會變清楚
+        }
+
+        // 認知歷程標籤顏色 (命中時變深藍，未命中變灰)
+        const processTagColor = isMatch
+          ? "bg-blue-100 text-blue-700 border-blue-200"
+          : "bg-gray-100 text-gray-500 border-gray-200";
+
+        const questionBlock = `
+             <div id="question-${i}" class="relative pl-6 py-4 rounded-r-xl transition-all duration-300 ${containerClass} mb-8">
+                
+                <div class="absolute -left-[1.2rem] top-4 ${isMatch ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-gray-200 text-gray-500'} font-bold w-9 h-9 rounded-full flex items-center justify-center border-2 border-white shadow-sm z-10">
+                  ${i + 1}
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 mb-3">
+                   ${badgeHtml}
+                   <span class="${processTagColor} text-xs font-bold px-2 py-0.5 rounded border">${q['認知歷程'] || '未標示'}</span>
+                   <span class="bg-purple-50 text-purple-700 text-xs font-bold px-2 py-0.5 rounded border border-purple-100">教材: ${q['教材編號'] || '--'}</span>
+                </div>
+
+                <div class="mb-4">
+                   <h4 class="font-bold text-lg text-gray-900 mb-2">${q['考點'] || '無考點說明'}</h4>
+                   <div class="bg-white p-4 rounded-lg border ${isMatch ? 'border-blue-200' : 'border-gray-200'} text-gray-800 text-base whitespace-pre-line shadow-sm">
+                     ${q['完整題目'] || q['考點'] || '（無完整題目）'}
+                   </div>
+                </div>
+
+                <div class="mb-4 bg-red-50 p-4 rounded-lg border border-red-100">
+                    <p class="text-xs text-red-500 font-bold mb-1">⚠️ 學生迷思</p>
+                    <p class="text-sm text-gray-800">${q['學生迷思'] || '無資料'}</p>
+                </div>
+
+                 <div class="bg-green-50 p-5 rounded-xl border border-green-100">
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                      <div class="flex items-center gap-2">
+                        <span class="bg-green-600 text-white text-xs font-bold px-2 py-0.5 rounded">策略</span>
+                        <h5 class="text-base font-bold text-green-800">${q['策略名稱'] || '未命名'}</h5>
+                      </div>
+                      <button onclick="copyStrategy(this)" data-text="策略：${q['策略名稱'] || ''}
+${q['策略步驟'] || ''}"
+                        class="copy-strategy-btn text-xs text-green-700 border border-green-300 px-2 py-0.5 rounded hover:bg-green-100 transition" title="複製策略">
+                        📋 複製
+                      </button>
+                    </div>
+                    <div class="text-gray-700 text-base leading-7 whitespace-pre-line pl-2 border-l-2 border-green-300">
+                       ${q['策略步驟'] || '無步驟資料'}
+                    </div>
+                 </div>
+             </div>
+           `;
+        container.innerHTML += questionBlock;
+      });
+
+      // 顯示視窗
+      const modal = document.getElementById('detailModal');
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+
+      // 自動捲動到第一個符合的題目 (延遲一下確保渲染完成)
+      if (firstMatchId) {
+        setTimeout(() => {
+          const target = document.getElementById(firstMatchId);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    }
+
+    function closeModal(event) {
+      if (event && event.target.id !== 'detailModal') return;
+      document.getElementById('detailModal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    function printModal() {
+      const title = document.getElementById('modalTitle').textContent;
+      const grade = document.getElementById('modalGrade').textContent;
+      const genre = document.getElementById('modalGenre').textContent;
+      const fullText = document.getElementById('modalFullText').textContent;
+      const currentArticle = currentFilteredData.find(a => a['文本標題'] === title);
+      if (!currentArticle) { window.print(); return; }
+
+      let printHtml = `
+        <h1>${title}</h1>
+        <div style="margin-bottom:10pt">
+          <span class="print-badge">${grade}</span>
+          <span class="print-badge">${genre}</span>
+          <span class="print-badge">共 ${currentArticle['題目列表'].length} 題</span>
+        </div>
+        <div class="print-section">
+          <div class="print-label">📄 文章全文</div>
+          <div class="print-fulltext">${fullText}</div>
+        </div>
+        <div class="print-section">
+          <div class="print-label">❓ 試題與教學策略</div>`;
+
+      currentArticle['題目列表'].forEach((q, i) => {
+        printHtml += `
+          <div class="print-question-block">
+            <div style="font-size:9pt;color:#555;margin-bottom:6pt">
+              第 ${i + 1} 題　認知歷程：${q['認知歷程'] || '--'}　教材：${q['教材編號'] || '--'}
+            </div>
+            <div style="font-weight:bold;font-size:12pt;margin-bottom:6pt">${q['考點'] || ''}</div>
+            <div style="white-space:pre-line;padding:6pt;border:1pt solid #ddd;border-radius:3pt">${q['完整題目'] || q['考點'] || ''}</div>
+            <div class="print-misconception"><strong>⚠️ 學生迷思：</strong>${q['學生迷思'] || '無資料'}</div>
+            <div class="print-strategy"><strong>教學策略「${q['策略名稱'] || ''}」：</strong><br>${q['策略步驟'] || '無步驟資料'}</div>
+          </div>`;
+      });
+
+      printHtml += `</div>`;
+
+      // 直接將 printArea 加到 body（不多一層包裝）
+      const div = document.createElement('div');
+      div.id = 'printArea';
+      div.innerHTML = printHtml;
+      document.body.appendChild(div);
+      window.print();
+      document.body.removeChild(div);
+    }
+
+
+    // =============================================
+    // 簡報模式
+    // =============================================
+    let presArticle = null;
+    let presIndex = 0;
+    let presFontScale = 1;
+
+    function changePresFont(delta) {
+      presFontScale = Math.min(2.0, Math.max(0.5, presFontScale + delta));
+      document.getElementById('presentModal').style.setProperty('--pres-font-scale', presFontScale);
+      document.getElementById('presFontLabel').textContent = Math.round(presFontScale * 100) + '%';
+    }
+
+    function resetPresFont() {
+      presFontScale = 1;
+      document.getElementById('presentModal').style.setProperty('--pres-font-scale', 1);
+      document.getElementById('presFontLabel').textContent = '100%';
+    }
+
+    function openPresentMode(index, event) {
+      if (event) event.stopPropagation();
+      presArticle = currentFilteredData[index];
+      if (!presArticle) return;
+      presIndex = 0;
+
+      document.getElementById('presTitle').textContent = presArticle['文本標題'];
+      document.getElementById('presGrade').textContent = presArticle['年級'];
+      document.getElementById('presGenre').textContent = presArticle['文本類型'];
+      document.getElementById('presFullText').textContent = presArticle['文章全文'] || '（尚無全文資料）';
+
+      renderPresQuestion();
+
+      const modal = document.getElementById('presentModal');
+      modal.style.display = 'flex';
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+
+      document.addEventListener('keydown', handlePresKey);
+    }
+
+    function renderPresQuestion() {
+      const q = presArticle['題目列表'][presIndex];
+      const total = presArticle['題目列表'].length;
+
+      document.getElementById('presCounter').textContent = `${presIndex + 1} / ${total}`;
+      document.getElementById('presCognitive').textContent = q['認知歷程'] || '未標示';
+      document.getElementById('presMaterial').textContent = `教材: ${q['教材編號'] || '--'}`;
+      document.getElementById('presPoint').textContent = q['考點'] || '';
+      document.getElementById('presQuestion').textContent = q['完整題目'] || q['考點'] || '（無題目）';
+
+      // 教師模式區塊
+      document.getElementById('presMisconception').textContent = q['學生迷思'] || '無資料';
+      document.getElementById('presStrategyName').textContent = q['策略名稱'] || '未命名';
+      document.getElementById('presStrategySteps').textContent = q['策略步驟'] || '無步驟資料';
+
+      // 點點導覽
+      const dots = document.getElementById('presDots');
+      dots.innerHTML = '';
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('button');
+        dot.className = `w-2.5 h-2.5 rounded-full transition-all ${i === presIndex ? 'bg-blue-400 scale-125' : 'bg-slate-600 hover:bg-slate-400'}`;
+        dot.onclick = () => { presIndex = i; renderPresQuestion(); };
+        dots.appendChild(dot);
+      }
+
+      document.getElementById('presPrevBtn').disabled = presIndex === 0;
+      document.getElementById('presNextBtn').disabled = presIndex === total - 1;
+    }
+
+    function navigatePresentation(dir) {
+      const total = presArticle['題目列表'].length;
+      presIndex = Math.max(0, Math.min(total - 1, presIndex + dir));
+      renderPresQuestion();
+    }
+
+    function closePresentMode() {
+      document.getElementById('presentModal').style.display = 'none';
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handlePresKey);
+      presArticle = null;
+      // 關閉時自動切回學生模式
+      document.body.classList.remove('teacher-mode');
+      const btn = document.getElementById('modeToggleBtn');
+      if (btn) { btn.textContent = '👨‍🏫 教師模式'; btn.className = 'student px-3 py-1 rounded border text-xs font-bold transition'; }
+    }
+
+    function handlePresKey(e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigatePresentation(1);
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigatePresentation(-1);
+      if (e.key === 'Escape') closePresentMode();
+    }
+
+    // =============================================
+    // 教師/學生模式切換
+    // =============================================
+    function toggleTeacherMode() {
+      const isTeacher = document.body.classList.toggle('teacher-mode');
+      const btn = document.getElementById('modeToggleBtn');
+      if (isTeacher) {
+        btn.textContent = '👨‍👦 學生模式';
+        btn.className = 'teacher px-3 py-1 rounded border text-xs font-bold transition';
+      } else {
+        btn.textContent = '👨‍🏫 教師模式';
+        btn.className = 'student px-3 py-1 rounded border text-xs font-bold transition';
+      }
+    }
+
+    // =============================================
+    // 面板顯示/隱藏切換
+    // =============================================
+    function togglePanel(side) {
+      const left = document.getElementById('presLeftPanel');
+      const right = document.getElementById('presRightPanel');
+      const divider = document.getElementById('presDivider');
+      const btnLeft = document.getElementById('toggleLeft');
+      const btnRight = document.getElementById('toggleRight');
+
+      if (side === 'left') {
+        const isCollapsed = left.classList.toggle('collapsed');
+        btnLeft.classList.toggle('active', !isCollapsed);
+        btnLeft.classList.toggle('inactive', isCollapsed);
+        // 若兩個都隱藏，自動展開另一邊
+        if (isCollapsed && right.classList.contains('collapsed')) {
+          right.classList.remove('collapsed');
+          btnRight.classList.add('active');
+          btnRight.classList.remove('inactive');
+        }
+      } else {
+        const isCollapsed = right.classList.toggle('collapsed');
+        btnRight.classList.toggle('active', !isCollapsed);
+        btnRight.classList.toggle('inactive', isCollapsed);
+        if (isCollapsed && left.classList.contains('collapsed')) {
+          left.classList.remove('collapsed');
+  btnLeft.classList.add('active');
+          btnLeft.classList.remove('inactive');
+        }
+      }
+
+      // 根據顯示狀態調整寬度與分隔線
+      const leftHidden = left.classList.contains('collapsed');
+      const rightHidden = right.classList.contains('collapsed');
+      const bothVisible = !leftHidden && !rightHidden;
+
+      divider.style.display = bothVisible ? '' : 'none';
+
+      if (bothVisible) {
+        // 兩邊都顯示：恢復各自的寬度
+        left.style.flex = '';
+        left.style.width = '41.67%';  // 恢復預設寬度
+        right.style.flex = '';
+      } else if (leftHidden) {
+        // 只顯示右邊：右邊佔滿
+        right.style.flex = '1';
+      } else if (rightHidden) {
+        // 只顯示左邊：左邊佔滿
+        left.style.flex = '1';
+        left.style.width = '100%';
+      }
+    }
+
+
+    // =============================================
+    // 拖曳分隔線
+    // =============================================
+    function startDrag(e) {
+      e.preventDefault();
+      const divider = document.getElementById('presDivider');
+      const leftPanel = document.getElementById('presLeftPanel');
+      const contentArea = document.getElementById('presContentArea');
+      divider.classList.add('dragging');
+
+      function onMove(ev) {
+        const rect = contentArea.getBoundingClientRect();
+        let newLeftPct = ((ev.clientX - rect.left) / rect.width) * 100;
+        newLeftPct = Math.max(15, Math.min(85, newLeftPct));
+        leftPanel.style.width = newLeftPct + '%';
+      }
+
+      function onUp() {
+        divider.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    }
+
+    // =============================================
+    // 複製策略文字
+    // =============================================
+    function copyStrategy(btn) {
+      const text = btn.getAttribute('data-text');
+      navigator.clipboard.writeText(text).then(() => { const original = btn.innerHTML;
+        btn.innerHTML = '✅ 已複製';
+        btn.style.background = '#d1fae5';
+        setTimeout(() => {
+          btn.innerHTML = original;
+          btn.style.background = '';
+        }, 1500);
+      }).catch(() => {
+        // fallback for older browsers
+        const ta = document.createElement('textarea');
+        ta.value = text;
+      document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.innerHTML = '✅ 已複製';
+        setTimeout(() => { btn.innerHTML = '📋 複製'; }, 1500);
+      });
+    }
+
+    // =============================================
+    // 首次使用說明
+    // =============================================
+    function showOnboarding() {
+      if (!localStorage.getItem('onboardingDone_v1')) {
+        document.getElementById('onboardingOverlay').style.display = 'flex';
+      }
+    }
+
+    function dismissOnboarding() {
+      localStorage.setItem('onboardingDone_v1', '1');
+      document.getElementById('onboardingOverlay').style.display = 'none';
+    }
+
+  </script>
+
+  <!-- ====== 首次使用說明覆層 ====== -->
+  <div id="onboardingOverlay" style="display:none;">
+    <div id="onboardingBox">
+      <h2 style="font-size:1.3rem;font-weight:bold;color:#1e293b;margin-bottom:0.5rem;">📚 歡迎使用閱讀教學策略資料庫</h2>
+      <p style="color:#64748b;font-size:0.85rem;margin-bottom:1.25rem;">首次使用，快速說明幾個重要功能：</p>
+
+      <div class="onboard-tip">
+        <div class="onboard-icon">🧠</div>
+        <div><strong>認知歷程篩選</strong>：選擇後，點開文章時相關題目會自動藍色高亮顯示，方便聚焦。</div>
+      </div>
+      <div class="onboard-tip">
+        <div class="onboard-icon">📺</div>
+        <div><strong>簡報模式</strong>：每張卡片右下角的紫色 📺 按鈕，可進入全螢幕投影機模式，逐題引導學生。</div>
+      </div>
+      <div class="onboard-tip">
+        <div class="onboard-icon">👨‍🏫</div>
+        <div><strong>教師/學生模式</strong>：簡報模式內可切換，學生模式下學生迷思和策略會隱藏，避免洩題。</div>
+      </div>
+      <div class="onboard-tip">
+        <div class="onboard-icon">📋</div>
+        <div><strong>複製策略</strong>：在文章詳細頁，滑鼠移到綠色策略區塊，右上角出現複製按鈕。</div>
+      </div>
+      <div class="onboard-tip">
+        <div class="onboard-icon">🖨️</div>
+        <div><strong>列印</strong>：詳細頁右上角有列印按鈕，可將全文、試題、策略一次印出。</div>
+      </div>
+
+      <button onclick="dismissOnboarding()"
+        style="margin-top:1rem;width:100%;background:#3b82f6;color:white;font-weight:bold;padding:0.65rem 1rem;border-radius:0.75rem;border:none;cursor:pointer;font-size:1rem;">
+        了解了，開始使用 →
+      </button>
+    </div>
+  </div>
+
+</body>
+
+</html>
