@@ -618,9 +618,7 @@ function updateExamHyperlinks() {
     }
     if (yearColIdx === -1 || gradeColIdx === -1) return;
     
-    // 預先將整欄設為純文字，避免自動轉型問題
-    sheet.getRange(2, yearColIdx + 1, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
-    sheet.getRange(2, gradeColIdx + 1, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
+    // 不強制作純文字格式避免寫入保護或驗證欄位出錯 (年度、年級不構成日期誤判風險)
     
     for (var r = 1; r < data.length; r++) {
       var yearCode = String(data[r][yearColIdx]).trim();
@@ -630,16 +628,30 @@ function updateExamHyperlinks() {
       var url = examLinks[ekey];
       
       if (url) {
+        // 更新年度欄位
         var yearCell = sheet.getRange(r + 1, yearColIdx + 1);
-        var yearFormula = yearCell.getFormula();
-        if (!yearFormula || yearFormula.toUpperCase().indexOf('HYPERLINK') === -1) {
-            yearCell.setFormula('=HYPERLINK("' + url + '", "' + yearCode + '")');
+        if (!yearCell.getFormula()) { // 若原本是公式產生的，就不複寫
+            var yearRtv = yearCell.getRichTextValue();
+            if (!yearRtv || !yearRtv.getLinkUrl()) {
+               var newRtv = SpreadsheetApp.newRichTextValue()
+                 .setText(yearCode)
+                 .setLinkUrl(url)
+                 .build();
+               yearCell.setRichTextValue(newRtv);
+            }
         }
         
+        // 更新年級欄位
         var gradeCell = sheet.getRange(r + 1, gradeColIdx + 1);
-        var gradeFormula = gradeCell.getFormula();
-        if (!gradeFormula || gradeFormula.toUpperCase().indexOf('HYPERLINK') === -1) {
-            gradeCell.setFormula('=HYPERLINK("' + url + '", "' + gradeCode + '")');
+        if (!gradeCell.getFormula()) {
+            var gradeRtv = gradeCell.getRichTextValue();
+            if (!gradeRtv || !gradeRtv.getLinkUrl()) {
+               var gradeNewRtv = SpreadsheetApp.newRichTextValue()
+                 .setText(gradeCode)
+                 .setLinkUrl(url)
+                 .build();
+               gradeCell.setRichTextValue(gradeNewRtv);
+            }
         }
       }
     }
