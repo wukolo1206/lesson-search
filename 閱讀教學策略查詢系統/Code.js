@@ -1,15 +1,16 @@
 // Code.gs
 
-// 多頁路由：?page=quiz → quiz.html, ?page=teacher → teacher.html, 預設 → index.html
+// 多頁路由：?page=quiz → quiz.html, ?page=teacher → teacher.html, 預設 → home.html
 function doGet(e) {
-  var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : 'index';
+  var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : 'home';
   var pageMap = {
+    'home': { file: 'home', title: '學習扶助閱讀策略小幫手' },
     'index': { file: 'index', title: '閱讀教學策略查詢系統' },
     'quiz': { file: 'quiz', title: '閱讀遷移測驗 — 學生作答' },
     'teacher': { file: 'teacher', title: '閱讀遷移測驗 — 老師管理頁' },
     'self_practice': { file: 'student_practice', title: '閱讀測驗練習 — 學生自主' }
   };
-  var config = pageMap[page] || pageMap['index'];
+  var config = pageMap[page] || pageMap['home'];
   return HtmlService.createTemplateFromFile(config.file)
     .evaluate()
     .setTitle(config.title)
