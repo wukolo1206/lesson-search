@@ -484,6 +484,77 @@ function listPdfFiles() {
   Logger.log('完成，請到試算表「教材PDF連結」工作表查看結果');
 }
 
+function updateTextbookHyperlinks() {
+  var ss = SpreadsheetApp.openById('1IDu-J5luPJsKA5O7UPtiXhnueQ_JNZJ2ccdnldCCpdI');
+  
+  // 1. 建立教材對應表
+  var linkSheet = ss.getSheetByName('教材PDF連結');
+  if (!linkSheet) return;
+  var linkData = linkSheet.getDataRange().getValues();
+  var urlMap = {};
+  for (var i = 1; i < linkData.length; i++) {
+    var fname = String(linkData[i][0] || '');
+    var fid = String(linkData[i][1] || '');
+    var manualCode = String(linkData[i][2] || '').trim();
+    if (!fname || !fid || fname.indexOf('.pdf') === -1) continue;
+    if (fname.indexOf(' (1).pdf') !== -1 || fname.indexOf(' (2).pdf') !== -1) continue;
+    
+    var url = 'https://drive.google.com/file/d/' + fid + '/view';
+    if (manualCode) {
+      if (!urlMap[manualCode]) urlMap[manualCode] = url;
+    } else {
+      var match = fname.match(/^(\d+-\d+-\d+)/);
+      if (match && !urlMap[match[1]]) urlMap[match[1]] = url;
+    }
+  }
+
+  // 2. 寫入各年級
+  var targetSheets = ['三年級', '四年級', '五年級', '六年級'];
+  targetSheets.forEach(function(sName) {
+    var sheet = ss.getSheetByName(sName);
+    if (!sheet) return;
+    
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return;
+    
+    var headers = data[0];
+    var targetColIdx = -1;
+    for (var j = 0; j < headers.length; j++) {
+      if (String(headers[j]).trim() === '對應教材編號') {
+        targetColIdx = j;
+        break;
+      }
+    }
+    if (targetColIdx === -1) return;
+    
+    var updates = [];
+    // 收集所有需要加上超連結的儲存格
+    for (var r = 1; r < data.length; r++) {
+      var code = String(data[r][targetColIdx]).trim();
+      var cell = sheet.getRange(r + 1, targetColIdx + 1);
+      
+      // 避免覆蓋已經帶有 Rich Text Link 的內容
+      var existingRtv = cell.getRichTextValue();
+      if (existingRtv && existingRtv.getLinkUrl()) {
+         continue; // 已經有超連結，跳過
+      }
+      
+      if (code && urlMap[code]) {
+         // 先將該儲存格強制設定為純文字格式，避免 3-2-10 變成 2003-2-10
+         cell.setNumberFormat('@');
+         
+         var rtv = SpreadsheetApp.newRichTextValue()
+           .setText(code)
+           .setLinkUrl(urlMap[code])
+           .build();
+           
+         cell.setRichTextValue(rtv);
+      }
+    }
+  });
+  Logger.log('教材超連結更新完成！');
+}
+
 function listExamPdfs() {
   var ss = SpreadsheetApp.openById('1IDu-J5luPJsKA5O7UPtiXhnueQ_JNZJ2ccdnldCCpdI');
   var sheet = ss.getSheetByName('\u8003\u53e4\u984cPDF\u9023\u7d50') || ss.insertSheet('\u8003\u53e4\u984cPDF\u9023\u7d50');
