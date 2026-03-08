@@ -1,0 +1,43 @@
+/* Custom scrollbar to keep it clean */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9; 
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1; 
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; 
+}
+
+/* Radio button custom styling */
+.option-label {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.option-radio {
+    display: none;
+}
+.option-radio:checked + div {
+    border-color: #4F46E5;
+    background-color: #EEF2FF;
+}
+.option-radio:checked + div .option-marker {
+    background-color: #4F46E5;
+    color: white;
+    border-color: #4F46E5;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure report card renders well in canvas */
+#report-card {
+    background-color: #ffffff; /* Explicit background for html2canvas */
+}

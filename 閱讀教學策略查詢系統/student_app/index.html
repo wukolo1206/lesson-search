@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>閱讀測驗練習系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse for CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- html2canvas for screenshot -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- SweetAlert2 for nice alerts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#10B981'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen selection:bg-primary selection:text-white">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex flex-col justify-center items-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary mb-4"></div>
+        <h2 class="text-xl font-bold text-gray-700">正在載入最新題庫...</h2>
+        <p class="text-gray-500 mt-2">請稍候片刻</p>
+    </div>
+
+    <!-- Login/Home Screen -->
+    <div id="screen-login" class="container mx-auto px-4 py-12 max-w-md hidden">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="bg-primary px-6 py-8 text-white text-center">
+                <h1 class="text-3xl font-bold mb-2">閱讀測驗練習</h1>
+                <p class="opacity-80 text-sm">請輸入您的基本資料與選擇測驗文章</p>
+            </div>
+            <div class="p-6 md:p-8 space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">班級 / 代碼</label>
+                    <input type="text" id="input-class" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-lg" placeholder="例如：三年甲班">
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-1/3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">座號</label>
+                        <input type="number" id="input-number" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-lg" placeholder="1~50">
+                    </div>
+                    <div class="w-2/3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                        <input type="text" id="input-name" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-lg" placeholder="您的姓名">
+                    </div>
+                </div>
+                
+                <div class="flex gap-4">
+                    <div class="w-1/3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">年級</label>
+                        <select id="select-grade" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-lg bg-gray-50">
+                            <option value="" disabled selected>先選擇年級</option>
+                            <!-- Grades populated via JS -->
+                        </select>
+                    </div>
+                    <div class="w-2/3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">選擇測驗文章</label>
+                        <select id="select-article" disabled class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-lg bg-gray-200 cursor-not-allowed text-gray-500">
+                            <option value="" disabled selected>請先選擇左方年級...</option>
+                            <!-- Options populated via JS based on grade -->
+                        </select>
+                    </div>
+                </div>
+
+                <button id="btn-start" class="w-full bg-primary hover:bg-indigo-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg transform transition-all hover:scale-[1.02] active:scale-95 text-lg mt-4 flex justify-center items-center gap-2">
+                    開始測驗
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Footer: Teacher Guide -->
+            <div class="bg-gray-50 px-6 py-4 text-center border-t border-gray-100">
+                <button id="btn-teacher-guide" class="text-sm font-medium text-gray-400 hover:text-primary transition-colors flex items-center justify-center w-full focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    教師專區：如何自行擴充題庫？
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div id="screen-quiz" class="container mx-auto px-4 py-8 max-w-4xl hidden">
+        <!-- Header -->
+        <div class="bg-white rounded-xl shadow-sm p-4 mb-6 flex justify-between items-center border border-gray-100 sticky top-4 z-10 transition-all">
+            <div>
+                <span class="bg-indigo-100 text-primary text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">答題中</span>
+                <span id="quiz-student-info" class="ml-3 text-sm font-medium text-gray-600">三甲 01 王小明</span>
+            </div>
+            <div class="text-right">
+                <h2 id="quiz-article-title" class="text-lg font-bold text-gray-800 line-clamp-1">文章標題</h2>
+            </div>
+        </div>
+
+        <!-- Article Content Layout -->
+        <div class="flex flex-col md:flex-row gap-6">
+            <!-- Left: Article -->
+            <div class="w-full md:w-1/2 bg-white rounded-2xl shadow-md p-6 md:p-8 h-[60vh] md:h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar border-t-4 border-primary">
+                <h2 id="article-display-title" class="text-2xl font-bold mb-6 text-gray-800 border-b pb-4">標題</h2>
+                <div id="article-content" class="text-lg leading-loose text-gray-700 space-y-4">
+                    <!-- Article text goes here -->
+                </div>
+            </div>
+
+            <!-- Right: Questions -->
+            <div class="w-full md:w-1/2 flex flex-col h-[calc(100vh-180px)]">
+                <div id="questions-container" class="flex-grow overflow-y-auto px-1 space-y-6 pb-20 custom-scrollbar">
+                    <!-- Questions injected here -->
+                </div>
+                
+                <!-- Submit Button Pinned at bottom -->
+                <div class="mt-4 pt-4 border-t border-gray-200 bg-gray-100/80 backdrop-blur pb-4">
+                    <button id="btn-submit" class="w-full bg-secondary hover:bg-green-600 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform transition-all hover:-translate-y-1 text-lg flex justify-center items-center gap-2">
+                        交卷並查看成績
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="screen-result" class="container mx-auto px-4 py-8 max-w-2xl hidden">
+        <div class="mb-6 flex justify-between items-center">
+            <button id="btn-back-home" class="text-gray-500 hover:text-primary font-medium flex items-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                回首頁
+            </button>
+            <button id="btn-download" class="bg-indigo-100 hover:bg-indigo-200 text-primary font-bold py-2 px-6 rounded-full transition-colors flex items-center shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                下載成績圖片檔
+            </button>
+        </div>
+
+        <!-- The Report Card (this element will be captured by html2canvas) -->
+        <div id="report-card" class="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 relative">
+            <!-- Decorative BG -->
+            <div class="absolute top-0 left-0 w-full h-48 bg-gradient-to-br from-indigo-500 to-purple-600 opacity-90 z-0"></div>
+            <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full transform translate-x-32 -translate-y-16"></div>
+            
+            <div class="relative z-10 p-8 text-white">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-3xl font-extrabold mb-1">閱讀測驗成績單</h2>
+                        <p class="text-indigo-100 font-medium tracking-wide" id="result-time">2026/03/08 09:30</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 inline-block">
+                            <p class="text-xl font-bold" id="result-score">100<span class="text-sm font-normal ml-1">分</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-indigo-100 text-sm mb-1 uppercase tracking-wider text-xs">學生基本資料</p>
+                            <p class="text-xl font-bold" id="result-student">三甲 01 王小明</p>
+                        </div>
+                        <div>
+                            <p class="text-indigo-100 text-sm mb-1 uppercase tracking-wider text-xs">作答文章</p>
+                            <p class="text-xl font-bold line-clamp-1" id="result-article-title">土地公魚</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-8 bg-gray-50 border-t border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    作答明細
+                </h3>
+                
+                <div id="result-details" class="space-y-4">
+                    <!-- Report items injected here -->
+                </div>
+                
+                <div class="mt-8 pt-6 border-t border-gray-200 text-center text-gray-400 text-sm">
+                    <p>由 閱讀教學策略查詢系統 自動批發產出</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>

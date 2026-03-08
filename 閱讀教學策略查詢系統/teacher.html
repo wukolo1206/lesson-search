@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>閱讀遷移測驗 — 老師管理頁</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #3730a3;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f0f4ff;
+            --card: #ffffff;
+            --text: #1e1b4b;
+            --muted: #6b7280;
+            --border: #e0e7ff;
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, #312e81, var(--primary-dark));
+            color: white;
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(49, 46, 129, 0.4);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-icon {
+            font-size: 30px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .header-badge {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* ===== LAYOUT ===== */
+        .main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 28px 20px;
+        }
+
+        /* ===== SECTION CARD ===== */
+        .section-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 24px rgba(79, 70, 229, 0.08);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-header-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .icon-bg-purple {
+            background: #ede9fe;
+        }
+
+        .icon-bg-green {
+            background: #d1fae5;
+        }
+
+        .section-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .section-desc {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .section-body {
+            padding: 24px;
+        }
+
+        /* ===== ASSIGN SECTION ===== */
+        .assign-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .select-wrap {
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .select-wrap label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--text);
+            background: white;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 13px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-assign {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+        }
+
+        .btn-assign:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-assign:disabled {
+            opacity: 0.6;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        .assign-status {
+            margin-top: 14px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .assign-status.ok {
+            background: #d1fae5;
+            color: #065f46;
+            display: block;
+        }
+
+        .assign-status.err {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+
+        /* ===== CURRENT ASSIGNMENT ===== */
+        .current-banner {
+            background: linear-gradient(135deg, #ede9fe, #dbeafe);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .current-label {
+            font-size: 12px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .current-title {
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 24px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            background: white;
+            color: var(--muted);
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ===== STATS ROW ===== */
+        .stats-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 20px;
+            text-align: center;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .stat-val {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* ===== TABLE ===== */
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f5f3ff;
+            color: var(--primary);
+            padding: 12px 14px;
+            text-align: center;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th:first-child,
+        th:nth-child(2) {
+            text-align: left;
+        }
+
+        td {
+            padding: 11px 14px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        td:first-child,
+        td:nth-child(2) {
+            text-align: left;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #fafaf8;
+        }
+
+        .student-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .student-name {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .student-seat {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .correct-mark {
+            color: var(--success);
+            font-size: 18px;
+        }
+
+        .wrong-mark {
+            color: var(--danger);
+            font-size: 18px;
+        }
+
+        .rate-chip {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .rate-high {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .rate-mid {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .rate-low {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* ===== EMPTY / LOADER ===== */
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--muted);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .empty-sub {
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loader-wrap {
+            padding: 48px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .loader-wrap .spinner {
+            margin-bottom: 12px;
+        }
+
+        /* ===== REFRESH BTN ===== */
+        .refresh-btn {
+            padding: 8px 18px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            background: white;
+            color: var(--muted);
+            margin-left: auto;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div class="header-left">
+            <div class="header-icon">🏫</div>
+            <div>
+                <h1>老師管理頁面</h1>
+                <div class="header-sub">閱讀遷移測驗系統</div>
+            </div>
+        </div>
+        <div class="header-badge">👩‍🏫 教師端</div>
+    </div>
+
+    <div class="main">
+
+        <!-- ===== 指派區 ===== -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-header-icon icon-bg-purple">📋</div>
+                <div>
+                    <div class="section-title">指派今日測驗</div>
+                    <div class="section-desc">選擇文章後，點擊「指派給全班」，學生端會立即看到測驗</div>
+                </div>
+            </div>
+            <div class="section-body">
+                <div id="current-assign-block" style="display:none;">
+                    <div class="current-banner">
+                        <span style="font-size:22px">📌</span>
+                        <div>
+                            <div class="current-label">目前指派文章</div>
+                            <div class="current-title" id="current-title-text">—</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 第一層：選原始文章 -->
+                <div class="assign-row">
+                    <div class="select-wrap">
+                        <label for="orig-select">① 選擇原始文章（測驗主題）</label>
+                        <select id="orig-select" onchange="onOrigChange()">
+                            <option value="">載入中…</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- 第二層：選哪一篇遷移文章 -->
+                <div class="assign-row" id="transfer-row" style="margin-top:12px;display:none;">
+                    <div class="select-wrap">
+                        <label for="transfer-select">② 選擇要測驗的遷移文章</label>
+                        <select id="transfer-select">
+                            <option value="">請先選擇原始文章</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-assign" id="assign-btn" onclick="doAssign()">📢 指派給全班</button>
+                </div>
+                <div class="assign-status" id="assign-status"></div>
+            </div>
+        </div>
+
+        <!-- ===== 成績看板 ===== -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-header-icon icon-bg-green">📊</div>
+                <div>
+                    <div class="section-title">成績看板</div>
+                    <div class="section-desc">查看學生作答狀況與班級統計</div>
+                </div>
+                <button class="refresh-btn" onclick="loadResults()">🔄 重新整理</button>
+            </div>
+            <div class="section-body">
+                <div class="tabs">
+                    <button class="tab active" id="tab-today" onclick="switchTab('today')">今日成績</button>
+                    <button class="tab" id="tab-all" onclick="switchTab('all')">歷史紀錄</button>
+                </div>
+                <div id="results-area">
+                    <div class="loader-wrap">
+                        <div class="spinner"></div>
+                        <div style="margin-top:10px">載入成績中…</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        var currentTab = 'today';
+        var allRecords = [];
+
+        // ===== 初始化 =====
+        window.onload = function () {
+            loadArticleList();
+            loadResults();
+        };
+
+        // ===== GAS 呼叫 =====
+        function callGAS(fn, param, cb) {
+            if (typeof google === 'undefined') {
+                cb({ error: 'GAS not available' }, null);
+                return;
+            }
+            var runner = google.script.run.withSuccessHandler(cb).withFailureHandler(function (e) { cb(null, e); });
+            if (param !== undefined) runner[fn](param);
+            else runner[fn]();
+        }
+
+        // ===== 載入文章清單（兩層） =====
+        var origData = []; // [{orig, transfers:[{label,key}]}]
+
+        function loadArticleList() {
+            callGAS('getArticleList', undefined, function (resp, err) {
+                var origSel = document.getElementById('orig-select');
+                if (err || !resp || !resp.originals) {
+                    origSel.innerHTML = '<option value="">無法載入文章清單</option>';
+                    return;
+                }
+                origData = resp.originals;
+                if (origData.length === 0) {
+                    origSel.innerHTML = '<option value="">（學習遷移題目工作表尚無資料）</option>';
+                    return;
+                }
+                origSel.innerHTML = '<option value="">請選擇原始文章…</option>' +
+                    origData.map(function (o, i) {
+                        return '<option value="' + i + '">' + escHtml(o.orig) + '</option>';
+                    }).join('');
+            });
+        }
+
+        // 當原始文章改變時，更新遷移文章下拉
+        function onOrigChange() {
+            var idx = document.getElementById('orig-select').value;
+            var row = document.getElementById('transfer-row');
+            var sel = document.getElementById('transfer-select');
+            if (idx === '' || !origData[idx]) {
+                row.style.display = 'none';
+                return;
+            }
+            row.style.display = 'flex';
+            var transfers = origData[idx].transfers;
+            sel.innerHTML = transfers.map(function (t) {
+                return '<option value="' + escHtml(t.key) + '">' + escHtml(t.label) + '</option>';
+            }).join('');
+        }
+
+        // ===== 指派文章 =====
+        function doAssign() {
+            var origIdx = document.getElementById('orig-select').value;
+            var key = document.getElementById('transfer-select').value;
+            if (!origIdx || !key) { alert('請選擇原始文章與遷移文章！'); return; }
+
+            var orig = origData[origIdx].orig;
+            var transferLabel = document.getElementById('transfer-select').options[document.getElementById('transfer-select').selectedIndex].text;
+
+            var btn = document.getElementById('assign-btn');
+            btn.disabled = true;
+            btn.textContent = '指派中…';
+
+            var status = document.getElementById('assign-status');
+            status.className = 'assign-status';
+            status.style.display = 'none';
+
+            // 傳送 JSON 格式的指派 key
+            var payload = JSON.stringify({ orig: orig, key: key });
+            callGAS('setAssignment', payload, function (resp, err) {
+                btn.disabled = false;
+                btn.textContent = '📢 指派給全班';
+
+                if (err || !resp || !resp.success) {
+                    status.textContent = '❌ 指派失敗，請再試一次。';
+                    status.className = 'assign-status err';
+                    return;
+                }
+                var label = orig + ' → ' + transferLabel;
+                status.textContent = '✅ 已成功指派「' + label + '」給全班學生！';
+                status.className = 'assign-status ok';
+                document.getElementById('current-title-text').textContent = label;
+                document.getElementById('current-assign-block').style.display = 'block';
+                loadResults();
+            });
+        }
+
+        // ===== 切換 Tab =====
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-today').className = 'tab' + (tab === 'today' ? ' active' : '');
+            document.getElementById('tab-all').className = 'tab' + (tab === 'all' ? ' active' : '');
+            renderTable(allRecords, tab);
+        }
+
+        // ===== 讀取成績 =====
+        function loadResults() {
+            document.getElementById('results-area').innerHTML =
+                '<div class="loader-wrap"><div class="spinner"></div><div style="margin-top:10px">載入成績中…</div></div>';
+
+            callGAS('getResults', 'all', function (resp, err) {
+                if (err || !resp) {
+                    document.getElementById('results-area').innerHTML =
+                        '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">連線失敗</div></div>';
+                    return;
+                }
+                allRecords = resp.records || [];
+                renderTable(allRecords, currentTab);
+            });
+        }
+
+        // ===== 渲染成績表 =====
+        function renderTable(records, tab) {
+            var today = formatDate(new Date());
+            var filtered = tab === 'today'
+                ? records.filter(function (r) { return r['時間戳'] && formatDate(new Date(r['時間戳'])) === today; })
+                : records;
+
+            if (filtered.length === 0) {
+                var msg = tab === 'today' ? '今天還沒有學生作答紀錄' : '尚無任何作答紀錄';
+                document.getElementById('results-area').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">' + msg + '</div><div class="empty-sub">等待學生完成測驗後請重新整理</div></div>';
+                return;
+            }
+
+            // 按學生分組
+            var students = {}; // seatNum -> { name, questions: {qNum: {selected, correct, ok}} }
+            var qNums = [];
+            filtered.forEach(function (r) {
+                var key = r['座號'] + '_' + r['姓名'];
+                if (!students[key]) {
+                    students[key] = { seatNum: r['座號'], name: r['姓名'], questions: {}, lastTime: r['時間戳'] };
+                }
+                var qn = String(r['題號']);
+                if (qNums.indexOf(qn) < 0) qNums.push(qn);
+                students[key].questions[qn] = {
+                    selected: r['學生答案'],
+                    correct: r['正確答案'],
+                    ok: r['是否正確'] === '✅' || r['是否正確'] === true || String(r['是否正確']).toLowerCase() === 'true'
+                };
+                if (r['時間戳'] && (!students[key].lastTime || new Date(r['時間戳']) > new Date(students[key].lastTime))) {
+                    students[key].lastTime = r['時間戳'];
+                }
+            });
+
+            qNums.sort(function (a, b) { return Number(a) - Number(b); });
+
+            // 統計
+            var studentList = Object.values(students);
+            var totalQ = qNums.length * studentList.length;
+            var totalOk = 0;
+            studentList.forEach(function (s) {
+                qNums.forEach(function (q) {
+                    if (s.questions[q] && s.questions[q].ok) totalOk++;
+                });
+            });
+            var avgRate = totalQ > 0 ? Math.round(totalOk / totalQ * 100) : 0;
+
+            var html = '';
+
+            // 統計列
+            html += '<div class="stats-row">';
+            html += '<div class="stat-box"><div class="stat-val">' + studentList.length + '</div><div class="stat-label">作答人數</div></div>';
+            html += '<div class="stat-box"><div class="stat-val">' + qNums.length + '</div><div class="stat-label">題目數</div></div>';
+            html += '<div class="stat-box"><div class="stat-val">' + avgRate + '%</div><div class="stat-label">班級平均</div></div>';
+            html += '</div>';
+
+            // 表格
+            html += '<div class="table-wrap"><table>';
+            html += '<thead><tr><th>座號</th><th>姓名</th>';
+            qNums.forEach(function (q) { html += '<th>第' + q + '題</th>'; });
+            html += '<th>答對率</th>';
+            if (tab === 'all') html += '<th>作答時間</th>';
+            html += '</tr></thead><tbody>';
+
+            // 按座號排序
+            studentList.sort(function (a, b) { return Number(a.seatNum) - Number(b.seatNum); });
+            studentList.forEach(function (s) {
+                var okCount = 0;
+                html += '<tr>';
+                html += '<td><span style="font-weight:700">' + escHtml(String(s.seatNum)) + '</span></td>';
+                html += '<td><span style="font-weight:600">' + escHtml(String(s.name)) + '</span></td>';
+                qNums.forEach(function (q) {
+                    var ans = s.questions[q];
+                    if (!ans) {
+                        html += '<td>—</td>';
+                    } else if (ans.ok) {
+                        okCount++;
+                        html += '<td><span class="correct-mark" title="正確">✅</span></td>';
+                    } else {
+                        html += '<td><span class="wrong-mark" title="作答:' + escHtml(ans.selected) + '，正確:' + escHtml(ans.correct) + '">❌</span></td>';
+                    }
+                });
+                var rate = qNums.length > 0 ? Math.round(okCount / qNums.length * 100) : 0;
+                var rateClass = rate >= 80 ? 'rate-high' : rate >= 60 ? 'rate-mid' : 'rate-low';
+                html += '<td><span class="rate-chip ' + rateClass + '">' + rate + '%</span></td>';
+                if (tab === 'all') {
+                    var dt = s.lastTime ? formatDisplay(new Date(s.lastTime)) : '—';
+                    html += '<td style="font-size:12px;color:var(--muted)">' + dt + '</td>';
+                }
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+
+            document.getElementById('results-area').innerHTML = html;
+        }
+
+        // ===== 工具 =====
+        function formatDate(d) {
+            return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+        }
+        function formatDisplay(d) {
+            return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+        }
+        function pad(n) { return n < 10 ? '0' + n : String(n); }
+        function escHtml(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+
+</html>
