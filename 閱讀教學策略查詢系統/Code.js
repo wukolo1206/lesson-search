@@ -458,7 +458,6 @@ function getMaterialLinks() {
     var name = String(data[i][0] || '');
     var fileId = String(data[i][1] || '');
     if (!name || !fileId || name.indexOf('.pdf') === -1) continue;
-    if (name.indexOf(' (1).pdf') !== -1 || name.indexOf(' (2).pdf') !== -1) continue;
     var match = name.match(/^(\d+-\d+-\d+)/);
     if (match && !map[match[1]]) {
       map[match[1]] = fileId;
@@ -497,7 +496,6 @@ function updateTextbookHyperlinks() {
     var fid = String(linkData[i][1] || '');
     var manualCode = String(linkData[i][2] || '').trim();
     if (!fname || !fid || fname.indexOf('.pdf') === -1) continue;
-    if (fname.indexOf(' (1).pdf') !== -1 || fname.indexOf(' (2).pdf') !== -1) continue;
     
     var url = 'https://drive.google.com/file/d/' + fid + '/view';
     if (manualCode) {
@@ -526,29 +524,48 @@ function updateTextbookHyperlinks() {
       }
     }
     if (targetColIdx === -1) return;
+    // 預先將整欄設為純文字，避免後續老師輸入時被轉成日期
+    sheet.getRange(2, targetColIdx + 1, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
     
-    var updates = [];
     // 收集所有需要加上超連結的儲存格
     for (var r = 1; r < data.length; r++) {
-      var code = String(data[r][targetColIdx]).trim();
+      var rawValue = data[r][targetColIdx];
+      var code = String(rawValue).trim();
+      
+      // 如果被 Google Sheets 自動轉成了日期物件 (例如 3-2-12 被轉成 2003-02-12)
+      if (rawValue instanceof Date) {
+        var y = rawValue.getFullYear() % 100;
+        var m = rawValue.getMonth() + 1;
+        var d = rawValue.getDate();
+        code = y + '-' + m + '-' + d;
+      } else if (code.match(/^2\d{3}[-\/]\d{1,2}[-\/]\d{1,2}$/)) {
+        // 如果拿到的是字串格式的誤判日期，例如 "2003-2-15" 或 "2003/2/15"
+        var parts = code.split(/[-\/]/);
+        var y = parseInt(parts[0], 10) % 100;
+        code = y + '-' + parts[1] + '-' + parts[2];
+      }
+      
       var cell = sheet.getRange(r + 1, targetColIdx + 1);
       
+      // 無論有沒有找到對應網址，都把這格修正後的純文字 code 寫回去，把日期救回來
+      if (rawValue instanceof Date || code !== String(rawValue).trim()) {
+         cell.setValue(code);
+      }
+      
+      // 檢查是否已經是超連結公式
+      var existingFormula = cell.getFormula();
+      if (existingFormula && existingFormula.toUpperCase().indexOf('HYPERLINK') !== -1) {
+         continue; // 已經有超連結公式，跳過
+      }
       // 避免覆蓋已經帶有 Rich Text Link 的內容
       var existingRtv = cell.getRichTextValue();
       if (existingRtv && existingRtv.getLinkUrl()) {
-         continue; // 已經有超連結，跳過
+         continue; // 已經有富文本超連結，跳過
       }
       
       if (code && urlMap[code]) {
-         // 先將該儲存格強制設定為純文字格式，避免 3-2-10 變成 2003-2-10
-         cell.setNumberFormat('@');
-         
-         var rtv = SpreadsheetApp.newRichTextValue()
-           .setText(code)
-           .setLinkUrl(urlMap[code])
-           .build();
-           
-         cell.setRichTextValue(rtv);
+         // 使用 HYPERLINK 公式，並用雙引號包住字串，防止再次被轉為日期
+         cell.setFormula('=HYPERLINK("' + urlMap[code] + '", "' + code + '")');
       }
     }
   });
