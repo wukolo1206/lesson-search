@@ -143,51 +143,63 @@
                 </h3>
                 
                 <div class="space-y-8 relative z-10">
-                    <!-- Step 1 -->
+                    <!-- Step 1: Open Sheet -->
                     <div class="flex gap-4">
                         <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center font-black text-blue-600 text-lg">1</div>
                         <div>
-                            <h4 class="font-bold text-lg text-slate-800 mb-1">打開共用試算表</h4>
-                            <p class="text-slate-600 text-sm font-medium mb-3">請點擊右邊或上方的按鈕，進入系統核心資料庫。</p>
-                            <a href="https://docs.google.com/spreadsheets/d/1IDu-J5luPJsKA5O7UPtiXhnueQ_JNZJ2ccdnldCCpdI/edit?usp=sharing" target="_blank" class="inline-flex items-center gap-2 text-sm font-bold text-edu-primary hover:text-blue-800 underline">
-                                點此前往 Google Sheet 
-                                <iconify-icon icon="solar:arrow-right-up-linear"></iconify-icon>
-                            </a>
+                            <h4 class="font-bold text-lg text-slate-800 mb-1">打開共用的題庫試算表</h4>
+                            <p class="text-slate-600 text-sm font-medium mb-3">首先，點擊上方按鈕進入負責校對的年級工作表（例如：「三年級」）。</p>
                         </div>
                     </div>
 
-                    <!-- Step 2 -->
+                    <!-- Step 2: Open Material -->
                     <div class="flex gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center font-black text-blue-600 text-lg">2</div>
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-50 border-2 border-indigo-200 flex items-center justify-center font-black text-indigo-600 text-lg">2</div>
                         <div>
-                            <h4 class="font-bold text-lg text-slate-800 mb-1">鎖定您的負責年級與欄位</h4>
-                            <p class="text-slate-600 text-sm font-medium mb-2">找到下方的分頁標籤（如「三年級」），並專注檢查 **J 欄（教學策略）** 與 **K 欄（認知歷程）**。</p>
-                            <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-xs text-amber-800 font-bold mt-2">
-                                💡 判斷小提示：
-                                <ul class="list-disc pl-4 mt-1 font-medium text-amber-700/80 space-y-1">
-                                    <li>答案直接寫在文章裡 👉 **提取訊息**</li>
-                                    <li>需要串聯兩三句話才能懂 👉 **推論訊息**</li>
-                                    <li>在問「全文主旨」或主角心情轉變 👉 **詮釋整合**</li>
-                                </ul>
+                            <h4 class="font-bold text-lg text-slate-800 mb-1">點擊教材或考古題連結</h4>
+                            <p class="text-slate-600 text-sm font-medium">直接點擊試算表中的 **「對應教材編號」** (如 3-3-3) 或是 **「年度/年級」** (如 114 G4) 的藍色超連結，即可在新分頁開啟原版的 PDF 教材，方便一邊看文章一邊審核題目。</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Cognitive Process -->
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-50 border-2 border-amber-200 flex items-center justify-center font-black text-amber-600 text-lg">3</div>
+                        <div class="w-full">
+                            <h4 class="font-bold text-lg text-slate-800 mb-1">審核第一關：認知歷程 (K欄)</h4>
+                            <p class="text-slate-600 text-sm font-medium mb-2">確認 AI 判斷的認知歷程是否符合您的教學專業判斷：</p>
+                            <div class="bg-amber-50/50 border border-amber-100 p-3 rounded-lg text-xs text-amber-800 font-bold grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div><span class="bg-amber-200 px-1 rounded mr-1">提取訊息</span> 答案直接寫在文章裡</div>
+                                <div><span class="bg-amber-200 px-1 rounded mr-1">推論訊息</span> 需要串聯兩三句話才能懂</div>
+                                <div><span class="bg-amber-200 px-1 rounded mr-1">詮釋整合</span> 問「全文主旨」或主角心情</div>
+                                <div><span class="bg-amber-200 px-1 rounded mr-1">比較評估</span> 比較兩篇文章或人物觀點</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Step 3 -->
+                    <!-- Step 4: Question Focus -->
                     <div class="flex gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center font-black text-blue-600 text-lg">3</div>
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center font-black text-emerald-600 text-lg">4</div>
                         <div>
-                            <h4 class="font-bold text-lg text-slate-800 mb-1">邊看原版教材邊對照</h4>
-                            <p class="text-slate-600 text-sm font-medium">如果您對某個題目沒有印象，您可以直接點擊試算表中的 **「對應教材編號」** (例如: 3-3-3)，或是 **「年度/年級」** (例如: 114 / G4) 的藍色超連結儲存格，系統就會立刻打開原版的教材或考古題 PDF 讓您一邊回顧一邊校對！</p>
+                            <h4 class="font-bold text-lg text-slate-800 mb-1">審核第二關：考點/題目重點 (F欄)</h4>
+                            <p class="text-slate-600 text-sm font-medium">確認這題的「考點」說明是否一針見血？是否有精確點出學生需要具備的能力？如有不夠清楚的地方，請直接在該儲存格修改補充。</p>
                         </div>
                     </div>
 
-                    <!-- Step 4 -->
+                    <!-- Step 5: Misconceptions -->
                     <div class="flex gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center font-black text-blue-600 text-lg">4</div>
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-rose-50 border-2 border-rose-200 flex items-center justify-center font-black text-rose-600 text-lg">5</div>
                         <div>
-                            <h4 class="font-bold text-lg text-slate-800 mb-1">直接修改，系統自動儲存</h4>
-                            <p class="text-slate-600 text-sm font-medium">這題明明是問整篇文章大意，卻被標成提取訊息？請**直接點擊那格 Excel 儲存格**，打字改成「詮釋整合」。Google 表單會自動存檔，這樣就完成一題的拯救了！</p>
+                            <h4 class="font-bold text-lg text-slate-800 mb-1">審核第三關：學生迷思/錯誤原因 (I欄)</h4>
+                            <p class="text-slate-600 text-sm font-medium">基於您的教學經驗，這個題目學生最容易在哪裡答錯？是名詞混淆？還是找錯段落？請補充您的實戰觀察，這對年輕老師非常有用！</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 6: Teaching Strategy -->
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-purple-50 border-2 border-purple-200 flex items-center justify-center font-black text-purple-600 text-lg">6</div>
+                        <div>
+                            <h4 class="font-bold text-lg text-slate-800 mb-1">審核第四關：具體教學步驟與策略 (L, M欄)</h4>
+                            <p class="text-slate-600 text-sm font-medium">最後，請檢視 AI 給出的教學策略與步驟。這份教條式的步驟，是否能實際落地在教室裡？您可以刪減冗長的廢話，寫下您最真實、最管用的引導話語。</p>
                         </div>
                     </div>
                 </div>
