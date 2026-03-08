@@ -299,7 +299,34 @@
     <header class="mb-6 text-center">
       <h1 class="text-3xl font-extrabold text-gray-900 mb-1 tracking-tight">📚 閱讀教學策略資料庫</h1>
       <p class="text-gray-500 text-sm">支援依「認知歷程」快篩文章，一次檢視完整教學策略</p>
+      <!-- 快速連結導航列 -->
+      <div class="mt-4 flex items-center justify-center gap-3 flex-wrap">
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=teacher"
+          target="_blank"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-sm transition">
+          🏫 老師管理頁
+        </a>
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=quiz"
+          target="_blank"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm transition">
+          🎒 學生作答頁 (需派題)
+        </a>
+        <a href="<?= ScriptApp.getService().getUrl() ?>?page=self_practice"
+          target="_blank"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-sm transition ring-2 ring-amber-300 ring-offset-1">
+          🚀 學生自主練習 (免派題)
+        </a>
+      </div>
     </header>
+
+    <!-- 考古題試卷快速連結 -->
+    <div id="examPanel" class="bg-amber-50 border border-amber-200 rounded-xl shadow-sm mb-4 overflow-hidden">
+      <button onclick="toggleExamPanel()" class="w-full px-5 py-3 flex justify-between items-center text-amber-800 font-bold hover:bg-amber-100 transition text-sm">
+        <span>📄 考古題試卷快速連結</span>
+        <span id="examPanelArrow" class="text-xs">▶</span>
+      </button>
+      <div id="examPanelContent" class="hidden px-5 pb-4 pt-1"></div>
+    </div>
 
     <div class="bg-white p-4 rounded-xl shadow-sm mb-6 sticky top-2 z-20 border border-gray-200">
       <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
@@ -384,7 +411,7 @@
           </div>
           <div class="p-6 overflow-y-auto flex-grow scroll-smooth">
             <div id="modalFullText"
-              class="text-lg leading-9 text-gray-800 font-serif whitespace-pre-line text-justify tracking-wide"></div>
+              class="text-lg leading-9 text-gray-800 font-serif text-justify tracking-wide"></div>
           </div>
         </div>
 
@@ -407,6 +434,58 @@
     </div>
   </div>
 
+  <!-- ===================== 學習遷移 (類似題) 彈出視窗 ===================== -->
+  <div id="transferModal"
+    class="fixed inset-0 z-[60] hidden modal-backdrop flex items-center justify-center p-4 transition-all"
+    onclick="closeTransferModal()">
+    <div
+      class="bg-indigo-900 text-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col"
+      onclick="event.stopPropagation()">
+      <div class="px-6 py-4 border-b border-indigo-800 flex justify-between items-center bg-indigo-950">
+        <h3 class="text-xl font-bold flex items-center gap-2">
+          ✨ 學習遷移：類似題練習
+        </h3>
+        <button onclick="closeTransferModal()" class="text-indigo-300 hover:text-white transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-6">
+        <!-- 如果有多個文本可選，放一個橫向捲軸的選擇器 -->
+        <div id="transferVariants" class="flex gap-2 overflow-x-auto pb-2 hidden"></div>
+        <div class="bg-indigo-800/50 p-5 rounded-xl border border-indigo-700">
+          <p class="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-2">📄 遷移文本内容</p>
+          <div id="transferContent" class="text-lg leading-relaxed whitespace-pre-line text-justify"></div>
+        </div>
+        <div class="bg-white text-gray-900 p-5 rounded-xl border border-indigo-200 shadow-inner">
+          <p class="text-indigo-600 text-xs font-bold uppercase tracking-widest mb-2">❓ 類似練習題</p>
+          <div id="transferQuestion" class="font-bold text-lg leading-relaxed whitespace-pre-line"></div>
+        </div>
+        <div class="flex flex-wrap gap-3 items-start">
+          <div class="bg-indigo-800/80 px-4 py-2 rounded-lg border border-indigo-600">
+            <p class="text-indigo-400 text-[10px] font-bold uppercase">教學策略</p>
+            <p id="transferStrategy" class="text-sm font-medium"></p>
+          </div>
+          <div class="bg-indigo-800/80 px-4 py-2 rounded-lg border border-indigo-600">
+            <p class="text-indigo-400 text-[10px] font-bold uppercase">認知歷程</p>
+            <p id="transferProcess" class="text-sm font-medium"></p>
+          </div>
+          <div class="bg-indigo-800/80 px-4 py-2 rounded-lg border border-indigo-600">
+            <p class="text-indigo-400 text-[10px] font-bold uppercase">考古題試卷</p>
+            <p id="transferExamBadge" class="text-sm font-medium"></p>
+          </div>
+        </div>
+      </div>
+      <div class="p-4 bg-indigo-950 border-t border-indigo-800 flex justify-end gap-3">
+        <button onclick="copyTransferContent(this)"
+          class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg font-bold transition flex items-center gap-2">
+          📋 複製題目與文本
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== 簡報模式 Overlay ===================== -->
   <div id="presentModal" class="fixed inset-0 z-[100] hidden flex-col text-white" style="display:none;">
     <!-- 頂部控制列 -->
@@ -423,8 +502,16 @@
         <button id="toggleLeft" onclick="togglePanel('left')" class="panel-toggle-btn active">📄 文章</button>
         <button id="toggleRight" onclick="togglePanel('right')" class="panel-toggle-btn active">❓ 試題</button>
       </div>
+      <!-- 學習遷移切換按鈕 -->
+      <div class="flex items-center gap-2 ml-2 border-l border-slate-600 pl-4">
+        <button id="toggleTransferBtn" onclick="toggleTransferMode()"
+          class="px-3 py-1 rounded border text-xs font-bold transition flex items-center gap-1 bg-indigo-900 border-indigo-700 text-indigo-300 hover:bg-indigo-800"
+          style="display:none;">
+          🚀 挑戰類似題
+        </button>
+      </div>
       <!-- 教師/學生模式切換 -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 ml-2 border-l border-slate-600 pl-4">
         <button id="modeToggleBtn" onclick="toggleTeacherMode()"
           class="student px-3 py-1 rounded border text-xs font-bold transition">
           👨‍🏫 教師模式
@@ -432,15 +519,22 @@
       </div>
       <div class="flex items-center gap-3">
         <span id="presCounter" class="text-slate-300 text-sm font-mono">1 / 1</span>
+        <!-- 段落排版切換 -->
+        <button id="toggleFormatBtn" onclick="togglePresFormatMode()"
+          class="px-3 py-1 bg-indigo-700 hover:bg-indigo-600 border border-indigo-500 rounded text-sm transition font-bold text-white shadow-sm">
+          📝 原本段落
+        </button>
         <!-- 字體大小調整 -->
         <div class="flex items-center gap-1">
           <button onclick="changePresFont(-0.1)"
-            class="w-7 h-7 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold transition" title="縮小字體">A-</button>
-          <button onclick="resetPresFont()"
-            id="presFontLabel"
-            class="px-2 h-7 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-mono transition" title="重設字體大小">100%</button>
+            class="w-7 h-7 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold transition"
+            title="縮小字體">A-</button>
+          <button onclick="resetPresFont()" id="presFontLabel"
+            class="px-2 h-7 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-mono transition"
+            title="重設字體大小">100%</button>
           <button onclick="changePresFont(0.1)"
-            class="w-7 h-7 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold transition" title="放大字體">A+</button>
+            class="w-7 h-7 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold transition"
+            title="放大字體">A+</button>
         </div>
         <button onclick="closePresentMode()"
           class="text-slate-400 hover:text-white px-3 py-1 rounded border border-slate-600 hover:border-white transition text-sm">
@@ -453,12 +547,11 @@
     <div id="presContentArea" class="flex flex-1 overflow-hidden select-none">
       <!-- 左：文章全文 -->
       <div id="presLeftPanel" class="flex flex-col border-r border-slate-700 bg-slate-900 overflow-hidden"
-        style="width:41.67%">
+        style="width:50%">
         <div class="px-4 py-2 bg-slate-800 text-slate-400 text-xs font-bold uppercase tracking-widest flex-shrink-0">📄
           文章全文</div>
         <div class="flex-1 overflow-y-auto p-8">
-          <div id="presFullText"
-            class="pres-text text-slate-200 font-serif whitespace-pre-line leading-loose tracking-wide"></div>
+          <div id="presFullText" class="pres-text text-slate-200 font-serif leading-loose tracking-wide"></div>
         </div>
       </div>
 
@@ -476,6 +569,15 @@
             <span id="presPoint" class="text-slate-400 text-sm"></span>
           </div>
           <div id="presQuestion" class="pres-question text-white font-bold leading-relaxed whitespace-pre-line"></div>
+
+          <!-- 類似題答案揭示區（只在類似題模式顯示） -->
+          <div id="presAnswerArea" class="hidden mt-4 flex flex-col gap-2">
+            <button onclick="togglePresAnswer()" id="presAnswerBtn"
+              class="self-start px-4 py-1.5 rounded-lg border text-sm font-bold transition bg-yellow-900 border-yellow-700 text-yellow-300 hover:bg-yellow-800">
+              顯示答案
+            </button>
+            <div id="presAnswerText" class="hidden bg-yellow-950 border border-yellow-700 rounded-xl px-5 py-3 text-yellow-200 font-bold text-lg"></div>
+          </div>
 
           <!-- 教師模式才顯示的區塊 -->
           <div class="teacher-only mt-6 space-y-4">
@@ -511,22 +613,92 @@
 
   <script>
     let rawData = [];
+    let transferData = [];
+    let transferFullCache = {}; // 已撈過全文的快取，key 為原始案例標題
     let groupedData = [];
     let currentFilteredData = [];
+    let materialLinks = {}; // 教材編號 → Drive 檔案 ID
+    let examLinks = {};    // 年度_年級 → 考古題 Drive 檔案 ID
+    let examPages = {};   // 年度_年級_標題 → 頁碼
+
+    function toggleExamPanel() {
+      var content = document.getElementById('examPanelContent');
+      var arrow = document.getElementById('examPanelArrow');
+      var hidden = content.classList.toggle('hidden');
+      arrow.textContent = hidden ? '▶' : '▼';
+    }
+
+    function renderExamPanel() {
+      var content = document.getElementById('examPanelContent');
+      if (!content) return;
+      var grades = ['G3', 'G4', 'G5', 'G6'];
+      var html = '<div class="flex flex-wrap gap-4">';
+      grades.forEach(function(grade) {
+        var keys = Object.keys(examLinks).filter(function(k){ return k.split('_')[1] === grade; }).sort();
+        if (!keys.length) return;
+        html += '<div><p class="text-amber-700 text-xs font-bold mb-1">' + grade + '</p><div class="flex flex-wrap gap-1">';
+        keys.forEach(function(k) {
+          var year = k.split('_')[0];
+          var fid = examLinks[k];
+          html += '<a href="https://drive.google.com/file/d/' + fid + '/view" target="_blank" class="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 hover:bg-amber-300 text-amber-800 text-xs font-bold rounded border border-amber-300 transition">\uD83D\uDCC4 ' + year + ' ' + grade + '</a>';
+        });
+        html += '</div></div>';
+      });
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function makeExamBadge(year, grade, title) {
+      var g = String(grade || '');
+      if (!year || !/^G[3-6]$/.test(g)) return '';
+      // 組合 GitHub Pages 下的新路徑 (例如: 114_G3.pdf)
+      var label = String(year) + ' ' + g;
+      var pageNum = title ? examPages[String(year) + '_' + g + '_' + String(title)] : null;
+      var fileUrl = 'https://wukolo1206.github.io/lesson-search/字音形系統/pdf/' + String(year) + '_' + g + '.pdf';
+      var params = pageNum ? '#page=' + pageNum + '&view=FitH' : '#view=FitH';
+      var url = fileUrl + params;
+      var displayLabel = label + (pageNum ? ' (P' + pageNum + ')' : '');
+      return '<a href="' + url + '" target="_blank" class="bg-amber-50 text-amber-700 text-xs font-bold px-2 py-0.5 rounded border border-amber-200 hover:bg-amber-200 underline cursor-pointer" title="\u8003\u53e4\u984c\u8a66\u5377 (\u5df2\u5207\u63db\u81f3 Github Pages)">\uD83D\uDCC4 ' + displayLabel + '</a>';
+    }
+
+    function makeMaterialBadge(code) {
+      var fid = code && materialLinks[code];
+      if (fid) {
+        return '<a href="https://drive.google.com/file/d/' + fid + '/view" target="_blank" class="bg-purple-50 text-purple-700 text-xs font-bold px-2 py-0.5 rounded border border-purple-100 hover:bg-purple-200 underline cursor-pointer">教材: ' + code + '</a>';
+      }
+      return '<span class="bg-purple-50 text-purple-700 text-xs font-bold px-2 py-0.5 rounded border border-purple-100">教材: ' + (code || '--') + '</span>';
+    }
+
+    let dataLoadTimeout;
 
     window.onload = function () {
-      google.script.run
-        .withSuccessHandler(onSuccess)
-        .withFailureHandler(function(error) {
+      // 20秒後如果資料還沒讀到，顯示錯誤訊息
+      dataLoadTimeout = setTimeout(function () {
+        if (rawData.length === 0) {
           document.getElementById('loading').style.display = 'none';
           document.getElementById('errorMsg').classList.remove('hidden');
-          document.getElementById('errorDetail').textContent = error.message || JSON.stringify(error);
+          document.getElementById('errorDetail').textContent = '[Timeout] Data not loaded after 20s. Please refresh.';
+        }
+      }, 20000);
+
+      google.script.run
+        .withSuccessHandler(onSuccess)
+        .withFailureHandler(function (error) {
+          clearTimeout(dataLoadTimeout);
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('errorMsg').classList.remove('hidden');
+          document.getElementById('errorDetail').textContent = 'Error: ' + (error.message || JSON.stringify(error));
         })
         .getData();
     };
 
     function onSuccess(data) {
-      rawData = data;
+      rawData = data.curriculum;
+      transferData = data.transfer || [];
+      materialLinks = data.materialLinks || {};
+      examLinks = data.examLinks || {};
+      examPages = data.examPages || {};
+      renderExamPanel();
       document.getElementById('loading').style.display = 'none';
 
       // 分組並提取所有認知歷程
@@ -535,7 +707,7 @@
       initFilters();
       currentFilteredData = groupedData;
       renderCards(groupedData);
-      showOnboarding(); // 首次使用說明
+      showOnboarding();
     }
 
     // ===========================
@@ -547,7 +719,7 @@
       data.forEach(row => {
         const title = row['文本標題'] || '無標題';
         const year = row['年度'] || '';
-  const grade = row['年級'] || '';
+        const grade = row['年級'] || '';
         const key = `${year}_${grade}_${title}`;
 
         if (!groups[key]) {
@@ -607,7 +779,7 @@
         option.value = val;
         option.textContent = val;
         genreSelect.appendChild(option);
-     });
+      });
       // --- 修改結束 ---
 
       // 認知歷程維持原樣
@@ -621,18 +793,6 @@
         option.value = val;
         option.textContent = val;
         processSelect.appendChild(option);
-      });
-    }
-
-    // 其他 populateSelect 維持不變...
-    function populateSelect(elementId, key) {
-      const select = document.getElementById(elementId);
-      const uniqueValues = [...new Set(groupedData.map(item => String(item[key] || '')).filter(v => v))].sort();
-   niqueValues.forEach(val => {
-        const option = document.createElement('option');
-        option.value = val;
-        option.textContent = val;
-        select.appendChild(option);
       });
     }
 
@@ -707,6 +867,7 @@
 
       data.forEach((article, index) => {
         const qCount = article['題目列表'].length;
+        const examBadgeHtml = makeExamBadge(article['年度'], article['年級'], article['文本標題']);
 
         // 產生 (Badges)
         const processBadges = article['認知歷程列表'].map(p =>
@@ -716,9 +877,10 @@
         const card = `
             <div class="card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-full relative group">
               <div class="px-5 pt-4 flex justify-between items-start">
-                  <div class="flex gap-2">
+                  <div class="flex gap-2 flex-wrap items-center">
                      <span class="bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded">${article['年度']}</span>
                      <span class="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">${article['年級']}</span>
+                     ${examBadgeHtml}
                   </div>
                   <span class="bg-orange-50 text-orange-700 text-xs font-bold px-2 py-1 rounded border border-orange-100">${article['文本類型']}</span>
               </div>
@@ -764,7 +926,7 @@
       document.getElementById('modalGenre').textContent = article['文本類型'];
       document.getElementById('modalTitle').textContent = article['文本標題'];
       document.getElementById('modalQuestionCount').textContent = `共 ${article['題目列表'].length} 題`;
-      document.getElementById('modalFullText').textContent = article['文章全文'] || '（尚無全文資料）';
+      formatPresText(article['文章全文'] || '（尚無全文資料）', document.getElementById('modalFullText'));
 
       const container = document.getElementById('modalQuestionsContainer');
       container.innerHTML = '';
@@ -808,7 +970,7 @@
                 <div class="flex flex-wrap items-center gap-2 mb-3">
                    ${badgeHtml}
                    <span class="${processTagColor} text-xs font-bold px-2 py-0.5 rounded border">${q['認知歷程'] || '未標示'}</span>
-                   <span class="bg-purple-50 text-purple-700 text-xs font-bold px-2 py-0.5 rounded border border-purple-100">教材: ${q['教材編號'] || '--'}</span>
+                   ${makeMaterialBadge(q['教材編號'])}
                 </div>
 
                 <div class="mb-4">
@@ -824,16 +986,24 @@
                 </div>
 
                  <div class="bg-green-50 p-5 rounded-xl border border-green-100">
-                    <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center justify-between gap-2 mb-3 flex-wrap">
                       <div class="flex items-center gap-2">
                         <span class="bg-green-600 text-white text-xs font-bold px-2 py-0.5 rounded">策略</span>
                         <h5 class="text-base font-bold text-green-800">${q['策略名稱'] || '未命名'}</h5>
                       </div>
-                      <button onclick="copyStrategy(this)" data-text="策略：${q['策略名稱'] || ''}
-${q['策略步驟'] || ''}"
-                        class="copy-strategy-btn text-xs text-green-700 border border-green-300 px-2 py-0.5 rounded hover:bg-green-100 transition" title="複製策略">
-                        📋 複製
-                      </button>
+                      <div class="flex gap-2">
+                        <!-- 學習遷移按鈕 (這題若有資料就顯示) -->
+                        <button onclick="openTransferModal(this.dataset.title, this.dataset.question)"
+                          data-title="${(article['文本標題'] || '').replace(/"/g, '&quot;')}"
+                          data-question="${(q['完整題目'] || q['考點'] || '').replace(/"/g, '&quot;')}"
+                          class="transfer-btn flex items-center gap-1 text-xs text-indigo-700 bg-indigo-50 border border-indigo-300 px-2 py-0.5 rounded hover:bg-indigo-100 font-bold transition" title="學習遷移練習">
+                          ✨ 遷移練習
+                        </button>
+                        <button onclick="copyStrategy(this)" data-text="策略：${q['策略名稱'] || ''}\n${q['策略步驟'] || ''}"
+                          class="copy-strategy-btn text-xs text-green-700 bg-white border border-green-300 px-2 py-0.5 rounded hover:bg-green-100 transition" title="複製策略">
+                          📋 複製
+                        </button>
+                      </div>
                     </div>
                     <div class="text-gray-700 text-base leading-7 whitespace-pre-line pl-2 border-l-2 border-green-300">
                        ${q['策略步驟'] || '無步驟資料'}
@@ -919,6 +1089,17 @@ ${q['策略步驟'] || ''}"
     let presArticle = null;
     let presIndex = 0;
     let presFontScale = 1;
+    let isTransferMode = false;
+    let currentPresTransferVariants = [];
+    let presTransferIndex = 0;
+    let presFormatMode = 'original'; // 'original' or 'auto'
+
+    function togglePresFormatMode() {
+      presFormatMode = presFormatMode === 'original' ? 'auto' : 'original';
+      const btn = document.getElementById('toggleFormatBtn');
+      btn.innerHTML = presFormatMode === 'original' ? '[\u539f\u6bb5\u843d]' : '[\u81ea\u52d5\u5206\u6bb5]';
+      updatePresUI();
+    }
 
     function changePresFont(delta) {
       presFontScale = Math.min(2.0, Math.max(0.5, presFontScale + delta));
@@ -937,11 +1118,11 @@ ${q['策略步驟'] || ''}"
       presArticle = currentFilteredData[index];
       if (!presArticle) return;
       presIndex = 0;
+      isTransferMode = false;
+      resetPresFont();
 
-      document.getElementById('presTitle').textContent = presArticle['文本標題'];
       document.getElementById('presGrade').textContent = presArticle['年級'];
       document.getElementById('presGenre').textContent = presArticle['文本類型'];
-      document.getElementById('presFullText').textContent = presArticle['文章全文'] || '（尚無全文資料）';
 
       renderPresQuestion();
 
@@ -954,19 +1135,223 @@ ${q['策略步驟'] || ''}"
     }
 
     function renderPresQuestion() {
+      // 確保每次換題時，重置為一般模式
+      isTransferMode = false;
+      const btn = document.getElementById('toggleTransferBtn');
+      if (btn) {
+        btn.innerHTML = '🚀 挑戰類似題';
+        btn.className = 'px-3 py-1 rounded border text-xs font-bold transition flex items-center gap-1 bg-indigo-900 border-indigo-700 text-indigo-300 hover:bg-indigo-800';
+      }
+
+      const q = presArticle['題目列表'][presIndex];
+
+      // 檢查此題是否有對應的類似題
+      currentPresTransferVariants = transferData.filter(t =>
+        t['原始案例標題'] === presArticle['文本標題'] &&
+        ((q['完整題目'] || q['考點'] || '').includes(t['原始題目']) || t['原始題目'].includes((q['完整題目'] || q['考點'] || '')))
+      );
+
+      if (currentPresTransferVariants.length > 0 && btn) {
+        btn.style.display = 'flex';
+      } else if (btn) {
+        btn.style.display = 'none';
+      }
+
+      updatePresUI();
+    }
+
+
+    function formatPresText(text, el) {
+      el.innerHTML = '';
+
+      // 1. 擷取開頭標題（【...】或數字加標題）
+      var titleMatch = text.match(/^【[^】]+】/);
+      var titleLine = titleMatch ? titleMatch[0] : '';
+      var body = titleLine ? text.slice(titleLine.length).trim() : text.trim();
+
+      var paragraphs = [];
+
+      if (presFormatMode === 'original') {
+        // [模式 B] 尊重原本的換行
+        // 先將連續多個換行縮減，然後以換行符號切割成陣列
+        if (titleLine) paragraphs.push(titleLine);
+        var originalLines = body.split(/\r?\n/);
+        originalLines.forEach(function (line) {
+          var cleanLine = line.trim();
+          if (cleanLine) paragraphs.push(cleanLine);
+        });
+      } else {
+        // [模式 A] 自動分段：移除換行，依句數重新組合
+        body = body.replace(/[\n\r]/g, '');
+        body = body.replace(/([。！？」])\d[\d,]*/g, '$1'); // 移除嵌入數字
+        body = body.replace(/^\d[\d,]*/, '').trim();
+
+        var SENTENCES_PER_PARA = 5;
+        // 把結尾標點和 GDrive 標籤都視為句子的斷點
+        var re = /([^。！？\[]*(\[GDrive:\s*[a-zA-Z0-9_\-]+\]|[^。！？]*[。！？]))/ig;
+        var sentences = body.match(re) || [];
+        var tail = body.replace(re, '').trim();
+        if (tail) sentences.push(tail);
+
+        if (titleLine) paragraphs.push(titleLine);
+
+        // 把 GDrive 圖片標籤獨立成段，文字句子才合併分段
+        var textBatch = [];
+        sentences.forEach(function (s) {
+          var trimmed = s.trim();
+          if (/^\[GDrive:\s*[a-zA-Z0-9_\-]+\]$/i.test(trimmed)) {
+            // 先把累積的文字句子 flush 成一段
+            if (textBatch.length > 0) {
+              paragraphs.push(textBatch.join('').trim());
+              textBatch = [];
+            }
+            // 圖片單獨成一段
+            paragraphs.push(trimmed);
+          } else {
+            textBatch.push(s);
+            if (textBatch.length >= SENTENCES_PER_PARA) {
+              paragraphs.push(textBatch.join('').trim());
+              textBatch = [];
+            }
+          }
+        });
+        if (textBatch.length > 0) {
+          paragraphs.push(textBatch.join('').trim());
+        }
+      }
+
+      if (paragraphs.length === 0) paragraphs = [text];
+
+      paragraphs.forEach(function (para, idx) {
+        var p = document.createElement('p');
+        p.className = (idx === 0 && titleLine === para) ? 'mb-4 font-bold text-lg' : 'mb-6 indent-8 min-h-[1.5em] leading-relaxed';
+
+        // 解析 [GDrive: ID] 標籤與混合文字
+        var parts = para.split(/(\[GDrive:\s*[a-zA-Z0-9_\-]+\])/i);
+
+        parts.forEach(function (part) {
+          var match = part.match(/^\[GDrive:\s*([a-zA-Z0-9_\-]+)\]$/i);
+          if (match) {
+            var fileId = match[1];
+            p.style.textIndent = '0'; // 含有圖片的段落取消首行縮排
+
+            var imgContainer = document.createElement('div');
+            imgContainer.className = 'w-full flex justify-center my-4';
+
+            var imgEl = document.createElement('img');
+            imgEl.src = 'https://lh3.googleusercontent.com/d/' + fileId + '=w1200';
+            imgEl.className = 'max-w-full h-auto rounded shadow-sm border border-slate-600 cursor-zoom-in';
+            imgEl.style.maxHeight = '400px';
+            imgEl.alt = '';
+            imgEl.title = '';
+            imgEl.onerror = function () {
+              if (this.src.indexOf('lh3') !== -1) {
+                this.src = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1200';
+              }
+            };
+            imgEl.onclick = function () { openPresImageLightbox(this.src); };
+
+            imgContainer.appendChild(imgEl);
+            p.appendChild(imgContainer);
+          } else if (part) {
+            var textNode = document.createTextNode(part);
+            p.appendChild(textNode);
+          }
+        });
+
+        el.appendChild(p);
+      });
+    }
+
+    // Lightbox for GDrive images
+    function openPresImageLightbox(src) {
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+      var imgFull = document.createElement('img');
+      imgFull.src = src;
+      imgFull.style.cssText = 'max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 0 40px rgba(0,0,0,0.6);';
+      overlay.appendChild(imgFull);
+      overlay.onclick = function () { document.body.removeChild(overlay); document.removeEventListener('keydown', escHandler); };
+      document.body.appendChild(overlay);
+      function escHandler(e) { if (e.key === 'Escape') { if (document.body.contains(overlay)) document.body.removeChild(overlay); document.removeEventListener('keydown', escHandler); } }
+      document.addEventListener('keydown', escHandler);
+    }
+
+    function updatePresUI() {
       const q = presArticle['題目列表'][presIndex];
       const total = presArticle['題目列表'].length;
 
-      document.getElementById('presCounter').textContent = `${presIndex + 1} / ${total}`;
-      document.getElementById('presCognitive').textContent = q['認知歷程'] || '未標示';
-      document.getElementById('presMaterial').textContent = `教材: ${q['教材編號'] || '--'}`;
-      document.getElementById('presPoint').textContent = q['考點'] || '';
-      document.getElementById('presQuestion').textContent = q['完整題目'] || q['考點'] || '（無題目）';
+      const presFullTextEl = document.getElementById('presFullText');
+      presFullTextEl.innerHTML = '';
 
-      // 教師模式區塊
-      document.getElementById('presMisconception').textContent = q['學生迷思'] || '無資料';
-      document.getElementById('presStrategyName').textContent = q['策略名稱'] || '未命名';
-      document.getElementById('presStrategySteps').textContent = q['策略步驟'] || '無步驟資料';
+      if (isTransferMode && currentPresTransferVariants.length > 0) {
+        const tItem = currentPresTransferVariants[presTransferIndex];
+        const tTotal = currentPresTransferVariants.length;
+        document.getElementById('presTitle').innerHTML = `<span class="bg-indigo-600 text-white px-2 py-0.5 rounded text-sm mr-2 shadow-sm font-bold">類似題 ${presTransferIndex + 1}/${tTotal}</span>${tItem['原始案例標題']}`;
+
+        formatPresText(tItem['遷移文本內容'] || '（尚無全文資料）', presFullTextEl);
+
+        var tqParsed = parseTransferQuestion(tItem['遷移題目'] || '');
+        document.getElementById('presQuestion').textContent = tqParsed.question || '（無題目）';
+        document.getElementById('presCognitive').textContent = tItem['認知歷程'] || '未標示';
+        document.getElementById('presStrategyName').textContent = tItem['教學策略'] || '未命名';
+        document.getElementById('presMisconception').textContent = '（此為遷移練習，請參考原題迷思或觀察學生作答）';
+        document.getElementById('presStrategySteps').textContent = q['策略步驟'] || '無步驟資料';
+        // 答案揭示區
+        var answerArea = document.getElementById('presAnswerArea');
+        var answerText = document.getElementById('presAnswerText');
+        answerText.classList.add('hidden');
+        document.getElementById('presAnswerBtn').textContent = '顯示答案';
+        if (tqParsed.answer) {
+          answerText.textContent = '答案：' + tqParsed.answer;
+          answerArea.classList.remove('hidden');
+        } else {
+          answerArea.classList.add('hidden');
+        }
+
+        document.getElementById('presCounter').textContent = `${presTransferIndex + 1} / ${tTotal}`;
+        document.getElementById('presPrevBtn').disabled = presTransferIndex === 0;
+        document.getElementById('presNextBtn').disabled = presTransferIndex === tTotal - 1;
+        // 點點導覽顯示類似題數
+        const dots = document.getElementById('presDots');
+        dots.innerHTML = '';
+        for (let i = 0; i < tTotal; i++) {
+          const dot = document.createElement('button');
+          dot.className = `w-2.5 h-2.5 rounded-full transition-all ${i === presTransferIndex ? 'bg-indigo-400 scale-125' : 'bg-slate-600 hover:bg-slate-400'}`;
+          dot.onclick = () => { presTransferIndex = i; updatePresUI(); };
+          dots.appendChild(dot);
+        }
+        return;
+
+      } else {
+        document.getElementById('presTitle').textContent = presArticle['文本標題'];
+
+        formatPresText(presArticle['文章全文'] || '（尚無全文資料）', presFullTextEl);
+
+        document.getElementById('presQuestion').textContent = q['完整題目'] || q['考點'] || '（無題目）';
+        document.getElementById('presCognitive').textContent = q['認知歷程'] || '未標示';
+        document.getElementById('presStrategyName').textContent = q['策略名稱'] || '未命名';
+        document.getElementById('presMisconception').textContent = q['學生迷思'] || '無資料';
+        document.getElementById('presStrategySteps').textContent = q['策略步驟'] || '無步驟資料';
+        document.getElementById('presAnswerArea').classList.add('hidden');
+      }
+
+      document.getElementById('presCounter').textContent = `${presIndex + 1} / ${total}`;
+      var _matEl = document.getElementById('presMaterial');
+      var _matCode = q['\u6559\u6750\u7DE8\u865F'] || '--';
+      var _matFid = q['\u6559\u6750\u7DE8\u865F'] && materialLinks[q['\u6559\u6750\u7DE8\u865F']];
+      _matEl.textContent = '';
+      if (_matFid) {
+        var _lnk = document.createElement('a');
+        _lnk.href = 'https://drive.google.com/file/d/' + _matFid + '/view';
+        _lnk.target = '_blank';
+        _lnk.style.cssText = 'color:inherit;text-decoration:underline;';
+        _lnk.textContent = '\u6559\u6750: ' + _matCode;
+        _matEl.appendChild(_lnk);
+      } else {
+        _matEl.textContent = '\u6559\u6750: ' + _matCode;
+      }
+      document.getElementById('presPoint').textContent = q['考點'] || '';
 
       // 點點導覽
       const dots = document.getElementById('presDots');
@@ -982,10 +1367,80 @@ ${q['策略步驟'] || ''}"
       document.getElementById('presNextBtn').disabled = presIndex === total - 1;
     }
 
+    // 將「遷移題目」欄拆分成題目本體和答案
+    function parseTransferQuestion(raw) {
+      var idx = raw.search(/答案[：:]/);
+      if (idx >= 0) {
+        return {
+          question: raw.slice(0, idx).trim(),
+          answer: raw.slice(idx).replace(/^答案[：:]/, '').trim()
+        };
+      }
+      return { question: raw.trim(), answer: '' };
+    }
+
+    function togglePresAnswer() {
+      var answerText = document.getElementById('presAnswerText');
+      var btn = document.getElementById('presAnswerBtn');
+      if (answerText.classList.contains('hidden')) {
+        answerText.classList.remove('hidden');
+        btn.textContent = '隱藏答案';
+      } else {
+        answerText.classList.add('hidden');
+        btn.textContent = '顯示答案';
+      }
+    }
+
+    function toggleTransferMode() {
+      const btn = document.getElementById('toggleTransferBtn');
+      if (!btn) return;
+      isTransferMode = !isTransferMode;
+
+      if (isTransferMode) {
+        presTransferIndex = 0; // 每次進入類似題模式從第一題開始
+        btn.innerHTML = '⬅️ 返回原題';
+        btn.className = 'px-3 py-1 rounded border text-xs font-bold transition flex items-center gap-1 bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(79,70,229,0.5)]';
+
+        const origTitle = presArticle['文本標題'];
+        if (transferFullCache[origTitle]) {
+          // 已有快取，直接更新 variants 並顯示
+          currentPresTransferVariants = transferFullCache[origTitle].filter(t =>
+            t['原始案例標題'] === origTitle
+          );
+          updatePresUI();
+        } else {
+          // 先顯示載入中
+          document.getElementById('presFullText').textContent = '載入中...';
+          document.getElementById('presQuestion').textContent = '';
+          google.script.run
+            .withSuccessHandler(function(fullTransfers) {
+              transferFullCache[origTitle] = fullTransfers;
+              currentPresTransferVariants = fullTransfers.filter(t =>
+                t['原始案例標題'] === origTitle
+              );
+              updatePresUI();
+            })
+            .withFailureHandler(function(err) {
+              document.getElementById('presFullText').textContent = '載入失敗：' + (err.message || err);
+            })
+            .getTransferText(origTitle);
+        }
+      } else {
+        btn.innerHTML = '🚀 挑戰類似題';
+        btn.className = 'px-3 py-1 rounded border text-xs font-bold transition flex items-center gap-1 bg-indigo-900 border-indigo-700 text-indigo-300 hover:bg-indigo-800';
+        updatePresUI();
+      }
+    }
+
     function navigatePresentation(dir) {
-      const total = presArticle['題目列表'].length;
-      presIndex = Math.max(0, Math.min(total - 1, presIndex + dir));
-      renderPresQuestion();
+      if (isTransferMode && currentPresTransferVariants.length > 0) {
+        presTransferIndex = Math.max(0, Math.min(currentPresTransferVariants.length - 1, presTransferIndex + dir));
+        updatePresUI();
+      } else {
+        const total = presArticle['題目列表'].length;
+        presIndex = Math.max(0, Math.min(total - 1, presIndex + dir));
+        renderPresQuestion();
+      }
     }
 
     function closePresentMode() {
@@ -1046,7 +1501,7 @@ ${q['策略步驟'] || ''}"
         btnRight.classList.toggle('inactive', isCollapsed);
         if (isCollapsed && left.classList.contains('collapsed')) {
           left.classList.remove('collapsed');
-  btnLeft.classList.add('active');
+          btnLeft.classList.add('active');
           btnLeft.classList.remove('inactive');
         }
       }
@@ -1061,7 +1516,7 @@ ${q['策略步驟'] || ''}"
       if (bothVisible) {
         // 兩邊都顯示：恢復各自的寬度
         left.style.flex = '';
-        left.style.width = '41.67%';  // 恢復預設寬度
+        left.style.width = '50%';  // 恢復預設寬度
         right.style.flex = '';
       } else if (leftHidden) {
         // 只顯示右邊：右邊佔滿
@@ -1105,7 +1560,8 @@ ${q['策略步驟'] || ''}"
     // =============================================
     function copyStrategy(btn) {
       const text = btn.getAttribute('data-text');
-      navigator.clipboard.writeText(text).then(() => { const original = btn.innerHTML;
+      navigator.clipboard.writeText(text).then(() => {
+        const original = btn.innerHTML;
         btn.innerHTML = '✅ 已複製';
         btn.style.background = '#d1fae5';
         setTimeout(() => {
@@ -1116,7 +1572,7 @@ ${q['策略步驟'] || ''}"
         // fallback for older browsers
         const ta = document.createElement('textarea');
         ta.value = text;
-      document.body.appendChild(ta);
+        document.body.appendChild(ta);
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
@@ -1137,6 +1593,109 @@ ${q['策略步驟'] || ''}"
     function dismissOnboarding() {
       localStorage.setItem('onboardingDone_v1', '1');
       document.getElementById('onboardingOverlay').style.display = 'none';
+    }
+
+    // =============================================
+    // 學習遷移 (類似題) 控制 (方案 A)
+    // =============================================
+    let currentTransferVariants = [];
+
+    function openTransferModal(origTitle, origQuestionText) {
+      // 先開 modal 顯示載入中
+      document.getElementById('transferModal').classList.remove('hidden');
+      document.getElementById('transferVariants').classList.add('hidden');
+      document.getElementById('transferContent').textContent = '載入中...';
+      document.getElementById('transferQuestion').textContent = '';
+      document.getElementById('transferStrategy').textContent = '';
+      document.getElementById('transferProcess').textContent = '';
+
+      function populateModal(fullTransfers) {
+        currentTransferVariants = fullTransfers.filter(t =>
+          origQuestionText.includes(t['原始題目']) || t['原始題目'].includes(origQuestionText) || origQuestionText === t['原始題目']
+        );
+
+        if (currentTransferVariants.length === 0) {
+          document.getElementById('transferContent').textContent = '暫無此題目的遷移練習資料';
+          return;
+        }
+
+        const variantsContainer = document.getElementById('transferVariants');
+        variantsContainer.innerHTML = '';
+        if (currentTransferVariants.length > 1) {
+          variantsContainer.classList.remove('hidden');
+          currentTransferVariants.forEach((variant, idx) => {
+            const btn = document.createElement('button');
+            btn.className = `px-3 py-1 text-xs font-bold rounded-full border transition ${idx === 0 ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-indigo-900 border-indigo-700 text-indigo-300 hover:bg-indigo-800'}`;
+            btn.textContent = `文本 ${idx + 1}`;
+            btn.onclick = () => {
+              Array.from(variantsContainer.children).forEach(c => {
+                c.className = 'px-3 py-1 text-xs font-bold rounded-full border bg-indigo-900 border-indigo-700 text-indigo-300 hover:bg-indigo-800 transition';
+              });
+              btn.className = 'px-3 py-1 text-xs font-bold rounded-full border bg-indigo-500 text-white border-indigo-500 transition';
+              renderTransferItem(variant);
+            };
+            variantsContainer.appendChild(btn);
+          });
+        } else {
+          variantsContainer.classList.add('hidden');
+        }
+        renderTransferItem(currentTransferVariants[0]);
+      }
+
+      // 有快取直接用，否則呼叫後端
+      if (transferFullCache[origTitle]) {
+        populateModal(transferFullCache[origTitle]);
+      } else {
+        google.script.run
+          .withSuccessHandler(function(fullTransfers) {
+            transferFullCache[origTitle] = fullTransfers;
+            populateModal(fullTransfers);
+          })
+          .withFailureHandler(function(err) {
+            document.getElementById('transferContent').textContent = '載入失敗：' + (err.message || err);
+          })
+          .getTransferText(origTitle);
+      }
+    }
+
+    function renderTransferItem(item) {
+      document.getElementById('transferContent').textContent = item['遷移文本內容'] || '無文本內容';
+      document.getElementById('transferQuestion').textContent = item['遷移題目'] || '無題目內容';
+      document.getElementById('transferStrategy').textContent = item['教學策略'] || '無資料';
+      document.getElementById('transferProcess').textContent = item['認知歷程'] || '無資料';
+      var examBadgeEl = document.getElementById('transferExamBadge');
+      examBadgeEl.innerHTML = makeExamBadge(item['年度'], item['年級'], item['原始案例標題']) || '—';
+    }
+
+    function closeTransferModal() {
+      document.getElementById('transferModal').classList.add('hidden');
+    }
+
+    function copyTransferContent(btn) {
+      const text = document.getElementById('transferContent').textContent;
+      const question = document.getElementById('transferQuestion').textContent;
+      const fullText = `【閱讀遷移練習】\n\n文本內容：\n${text}\n\n題目：\n${question}`;
+
+      navigator.clipboard.writeText(fullText).then(() => {
+        const origText = btn.innerHTML;
+        btn.innerHTML = '✅ 已複製！';
+        btn.style.background = '#10b981'; // green-500
+        setTimeout(() => {
+          btn.innerHTML = origText;
+          btn.style.background = '';
+        }, 2000);
+      }).catch(() => {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = fullText;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        const origText = btn.innerHTML;
+        btn.innerHTML = '✅ 已複製！';
+        setTimeout(() => { btn.innerHTML = origText; }, 2000);
+      });
     }
 
   </script>
