@@ -334,10 +334,83 @@
             gap: 0.6rem;
         }
 
+    /* ===================== HAMBURGER BUTTON ===================== */
+    .hamburger-btn {
+        display: none;
+        background: none;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        padding: 0.4rem 0.5rem;
+        border-radius: var(--radius);
+        color: var(--text-main);
+        flex-direction: column;
+        gap: 5px;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .hamburger-btn span {
+        display: block;
+        width: 20px;
+        height: 2px;
+        background: currentColor;
+        border-radius: 2px;
+    }
+
+    /* ===================== SIDEBAR OVERLAY ===================== */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        top: 70px;
+        background: rgba(0, 0, 0, 0.35);
+        z-index: 39;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    /* ===================== TABLET (768px – 1024px) ===================== */
+    @media (max-width: 1024px) and (min-width: 768px) {
+        .sidebar { width: 210px; }
+        .main-content { padding: 1.25rem 1.5rem; }
+        .top-header .editors { font-size: 0.78rem; padding: 0.25rem 0.6rem; }
+    }
+
+    /* ===================== MOBILE (< 768px) ===================== */
+    @media (max-width: 767px) {
+        .top-header {
+            padding: 0 0.85rem;
+            gap: 0.5rem;
+        }
+        .top-header h1 { font-size: 1rem; letter-spacing: 0; }
+        .top-header .editors { display: none; }
+        .hamburger-btn { display: flex; }
+
+        .sidebar {
+            position: fixed;
+            left: -270px;
+            top: 70px;
+            width: 260px;
+            height: calc(100vh - 70px);
+            z-index: 40;
+            transition: left 0.25s ease;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+        }
+        .sidebar.open { left: 0; }
+
+        .layout { height: calc(100vh - 70px); }
+        .main-content { padding: 1rem; }
+        .content-container { max-width: 100%; }
+        .resource-title { flex-wrap: wrap; }
+        .badge { margin-bottom: 0.2rem; }
+    }
+
     </style>
 </head>
 <body>
     <header class="top-header">
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="開啟目錄">
+            <span></span><span></span><span></span>
+        </button>
         <div>
             <h1>新北英語學扶數位資源庫</h1>
         </div>
@@ -345,8 +418,9 @@
             編輯團隊：新北市更寮國小吳國榮、王筱瑛、屏東縣竹田國小劉蘋老師
         </div>
     </header>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <div class="layout">
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <nav class="sidebar-nav">
                 <div class='nav-grade'>🎓 三年級</div>
                 <a href='#三年級-語音-音韻覺識' class='nav-link'>📚 語音-音韻覺識</a>
@@ -1851,12 +1925,28 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Hamburger menu toggle (mobile)
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('open');
+            }
+            hamburgerBtn.addEventListener('click', () => {
+                const isOpen = sidebar.classList.toggle('open');
+                overlay.classList.toggle('open', isOpen);
+            });
+            overlay.addEventListener('click', closeSidebar);
+
             // Setup smooth scrolling for sidebar links and handle accordion state
             const navLinks = document.querySelectorAll('.nav-link');
             const allDomains = document.querySelectorAll('.domain-section');
             
             navLinks.forEach(link => {
                 link.addEventListener('click', (e) => {
+                    // Close sidebar on mobile after clicking a link
+                    closeSidebar();
                     // Close all domain sections
                     allDomains.forEach(domain => domain.removeAttribute('open'));
                     
