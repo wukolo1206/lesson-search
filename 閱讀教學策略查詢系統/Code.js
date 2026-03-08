@@ -6,6 +6,7 @@ function doGet(e) {
   var pageMap = {
     'home': { file: 'home', title: '學習扶助閱讀策略小幫手' },
     'index': { file: 'index', title: '閱讀教學策略查詢系統' },
+    'calibration': { file: 'calibration_guide', title: '內部協作與資料優化指南' },
     'quiz': { file: 'quiz', title: '閱讀遷移測驗 — 學生作答' },
     'teacher': { file: 'teacher', title: '閱讀遷移測驗 — 老師管理頁' },
     'self_practice': { file: 'student_practice', title: '閱讀測驗練習 — 學生自主' }

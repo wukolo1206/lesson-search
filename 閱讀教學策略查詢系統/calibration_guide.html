@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>閱讀策略小幫手 - 內部協作與資料優化指南</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'edu-bg': '#F8FAFC',
+                        'edu-primary': '#0284C7', // Sky 600
+                        'edu-secondary': '#F59E0B', // Amber 500
+                        'edu-text': '#1E293B',    // Slate 800
+                        'edu-card': '#FFFFFF',
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        display: ['"Nunito"', '"Noto Sans TC"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Iconify -->
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+
+    <style>
+        body { background-color: #F8FAFC; color: #1E293B; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .step-number {
+            background: linear-gradient(135deg, #0284C7, #38BDF8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased selection:bg-edu-primary selection:text-white pb-20">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-edu-primary text-white rounded-xl flex items-center justify-center shadow-md">
+                    <iconify-icon icon="solar:users-group-two-rounded-bold-duotone" class="text-2xl"></iconify-icon>
+                </div>
+                <div>
+                    <h1 class="font-display font-900 text-xl text-edu-text">閱讀策略小幫手</h1>
+                    <p class="text-xs text-slate-500 font-bold tracking-wider">團隊資料校對工作站</p>
+                </div>
+            </div>
+            
+            <a href="https://docs.google.com/spreadsheets/d/1IDu-J5luPJsKA5O7UPtiXhnueQ_JNZJ2ccdnldCCpdI/edit?usp=sharing" target="_blank" class="bg-edu-secondary text-white px-5 py-2 rounded-xl font-bold text-sm hover:bg-amber-600 transition-colors shadow-sm flex items-center gap-2">
+                <iconify-icon icon="solar:file-excel-bold-duotone" class="text-lg"></iconify-icon>
+                開啟共用試算表
+            </a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="max-w-5xl mx-auto px-6 pt-16 pb-12">
+        <div class="text-center max-w-3xl mx-auto">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-xs mb-6">
+                <iconify-icon icon="solar:target-bold-duotone"></iconify-icon>
+                核心任務：優化系統大腦
+            </div>
+            <h2 class="font-display font-900 text-4xl md:text-5xl mb-6 text-slate-800 leading-tight">
+                讓系統的篩選器<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-edu-primary to-blue-400">百分之百精準</span>
+            </h2>
+            <p class="text-lg text-slate-600 leading-relaxed font-medium">
+                各位老師好！我們的題庫系統目前收錄了超過 2500 題的資料，並由 AI 進行了初步分類。但為了讓全國老師在搜尋時（例如：找三年級「推論訊息」的題目）夠精準，我們需要借用各位的教學專業，幫忙進行**「標籤視力檢查」**。這不需要懂程式碼，只要在 Excel 改字即可！
+            </p>
+        </div>
+    </section>
+
+    <!-- Task Explanation -->
+    <section class="max-w-5xl mx-auto px-6 pb-16">
+        <div class="grid md:grid-cols-2 gap-8">
+            
+            <!-- Left Info Panel -->
+            <div class="space-y-6">
+                <!-- Why is it important -->
+                <div class="glass-card p-8 rounded-[2rem]">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-2xl">
+                            <iconify-icon icon="solar:danger-triangle-bold-duotone"></iconify-icon>
+                        </div>
+                        <h3 class="font-bold text-xl text-slate-800">為什麼需要校對？</h3>
+                    </div>
+                    <p class="text-slate-600 leading-relaxed font-medium">
+                        目前的各題目都有效對應到了「認知歷程」與「教學策略」，但**AI 的判斷難免有瑕疵**。如果標籤貼錯，老師在上課時搜尋出來的推薦題目就會「文不對題」，嚴重影響備課效率。
+                    </p>
+                </div>
+
+                <!-- How long will it take -->
+                <div class="glass-card p-8 rounded-[2rem]">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-2xl">
+                            <iconify-icon icon="solar:clock-circle-bold-duotone"></iconify-icon>
+                        </div>
+                        <h3 class="font-bold text-xl text-slate-800">預計工作量與分工</h3>
+                    </div>
+                    <ul class="text-slate-600 leading-relaxed font-medium space-y-3">
+                        <li class="flex items-start gap-2">
+                            <iconify-icon icon="solar:check-circle-bold" class="text-green-500 mt-1"></iconify-icon>
+                            每位老師認領一個年級（例如：三年級工作表）。
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <iconify-icon icon="solar:check-circle-bold" class="text-green-500 mt-1"></iconify-icon>
+                            只要專注檢查特定欄位，看到明顯錯誤的標籤直接點擊格子修改。
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <iconify-icon icon="solar:check-circle-bold" class="text-green-500 mt-1"></iconify-icon>
+                            系統會在每週自動抓取大家修改後的新資料，同步到正式網站上！
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right Steps Panel -->
+            <div class="glass-card p-8 sm:p-10 rounded-[2rem] border-t-4 border-t-edu-primary relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 text-slate-50 text-9xl opacity-50 z-0">
+                    <iconify-icon icon="solar:checklist-minimalistic-bold"></iconify-icon>
+                </div>
+                
+                <h3 class="font-display font-900 text-2xl text-slate-800 mb-8 relative z-10">
+                    ✅ 具體執行步驟
+                </h3>
+                
+                <div class="space-y-8 relative z-10">
+                    <!-- Step 1 -->
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center font-black text-blue-600 text-lg">1</div>
+                        <div>
+                            <h4 class="font-bold text-lg text-slate-800 mb-1">打開共用試算表</h4>
+                            <p class="text-slate-600 text-sm font-medium mb-3">請點擊右邊或上方的按鈕，進入系統核心資料庫。</p>
+                            <a href="https://docs.google.com/spreadsheets/d/1IDu-J5luPJsKA5O7UPtiXhnueQ_JNZJ2ccdnldCCpdI/edit?usp=sharing" target="_blank" class="inline-flex items-center gap-2 text-sm font-bold text-edu-primary hover:text-blue-800 underline">
+                                點此前往 Google Sheet 
+                                <iconify-icon icon="solar:arrow-right-up-linear"></iconify-icon>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center font-black text-blue-600 text-lg">2</div>
+                        <div>
+                            <h4 class="font-bold text-lg text-slate-800 mb-1">鎖定您的負責年級與欄位</h4>
+                            <p class="text-slate-600 text-sm font-medium mb-2">找到下方的分頁標籤（如「三年級」），並專注檢查 **J 欄（教學策略）** 與 **K 欄（認知歷程）**。</p>
+                            <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-xs text-amber-800 font-bold mt-2">
+                                💡 判斷小提示：
+                                <ul class="list-disc pl-4 mt-1 font-medium text-amber-700/80 space-y-1">
+                                    <li>答案直接寫在文章裡 👉 **提取訊息**</li>
+                                    <li>需要串聯兩三句話才能懂 👉 **推論訊息**</li>
+                                    <li>在問「全文主旨」或主角心情轉變 👉 **詮釋整合**</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center font-black text-blue-600 text-lg">3</div>
+                        <div>
+                            <h4 class="font-bold text-lg text-slate-800 mb-1">直接修改，系統自動儲存</h4>
+                            <p class="text-slate-600 text-sm font-medium">這題明明是問整篇文章大意，卻被標成提取訊息？請**直接點擊那格 Excel 儲存格**，打字改成「詮釋整合」。Google 表單會自動存檔，這樣就完成一題的拯救了！</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Example Section -->
+    <section class="max-w-5xl mx-auto px-6 mb-12">
+        <div class="bg-slate-800 rounded-3xl p-8 md:p-12 text-white relative overflow-hidden shadow-2xl">
+            <!-- decorative circles -->
+            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-50 transform translate-x-1/2 -translate-y-1/2"></div>
+            <div class="absolute bottom-0 left-0 w-64 h-64 bg-amber-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 transform -translate-x-1/3 translate-y-1/4"></div>
+            
+            <div class="relative z-10">
+                <h3 class="font-display font-900 text-3xl mb-8 flex items-center gap-3">
+                    <iconify-icon icon="solar:magic-stick-3-bold-duotone" class="text-amber-400"></iconify-icon>
+                    實際修改範例
+                </h3>
+                
+                <div class="bg-slate-900/50 border border-slate-700 p-6 rounded-2xl mb-6 flex flex-col md:flex-row gap-6 items-start">
+                    <div class="flex-1">
+                        <div class="text-slate-400 text-xs font-bold mb-2 uppercase tracking-wide">原始資料庫狀態（錯誤）</div>
+                        <div class="bg-slate-800 p-4 rounded-xl border border-red-500/30">
+                            <p class="text-sm text-slate-300 mb-2">題目：作者寫這篇文章的主要目的是什麼？</p>
+                            <div class="flex gap-2 items-center">
+                                <span class="bg-slate-700 px-2 py-1 rounded text-xs">認知歷程</span>
+                                <span class="text-red-400 font-bold line-through">提取訊息</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="hidden md:flex items-center justify-center pt-8 text-2xl text-slate-500">
+                        <iconify-icon icon="solar:arrow-right-linear"></iconify-icon>
+                    </div>
+
+                    <div class="flex-1">
+                        <div class="text-slate-400 text-xs font-bold mb-2 uppercase tracking-wide">您的優化動作（正確）</div>
+                        <div class="bg-slate-800 p-4 rounded-xl border border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
+                            <p class="text-sm text-slate-300 mb-2">題目：作者寫這篇文章的主要目的是什麼？</p>
+                            <div class="flex gap-2 items-center">
+                                <span class="bg-slate-700 px-2 py-1 rounded text-xs">認知歷程</span>
+                                <span class="text-green-400 font-bold">詮釋整合</span>
+                                <span class="text-xs text-green-500/70 ml-2">✔ (點擊試算表格子修改)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="text-slate-300 font-medium">只要將錯置的標籤修正，系統的搜尋引擎威力就會提升一分。如果有不確定的題目，可以在旁邊新增的「備註欄」打個問號，我們再來一起討論！</p>
+            </div>
+        </div>
+    </section>
+
+</body>
+</html>
