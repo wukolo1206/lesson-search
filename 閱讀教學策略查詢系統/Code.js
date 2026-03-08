@@ -572,6 +572,81 @@ function updateTextbookHyperlinks() {
   Logger.log('教材超連結更新完成！');
 }
 
+function updateExamHyperlinks() {
+  var ss = SpreadsheetApp.openById('1IDu-J5luPJsKA5O7UPtiXhnueQ_JNZJ2ccdnldCCpdI');
+  
+  // 1. 建立考古題對應表 (Year_Grade -> File ID)
+  var examLinks = {};
+  var gradeKeyMap = {'\u4e09': 'G3', '\u56db': 'G4', '\u4e94': 'G5', '\u516d': 'G6'};
+  var examSheet = ss.getSheetByName('\u8003\u53e4\u984cPDF\u9023\u7d50');
+  if (!examSheet) return;
+  
+  var examData = examSheet.getDataRange().getValues();
+  for (var i = 1; i < examData.length; i++) {
+    var efname = String(examData[i][0] || '');
+    var efid   = String(examData[i][1] || '');
+    var efolder = String(examData[i][2] || '');
+    if (!efname || !efid) continue;
+    var ym = efname.match(/^(\d{3})/);
+    if (!ym) continue;
+    var eyear = ym[1];
+    var egrade = '';
+    for (var g in gradeKeyMap) {
+      if (efolder.indexOf(g) !== -1) { egrade = gradeKeyMap[g]; break; }
+    }
+    if (!egrade) continue;
+    var ekey = eyear + '_' + egrade;
+    if (!examLinks[ekey]) examLinks[ekey] = 'https://drive.google.com/file/d/' + efid + '/view';
+  }
+
+  // 2. 寫入各年級
+  var targetSheets = ['三年級', '四年級', '五年級', '六年級'];
+  targetSheets.forEach(function(sName) {
+    var sheet = ss.getSheetByName(sName);
+    if (!sheet) return;
+    
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return;
+    
+    var headers = data[0];
+    var yearColIdx = -1;
+    var gradeColIdx = -1;
+    for (var j = 0; j < headers.length; j++) {
+      var h = String(headers[j]).trim();
+      if (h === '年度') yearColIdx = j;
+      if (h === '年級') gradeColIdx = j;
+    }
+    if (yearColIdx === -1 || gradeColIdx === -1) return;
+    
+    // 預先將整欄設為純文字，避免自動轉型問題
+    sheet.getRange(2, yearColIdx + 1, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
+    sheet.getRange(2, gradeColIdx + 1, sheet.getMaxRows() - 1, 1).setNumberFormat('@');
+    
+    for (var r = 1; r < data.length; r++) {
+      var yearCode = String(data[r][yearColIdx]).trim();
+      var gradeCode = String(data[r][gradeColIdx]).trim();
+      
+      var ekey = yearCode + '_' + gradeCode;
+      var url = examLinks[ekey];
+      
+      if (url) {
+        var yearCell = sheet.getRange(r + 1, yearColIdx + 1);
+        var yearFormula = yearCell.getFormula();
+        if (!yearFormula || yearFormula.toUpperCase().indexOf('HYPERLINK') === -1) {
+            yearCell.setFormula('=HYPERLINK("' + url + '", "' + yearCode + '")');
+        }
+        
+        var gradeCell = sheet.getRange(r + 1, gradeColIdx + 1);
+        var gradeFormula = gradeCell.getFormula();
+        if (!gradeFormula || gradeFormula.toUpperCase().indexOf('HYPERLINK') === -1) {
+            gradeCell.setFormula('=HYPERLINK("' + url + '", "' + gradeCode + '")');
+        }
+      }
+    }
+  });
+  Logger.log('考古題超連結更新完成！');
+}
+
 function listExamPdfs() {
   var ss = SpreadsheetApp.openById('1IDu-J5luPJsKA5O7UPtiXhnueQ_JNZJ2ccdnldCCpdI');
   var sheet = ss.getSheetByName('\u8003\u53e4\u984cPDF\u9023\u7d50') || ss.insertSheet('\u8003\u53e4\u984cPDF\u9023\u7d50');
