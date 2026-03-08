@@ -11,8 +11,10 @@ function doGet(e) {
     'self_practice': { file: 'student_practice', title: '閱讀測驗練習 — 學生自主' }
   };
   var config = pageMap[page] || pageMap['home'];
-  return HtmlService.createTemplateFromFile(config.file)
-    .evaluate()
+  var template = HtmlService.createTemplateFromFile(config.file);
+  template.scriptUrl = ScriptApp.getService().getUrl();
+  
+  return template.evaluate()
     .setTitle(config.title)
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
