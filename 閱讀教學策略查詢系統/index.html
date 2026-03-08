@@ -655,7 +655,7 @@
       var label = String(year) + ' ' + g;
       var pageNum = title ? examPages[String(year) + '_' + g + '_' + String(title)] : null;
       var fileUrl = 'https://wukolo1206.github.io/lesson-search/字音形系統/pdf/' + String(year) + '_' + g + '.pdf';
-      var params = pageNum ? '#page=' + pageNum + '&view=FitV' : '#view=FitV';
+      var params = pageNum ? '#page=' + pageNum + '&view=FitH' : '#view=FitH';
       var url = fileUrl + params;
       var displayLabel = label + (pageNum ? ' (P' + pageNum + ')' : '');
       return '<a href="' + url + '" target="_blank" class="bg-amber-50 text-amber-700 text-xs font-bold px-2 py-0.5 rounded border border-amber-200 hover:bg-amber-200 underline cursor-pointer" title="\u8003\u53e4\u984c\u8a66\u5377 (\u5df2\u5207\u63db\u81f3 Github Pages)">\uD83D\uDCC4 ' + displayLabel + '</a>';
