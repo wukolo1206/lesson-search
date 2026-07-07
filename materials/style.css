@@ -1,0 +1,318 @@
+/* 教材館共用樣式表 (style.css) */
+:root {
+  --primary: #1e3a8a;
+  --primary-light: #eff6ff;
+  --secondary: #4f46e5;
+  --text-dark: #1f2937;
+  --text-muted: #4b5563;
+  --bg-light: #f8fafc;
+  --border-color: #e2e8f0;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, 'Microsoft JhengHei', sans-serif;
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+  line-height: 1.6;
+  padding-bottom: 60px;
+}
+
+/* 頂部導覽列 */
+header.print-hidden {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.nav-btn:hover {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+/* 主要內容區 */
+main {
+  max-width: 1000px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+/* 首頁專用樣式 */
+.library-header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding: 32px 0;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: white;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.library-header h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.library-header .subtitle {
+  opacity: 0.9;
+  font-size: 1rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.sections-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card-section {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+}
+
+.card-section h2 {
+  font-size: 1.4rem;
+  color: var(--primary);
+  margin-bottom: 8px;
+  border-left: 4px solid var(--secondary);
+  padding-left: 10px;
+}
+
+.section-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.link-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.link-list li a {
+  display: block;
+  padding: 10px 14px;
+  background-color: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-dark);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.link-list li a:hover {
+  border-color: var(--secondary);
+  background-color: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+/* 考前卷包樣式 */
+.tools-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tool-btn {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: var(--secondary);
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: opacity 0.15s ease;
+}
+
+.tool-btn:hover {
+  opacity: 0.9;
+}
+
+.grade-groups {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media(min-width: 768px) {
+  .grade-groups {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.grade-box {
+  background-color: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.grade-box h3 {
+  font-size: 1.1rem;
+  color: var(--primary);
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
+}
+
+.exam-grid-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.exam-grid-links a {
+  display: block;
+  text-align: center;
+  padding: 6px;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text-dark);
+  font-size: 0.85rem;
+  transition: all 0.12s ease;
+}
+
+.exam-grid-links a:hover {
+  background-color: var(--primary-light);
+  border-color: var(--secondary);
+}
+
+/* 一般頁面 Markdown 轉換排版 */
+h1 {
+  font-size: 1.8rem;
+  color: var(--primary);
+  margin: 16px 0 12px;
+}
+
+h2 {
+  font-size: 1.4rem;
+  color: var(--primary);
+  margin: 24px 0 12px;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 6px;
+}
+
+h3 {
+  font-size: 1.15rem;
+  color: var(--secondary);
+  margin: 16px 0 8px;
+}
+
+p {
+  margin-bottom: 12px;
+}
+
+ul, ol {
+  margin: 0 0 16px 20px;
+}
+
+li {
+  margin-bottom: 4px;
+}
+
+/* 表格排版 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.9rem;
+}
+
+th {
+  background-color: #f1f5f9;
+  color: var(--primary);
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+td {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  background-color: #ffffff;
+}
+
+tr:nth-child(even) td {
+  background-color: #f8fafc;
+}
+
+/* 答案區在螢幕上顯示 */
+.answer-section {
+  margin-top: 32px;
+  padding: 20px;
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+}
+
+.answer-section h2 {
+  color: #b91c1c;
+  border-bottom-color: #fee2e2;
+}
+
+/* 列印樣式處理 */
+@media print {
+  body {
+    background-color: #ffffff;
+    color: #000000;
+    padding-bottom: 0;
+  }
+  
+  .print-hidden, header, .answer-section {
+    display: none !important;
+  }
+  
+  main {
+    margin: 0;
+    max-width: 100%;
+    padding: 0;
+  }
+  
+  table, tr, td, th {
+    page-break-inside: avoid;
+  }
+}
