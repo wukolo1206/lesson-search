@@ -1,0 +1,1 @@
+var ZhuWrite=(function(){function printSheet(basket){if(!basket.length){alert('詞籃沒有語詞');return;}var w=window.open('','_blank');w.document.write('<meta charset="utf-8"><h1>字音形練習紙</h1>'+basket.map(function(x){return '<p>'+x.word+'　□　□　□</p>';}).join(''));w.print();}return{printSheet:printSheet};})();if(typeof module!=='undefined'&&module.exports)module.exports=ZhuWrite;
