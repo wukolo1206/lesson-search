@@ -1,1 +1,128 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>字主板</title><style>body{font-family:"Microsoft JhengHei",sans-serif;margin:0;background:#f8fafc;color:#172033}header,main,#basket{padding:14px;max-width:1000px;margin:auto}.panel{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:14px;margin:10px 0}.big{font-size:5rem;text-align:center}.chip,.btn{padding:6px 10px;margin:3px;border:1px solid #93c5fd;border-radius:6px;background:#eff6ff;cursor:pointer}.hidden{display:none}#basket{position:sticky;bottom:0;background:#fff;border-top:2px solid #2563eb}</style></head><body><header><b>🔤 字主板</b> <input id="kw" maxlength="1" placeholder="輸入一字"><button id="search">查</button><select id="grade"><option>三年級</option><option>四年級</option><option>五年級</option><option>六年級</option></select> <a href="index.html">備課搜尋</a> <a href="class.html">課堂講義</a></header><div id="status">載入題庫中…</div><main id="app" class="hidden"><section class="panel"><div class="big" id="char">—</div><div id="meta"></div></section><section class="panel"><h3>考過的題</h3><div id="questions"></div></section><section class="panel" id="options"><h3>選項詞</h3><div id="optionWords"></div></section><section class="panel"><h3>補充詞</h3><div id="supplement"></div></section></main><div id="basket" class="hidden">🧺 詞籃 <span id="count">0</span> <span id="items"></span><button id="print">列印練習紙</button><button id="clear">清除</button></div><script src="papaparse.min.js"></script><script src="zhu-data.js"></script><script src="zhu-store.js"></script><script src="zhu-write.js"></script><script src="zhu-board.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>字主板 — 國語字音形</title>
+<style>
+  :root { --line:#cbd5e1; --ink:#0f172a; --muted:#64748b; --blue:#2563eb; --amber:#92400e; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,"Microsoft JhengHei",sans-serif; color:var(--ink); background:#f8fafc; }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:12px 16px;
+           display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:1.05rem; margin:0 12px 0 0; }
+  input, select, button { font:inherit; }
+  #kw { padding:6px 10px; border:1px solid var(--line); border-radius:6px; width:120px; }
+  main { padding:16px; max-width:1100px; margin:0 auto; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px; }
+  .panel h2 { font-size:.8rem; color:var(--muted); margin:0 0 8px; letter-spacing:.05em; }
+  .bigchar { font-size:5rem; font-weight:700; text-align:center; line-height:1;
+             border:2px solid var(--blue); border-radius:12px; padding:18px; background:#fff; }
+  .charmeta { text-align:center; color:var(--muted); font-size:.8rem; margin-top:6px; }
+  .badge-wrong { display:inline-block; background:#fef2f2; color:#991b1b; border:1px solid #fca5a5;
+                 border-radius:6px; padding:2px 8px; font-size:.75rem; }
+  .chip { display:inline-block; border:1px solid #93c5fd; background:#eff6ff; color:#1e40af;
+          border-radius:999px; padding:4px 12px; font-size:.9rem; margin:3px; cursor:pointer; }
+  .chip:hover { background:#dbeafe; }
+  .chip.sup { border-color:#fcd34d; background:#fffbeb; color:var(--amber); }
+  .chip.in-basket { outline:2px solid var(--blue); }
+  .qcard { background:#f1f5f9; border-left:3px solid var(--blue); padding:8px 10px;
+           border-radius:4px; margin-bottom:6px; font-size:.85rem; cursor:pointer; }
+  .qcard.active { background:#dbeafe; border-left-color:#1d4ed8; }
+  .qcard .qmeta { color:var(--muted); font-size:.72rem; }
+  #basket { position:sticky; bottom:0; background:#fff; border-top:2px solid var(--blue);
+            padding:10px 16px; }
+  #status { padding:40px; text-align:center; color:var(--muted); }
+  .btn { padding:6px 12px; border:1px solid var(--line); border-radius:6px;
+         background:#fff; cursor:pointer; }
+  .btn-primary { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .hidden { display:none; }
+
+  /* ── 練習紙（螢幕上不顯示，只在列印時出現）────────────── */
+  #printSheet { display:none; }
+
+  @media print {
+    /* 網頁的東西一律不印 */
+    header, main, #basket, #status { display:none !important; }
+    body { background:#fff; }
+    #printSheet { display:block; }
+
+    @page { size:A4; margin:15mm; }
+
+    .wtitle { font-size:1.2rem; text-align:center; margin:0 0 10mm; }
+
+    /* 一個詞是一個不可分割單元 —— 絕不允許被切到兩頁 */
+    .wrow { break-inside:avoid; page-break-inside:avoid; margin-bottom:6mm; }
+
+    .wlabel { font-size:.75rem; color:#555; margin-bottom:1mm; }
+    .wcells { display:flex; flex-wrap:wrap; gap:1mm; }
+    .wcell {
+      width:16mm; height:16mm; border:.3mm solid #333;
+      display:flex; align-items:center; justify-content:center;
+      font-size:11mm; line-height:1;
+      background-image:
+        linear-gradient(to right, transparent 49.7%, #ccc 49.7%, #ccc 50.3%, transparent 50.3%),
+        linear-gradient(to bottom, transparent 49.7%, #ccc 49.7%, #ccc 50.3%, transparent 50.3%);
+    }
+    .wcell.wgap { margin-left:4mm; }
+    .wcell.trace { color:#9aa5b1; }
+    .wcell.faint { color:#dfe4ea; }
+    .wcell.blank { color:transparent; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔤 字主板</h1>
+  <input id="kw" placeholder="輸入一個字…" maxlength="1">
+  <button class="btn" id="btnSearch">查</button>
+  <select id="grade">
+    <option>三年級</option><option>四年級</option><option>五年級</option><option>六年級</option>
+  </select>
+  <span style="flex:1"></span>
+  <a href="index.html" class="btn" style="text-decoration:none">← 備課搜尋</a>
+  <a href="class.html" class="btn" style="text-decoration:none">課堂講義</a>
+</header>
+
+<div id="status">載入題庫中…</div>
+
+<main id="app" class="hidden">
+  <div class="panel">
+    <div class="bigchar" id="bigChar">—</div>
+    <div class="charmeta" id="charMeta"></div>
+  </div>
+
+  <div class="panel">
+    <h2>考過的題（點一下設為教學情境）</h2>
+    <div id="questions"></div>
+  </div>
+
+  <div class="panel" id="optionPanel">
+    <h2>選項詞（點一下丟進詞籃）</h2>
+    <div id="optionWords"></div>
+  </div>
+
+  <div class="panel">
+    <h2>補充詞（點一下丟進詞籃）</h2>
+    <div id="supWords"></div>
+    <button class="btn hidden" id="btnMore"></button>
+  </div>
+</main>
+
+<div id="printSheet"></div>
+
+<div id="basket" class="hidden">
+  <strong>🧺 詞籃 <span id="basketCount">0</span></strong>
+  <span id="basketItems"></span>
+  <button class="btn btn-primary" id="btnPrint">🖨 列印練習紙</button>
+  <button class="btn" id="btnClear">清除全部資料</button>
+</div>
+
+<script src="papaparse.min.js"></script>
+<script src="zhu-data.js"></script>
+<script src="zhu-store.js"></script>
+<script src="zhu-write.js"></script>
+<script src="zhu-board.js"></script>
+</body>
+</html>
