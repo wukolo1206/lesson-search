@@ -49,7 +49,25 @@
   .prep-filters select { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:#fff; }
   .prep-count { margin-bottom:10px; }
   .prep-chars { margin-top:9px; padding-top:7px; border-top:1px dashed #bfdbfe; }
-  .prep-char { font-size:1.05rem; min-width:42px; }
+  .prep-char { font-size:1.05rem; min-width:42px; min-height:42px; }
+  .prep-view-tabs { display:flex; gap:8px; margin:0 0 10px; }
+  .prep-char-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); gap:8px; }
+  .prep-char-card { min-height:64px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink);
+                    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; }
+  .prep-char-card:hover, .prep-char-card.selected { border-color:var(--blue); background:#eff6ff; color:#1d4ed8; }
+  .prep-char-card strong { font-size:1.7rem; line-height:1; }
+  .prep-char-card small { color:var(--muted); font-size:.72rem; }
+  .prep-selection-heading, .queue-heading { display:flex; align-items:baseline; gap:10px; }
+  .prep-selection-heading span, .queue-heading span { color:var(--muted); font-size:.82rem; }
+  .prep-selection-chars, .queue-chars { display:flex; flex-wrap:wrap; gap:4px; margin:8px 0 4px; min-height:34px; align-items:center; }
+  .prep-selection-empty { color:var(--muted); font-size:.85rem; }
+  .prep-selection-actions, .queue-controls { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+  .prep-char.selected { background:#dbeafe; border-color:var(--blue); font-weight:700; }
+  #queueNav { border-color:#93c5fd; background:#eff6ff; }
+  .queue-heading strong { color:#1d4ed8; }
+  .queue-char { min-width:48px; min-height:42px; padding:5px 10px; border:1px solid #93c5fd; border-radius:8px;
+                background:#fff; color:#1e40af; cursor:pointer; }
+  .queue-char.active { background:var(--blue); color:#fff; border-color:var(--blue); font-weight:700; }
   #view-projector { position:fixed; inset:0; background:radial-gradient(circle at 50% 30%,#1e3a5f 0,#0f172a 58%); color:#fff; z-index:50;
                     display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:92px 40px 40px; overflow:auto; }
   #view-projector.hidden { display:none; }
@@ -115,36 +133,54 @@
   .write-modal-cell-canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }
   @media (max-width:700px) { .prep-filters { grid-template-columns:1fr; } }
 
-  /* ── 練習紙（螢幕上不顯示，只在列印時出現）────────────── */
+  /* ── 練習紙預覽與列印 ──────────────────────────────── */
   #printSheet { display:none; }
+  #printPreview { position:fixed; inset:0; z-index:100; overflow:auto; padding:18px; background:rgba(15,23,42,.78); }
+  .print-preview-card { max-width:1120px; margin:0 auto; background:#e2e8f0; border-radius:14px; padding:14px; }
+  .print-preview-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:4px 4px 14px; }
+  .print-preview-toolbar strong { font-size:1.1rem; }
+  .print-preview-toolbar label { display:flex; align-items:center; gap:4px; color:var(--muted); font-size:.85rem; }
+  .print-preview-toolbar input, .print-preview-toolbar select { min-height:34px; padding:5px 8px; border:1px solid var(--line); border-radius:6px; background:#fff; }
+  #printLesson { width:110px; }
+  #printClass { width:78px; }
+  #printSummary { color:var(--muted); font-size:.82rem; }
+  #printWarning { flex:1 1 100%; color:#166534; font-size:.78rem; }
+  #printWarning.warning { color:#b45309; }
+  .print-preview-pages { display:flex; flex-direction:column; align-items:center; gap:18px; overflow:auto; }
+  .practice-page { position:relative; width:210mm; min-height:297mm; padding:8mm 1mm 9mm; background:#fff; box-shadow:0 4px 18px rgba(15,23,42,.18); }
+  .practice-page::after { content:'第 ' var(--page-num,1) ' 頁 / 共 ' var(--total-pages,1) ' 頁'; position:absolute; left:0; right:0; bottom:4mm; text-align:center; color:#777; font-size:7pt; }
+  .practice-header { display:flex; flex-direction:column; align-items:center; gap:2mm; margin-bottom:5mm; }
+  .practice-title { margin:0; font-size:14pt; letter-spacing:1px; }
+  .practice-fields { display:flex; align-items:baseline; justify-content:center; flex-wrap:wrap; gap:3mm 5mm; font-size:9pt; color:#333; }
+  .practice-field-value { display:inline-block; min-width:24mm; border-bottom:1px solid #888; min-height:1.1em; color:#1a4a1a; }
+  .practice-field-value.short { min-width:16mm; }
+  .practice-field-blank { display:inline-block; min-width:22mm; border-bottom:1px solid #888; height:1.1em; }
+  .practice-field-blank.number { min-width:13mm; }
+  .practice-grid { display:grid; grid-template-columns:repeat(6,30.5mm); justify-content:center; column-gap:4mm; align-items:start; }
+  .practice-column { display:flex; flex-direction:column; gap:2mm; }
+  .practice-item { break-inside:avoid; page-break-inside:avoid; display:flex; flex-direction:column; align-items:center; }
+  .practice-slot { display:table; table-layout:fixed; width:30.5mm; border-collapse:collapse; }
+  .practice-slot + .practice-slot { margin-top:-4px; }
+  .practice-box { width:23mm; height:23mm; display:table-cell; position:relative; vertical-align:middle; text-align:center; border:0.96mm solid #6fa27a;
+                  font-size:2.9rem; line-height:1; color:#222; background:#fff;
+                  background-image:linear-gradient(to right,transparent 49.7%,#b8d2b8 49.7%,#b8d2b8 50.3%,transparent 50.3%),linear-gradient(to bottom,transparent 49.7%,#b8d2b8 49.7%,#b8d2b8 50.3%,transparent 50.3%),linear-gradient(45deg,transparent 49.5%,#d6e3d6 49.5%,#d6e3d6 50.5%,transparent 50.5%),linear-gradient(-45deg,transparent 49.5%,#d6e3d6 49.5%,#d6e3d6 50.5%,transparent 50.5%); }
+  .practice-box.blank { color:transparent; }
+  .practice-bopo { width:7.5mm; height:23mm; display:table-cell; vertical-align:middle; text-align:center; border:.96mm solid #6fa27a; border-left:none; background:#fff; }
+  .practice-bopo.empty { color:transparent; }
+  .practice-bopo-inner { display:inline-grid; grid-template-columns:1em .7em; column-gap:.02em; align-items:start; justify-items:center; font-family:"Microsoft JhengHei","Noto Sans Bopomofo",sans-serif; font-size:10pt; font-weight:600; line-height:1; }
+  .practice-bopo-stack { display:grid; grid-auto-rows:1em; row-gap:.08em; align-items:center; justify-items:center; }
+  .practice-bopo-symbol { display:block; min-width:1em; min-height:1em; line-height:1; }
+  .practice-bopo-tone { display:block; min-width:.7em; font-size:1.22em; font-weight:800; line-height:1; }
+  .practice-bopo-light { display:block; grid-column:1/-1; line-height:.55; margin-bottom:.04em; }
 
   @media print {
-    /* 網頁的東西一律不印 */
-    header, main, #basket, #status, #modeTabs, #view-prep, #view-projector { display:none !important; }
+    header, main, #basket, #status, #modeTabs, #view-prep, #view-projector, #printPreview { display:none !important; }
     body { background:#fff; }
     #printSheet { display:block; }
-
-    @page { size:A4; margin:15mm; }
-
-    .wtitle { font-size:1.2rem; text-align:center; margin:0 0 10mm; }
-
-    /* 一個詞是一個不可分割單元 —— 絕不允許被切到兩頁 */
-    .wrow { break-inside:avoid; page-break-inside:avoid; margin-bottom:6mm; }
-
-    .wlabel { font-size:.75rem; color:#555; margin-bottom:1mm; }
-    .wcells { display:flex; flex-wrap:wrap; gap:1mm; }
-    .wcell {
-      width:16mm; height:16mm; border:.3mm solid #333;
-      display:flex; align-items:center; justify-content:center;
-      font-size:11mm; line-height:1;
-      background-image:
-        linear-gradient(to right, transparent 49.7%, #ccc 49.7%, #ccc 50.3%, transparent 50.3%),
-        linear-gradient(to bottom, transparent 49.7%, #ccc 49.7%, #ccc 50.3%, transparent 50.3%);
-    }
-    .wcell.wgap { margin-left:4mm; }
-    .wcell.trace { color:#9aa5b1; }
-    .wcell.faint { color:#dfe4ea; }
-    .wcell.blank { color:transparent; }
+    @page { size:A4; margin:0; }
+    .practice-page { box-shadow:none; page-break-after:always; break-after:page; }
+    .practice-page:last-child { page-break-after:auto; break-after:auto; }
+    .practice-box, .practice-bopo { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
 </style>
 </head>
@@ -172,6 +208,7 @@
   <div id="status">載入題庫中…</div>
 
   <main id="app" class="hidden">
+    <div id="queueNav" class="panel hidden"></div>
     <div class="panel">
       <div class="bigchar" id="bigChar">—</div>
       <div class="charmeta" id="charMeta"></div>
@@ -203,6 +240,23 @@
 <section id="view-prep" class="hidden"></section>
 <section id="view-projector" class="hidden"></section>
 
+<div id="printPreview" class="hidden" role="dialog" aria-modal="true" aria-labelledby="printPreviewTitle">
+  <div class="print-preview-card">
+    <div class="print-preview-toolbar">
+      <strong id="printPreviewTitle">列印練習紙</strong>
+      <span id="printSummary"></span>
+      <label>版本
+        <select id="printMode"><option value="fill">填空版</option><option value="answer">答案版</option></select>
+      </label>
+      <label>課別<input id="printLesson" type="text" maxlength="30" placeholder="可留白"></label>
+      <label>班級<input id="printClass" type="text" maxlength="20" placeholder="可留白"></label>
+      <button class="btn" id="btnClosePrintPreview">關閉</button>
+      <button class="btn btn-primary" id="btnPrintPreview">列印</button>
+      <span id="printWarning"></span>
+    </div>
+    <div id="printPreviewPages" class="print-preview-pages"></div>
+  </div>
+</div>
 <div id="printSheet"></div>
 
 <div id="basket" class="hidden">
@@ -218,6 +272,8 @@
 <script src="zhu-core.js"></script>
 <script src="zhu-write.js"></script>
 <script src="zhu-prep.js"></script>
+<script src="zhu-bopo.js"></script>
+<script src="zhu-print.js"></script>
 <script src="zhu-projector.js"></script>
 <script src="zhu-board.js"></script>
 </body>

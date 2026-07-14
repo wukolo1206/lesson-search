@@ -1,7 +1,7 @@
 var ZhuStore = (function () {
   'use strict';
   var VERSION = 1;
-  var NAMES = ['basket', 'ink', 'prefs'];
+  var NAMES = ['basket', 'ink', 'prefs', 'selection'];
   var SOFT_LIMIT_BYTES = 4 * 1024 * 1024;
   function keyOf(name) { return 'zhu.' + name + '.v' + VERSION; }
   function create(storage) {

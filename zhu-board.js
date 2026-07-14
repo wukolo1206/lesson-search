@@ -9,6 +9,31 @@
   var $ = function (id) { return document.getElementById(id); };
   var index, radicals;
 
+  function renderPrep() {
+    if (!window.ZhuPrep) return;
+    window.ZhuPrep.render($('view-prep'), {
+      getSelectedChars: ZhuCore.getSelectedChars,
+      onToggleChar: function (char, questionId) {
+        var selected = ZhuCore.getSelectedChars().some(function (entry) { return entry.char === char; });
+        if (selected) ZhuCore.removeSelectedChar(char);
+        else ZhuCore.addSelectedChar(char, questionId);
+        renderPrep();
+      },
+      onClearSelection: function () {
+        ZhuCore.setSelectedChars([]);
+        renderPrep();
+      },
+      onStart: function () {
+        var selected = ZhuCore.getSelectedChars();
+        if (!selected.length) return;
+        var active = Math.min(ZhuCore.getActiveSelectedIndex(), selected.length - 1);
+        ZhuCore.setActiveSelectedIndex(active);
+        switchMode('board');
+        showChar(selected[active].char, selected[active].contextQuestionId);
+      },
+    });
+  }
+
   function switchMode(mode) {
     document.querySelectorAll('#modeTabs .tab').forEach(function (btn) {
       var active = btn.getAttribute('data-mode') === mode;
@@ -18,7 +43,7 @@
     $('view-prep').classList.toggle('hidden', mode !== 'prep');
     $('view-board').classList.toggle('hidden', mode !== 'board');
     $('view-projector').classList.toggle('hidden', mode !== 'projector');
-    if (mode === 'prep' && window.ZhuPrep) window.ZhuPrep.render($('view-prep'), { onPickChar: enterBoardFromPrep });
+    if (mode === 'prep') renderPrep();
     if (mode === 'projector' && window.ZhuProjector) {
       window.ZhuProjector.enter($('view-projector'), boardState, index, ZhuCore.getStore(), function () {
         alert('筆跡空間已滿，請先清除全部資料。');
@@ -67,11 +92,74 @@
   function showChar(char, contextQuestionId) {
     boardState.char = char;
     boardState.contextQuestionId = contextQuestionId || null;
+    var selected = ZhuCore.getSelectedChars();
+    var selectedIndex = selected.findIndex(function (entry) { return entry.char === char; });
+    if (selectedIndex >= 0) ZhuCore.setActiveSelectedIndex(selectedIndex);
     supExpanded = false;
     render();
   }
 
+  function renderQueueNav() {
+    var nav = $('queueNav');
+    if (!nav) return;
+    var selected = ZhuCore.getSelectedChars();
+    nav.innerHTML = '';
+    nav.classList.toggle('hidden', selected.length === 0);
+    if (!selected.length) return;
+
+    var active = Math.min(ZhuCore.getActiveSelectedIndex(), selected.length - 1);
+    if (active !== ZhuCore.getActiveSelectedIndex()) ZhuCore.setActiveSelectedIndex(active);
+
+    var heading = document.createElement('div');
+    heading.className = 'queue-heading';
+    heading.innerHTML = '<strong>逐字備課</strong><span>' + (active + 1) + '／' + selected.length + '</span>';
+    nav.appendChild(heading);
+
+    var chars = document.createElement('div');
+    chars.className = 'queue-chars';
+    selected.forEach(function (entry, i) {
+      var button = document.createElement('button');
+      button.className = 'queue-char' + (i === active ? ' active' : '');
+      button.textContent = (i + 1) + '. ' + entry.char;
+      button.setAttribute('aria-label', '第 ' + (i + 1) + ' 個考點字：' + entry.char);
+      button.setAttribute('aria-current', i === active ? 'true' : 'false');
+      button.onclick = function () {
+        ZhuCore.setActiveSelectedIndex(i);
+        showChar(entry.char, entry.contextQuestionId);
+      };
+      chars.appendChild(button);
+    });
+    nav.appendChild(chars);
+
+    var controls = document.createElement('div');
+    controls.className = 'queue-controls';
+    var previous = document.createElement('button');
+    previous.className = 'btn';
+    previous.textContent = '← 上一字';
+    previous.disabled = active === 0;
+    previous.onclick = function () {
+      if (active === 0) return;
+      var next = active - 1;
+      ZhuCore.setActiveSelectedIndex(next);
+      showChar(selected[next].char, selected[next].contextQuestionId);
+    };
+    var nextButton = document.createElement('button');
+    nextButton.className = 'btn btn-primary';
+    nextButton.textContent = '下一字 →';
+    nextButton.disabled = active >= selected.length - 1;
+    nextButton.onclick = function () {
+      if (active >= selected.length - 1) return;
+      var next = active + 1;
+      ZhuCore.setActiveSelectedIndex(next);
+      showChar(selected[next].char, selected[next].contextQuestionId);
+    };
+    controls.appendChild(previous);
+    controls.appendChild(nextButton);
+    nav.appendChild(controls);
+  }
+
   function render() {
+    renderQueueNav();
     ZhuWrite.renderWriteBoard($('writeBoard'), ZhuCore.getBasket(), ZhuCore.getStore(), function () {
       alert('筆跡空間已滿，請先清除全部資料。');
     });
@@ -233,7 +321,10 @@
     renderBasket();
     render();
   };
-  $('btnPrint').onclick = function () { ZhuWrite.printSheet(ZhuCore.getBasket()); };
+  $('btnPrint').onclick = function () {
+    if (window.ZhuPrint) ZhuPrint.openPreview({ basket: ZhuCore.getBasket() });
+    else ZhuWrite.printSheet(ZhuCore.getBasket());
+  };
 
   boot();
 })();

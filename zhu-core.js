@@ -7,6 +7,8 @@ var ZhuCore = (function () {
   var radicals = null;
   var tables = null;
   var basket = [];
+  var selectedChars = [];
+  var activeSelectedIndex = 0;
 
   var state = {
     char: null,
@@ -19,7 +21,25 @@ var ZhuCore = (function () {
     store = ZhuStore.create(localStorageImpl);
     state.grade = (store.get('prefs', {}).grade) || '三年級';
     basket = store.get('basket', []);
+    selectedChars = normalizeSelectedChars(store.get('selection', []));
+    activeSelectedIndex = 0;
     return store;
+  }
+
+  function normalizeSelectedChars(queue) {
+    var out = [];
+    (Array.isArray(queue) ? queue : []).forEach(function (entry) {
+      if (!entry || !entry.char || out.some(function (item) { return item.char === entry.char; })) return;
+      out.push({
+        char: String(entry.char),
+        contextQuestionId: entry.contextQuestionId === null || entry.contextQuestionId === undefined ? null : String(entry.contextQuestionId),
+      });
+    });
+    return out;
+  }
+
+  function persistSelectedChars() {
+    return store.set('selection', selectedChars);
   }
 
   function boot(onReady, onError) {
@@ -36,6 +56,38 @@ var ZhuCore = (function () {
   function getTables() { return tables; }
   function getBasket() { return basket.slice(); }
   function getStore() { return store; }
+  function getSelectedChars() { return selectedChars.map(function (entry) { return { char: entry.char, contextQuestionId: entry.contextQuestionId }; }); }
+  function getActiveSelectedIndex() { return activeSelectedIndex; }
+
+  function setSelectedChars(queue) {
+    selectedChars = normalizeSelectedChars(queue);
+    activeSelectedIndex = Math.min(activeSelectedIndex, Math.max(0, selectedChars.length - 1));
+    return persistSelectedChars();
+  }
+
+  function addSelectedChar(char, contextQuestionId) {
+    if (!char || selectedChars.some(function (entry) { return entry.char === char; })) return true;
+    selectedChars.push({
+      char: String(char),
+      contextQuestionId: contextQuestionId === null || contextQuestionId === undefined ? null : String(contextQuestionId),
+    });
+    return persistSelectedChars();
+  }
+
+  function removeSelectedChar(char) {
+    var removedIndex = selectedChars.findIndex(function (entry) { return entry.char === char; });
+    if (removedIndex === -1) return true;
+    selectedChars.splice(removedIndex, 1);
+    if (removedIndex < activeSelectedIndex) activeSelectedIndex -= 1;
+    activeSelectedIndex = Math.min(activeSelectedIndex, Math.max(0, selectedChars.length - 1));
+    return persistSelectedChars();
+  }
+
+  function setActiveSelectedIndex(indexValue) {
+    var max = Math.max(0, selectedChars.length - 1);
+    activeSelectedIndex = Math.max(0, Math.min(max, Number(indexValue) || 0));
+    return activeSelectedIndex;
+  }
 
   function setGrade(grade) {
     state.grade = grade;
@@ -60,6 +112,8 @@ var ZhuCore = (function () {
   function clearAll() {
     store.clearAll();
     basket = [];
+    selectedChars = [];
+    activeSelectedIndex = 0;
   }
 
   return {
@@ -71,6 +125,12 @@ var ZhuCore = (function () {
     getTables: getTables,
     getBasket: getBasket,
     getStore: getStore,
+    getSelectedChars: getSelectedChars,
+    setSelectedChars: setSelectedChars,
+    addSelectedChar: addSelectedChar,
+    removeSelectedChar: removeSelectedChar,
+    getActiveSelectedIndex: getActiveSelectedIndex,
+    setActiveSelectedIndex: setActiveSelectedIndex,
     setGrade: setGrade,
     addToBasket: addToBasket,
     removeFromBasket: removeFromBasket,
