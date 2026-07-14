@@ -21,11 +21,16 @@
   .charmeta { text-align:center; color:var(--muted); font-size:.8rem; margin-top:6px; }
   .badge-wrong { display:inline-block; background:#fef2f2; color:#991b1b; border:1px solid #fca5a5;
                  border-radius:6px; padding:2px 8px; font-size:.75rem; }
-  .chip { display:inline-block; border:1px solid #93c5fd; background:#eff6ff; color:#1e40af;
-          border-radius:999px; padding:4px 12px; font-size:.9rem; margin:3px; cursor:pointer; }
+  .chip { display:inline-flex; flex-direction:column; align-items:flex-start; justify-content:center; vertical-align:middle;
+          min-height:42px; max-width:100%; border:1px solid #93c5fd; background:#eff6ff; color:#1e40af;
+          border-radius:999px; padding:5px 12px; font-size:.9rem; margin:3px; cursor:pointer; }
   .chip:hover { background:#dbeafe; }
   .chip.sup { border-color:#fcd34d; background:#fffbeb; color:var(--amber); }
   .chip.in-basket { outline:2px solid var(--blue); }
+  .chip-main { line-height:1.3; white-space:nowrap; }
+  .chip-action { margin-left:4px; font-size:.85em; }
+  .publisher-source { max-width:100%; color:#a16207; font-size:.68rem; font-weight:400; line-height:1.2;
+                      white-space:normal; overflow-wrap:anywhere; }
   .qcard { background:#f1f5f9; border-left:3px solid var(--blue); padding:8px 10px;
            border-radius:4px; margin-bottom:6px; font-size:.85rem; cursor:pointer; }
   .qcard.active { background:#dbeafe; border-left-color:#1d4ed8; }
@@ -225,7 +230,7 @@
     </div>
 
     <div class="panel">
-      <h2>補充詞（點一下丟進詞籃）</h2>
+      <h2>補充詞（題庫＋康軒／翰林／南一 1–6 年級，點一下丟進詞籃）</h2>
       <div id="supWords"></div>
       <button class="btn hidden" id="btnMore"></button>
     </div>
@@ -268,6 +273,7 @@
 
 <script src="papaparse.min.js"></script>
 <script src="zhu-data.js"></script>
+<script src="zhu-publisher-words.js"></script>
 <script src="zhu-store.js"></script>
 <script src="zhu-core.js"></script>
 <script src="zhu-write.js"></script>

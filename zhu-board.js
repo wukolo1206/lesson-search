@@ -247,7 +247,8 @@
   }
 
   function renderSupWords() {
-    var all = ZhuData.supplementWords(index, boardState);
+    var publisherWords = typeof ZhuPublisherWords !== 'undefined' ? ZhuPublisherWords.wordsOf(boardState.char) : [];
+    var all = ZhuData.mergeSupplementWords(index, boardState, publisherWords);
     var limit = ZhuData.SUPPLEMENT_VISIBLE;
     var shown = supExpanded ? all : all.slice(0, limit);
 
@@ -267,13 +268,60 @@
     }
   }
 
+  function sourceLabel(sources) {
+    var groups = {};
+    var publisherOrder = ['康軒', '翰林', '南一'];
+    (sources || []).forEach(function (source) {
+      if (!source || !source.publisher || !source.volume) return;
+      if (!groups[source.publisher]) groups[source.publisher] = {};
+      if (!groups[source.publisher][source.volume]) groups[source.publisher][source.volume] = [];
+      if (source.source && groups[source.publisher][source.volume].indexOf(source.source) === -1) {
+        groups[source.publisher][source.volume].push(source.source);
+      }
+    });
+    return publisherOrder.filter(function (publisher) { return groups[publisher]; }).map(function (publisher) {
+      var volumes = Object.keys(groups[publisher]).map(function (volume) {
+        var kinds = groups[publisher][volume];
+        return volume + (kinds.length ? '（' + kinds.join('、') + '）' : '');
+      });
+      return publisher + volumes.join('、');
+    }).join('｜');
+  }
+
+  function displayBopomofo(entry) {
+    if (entry.bopomofo) return entry.bopomofo;
+    if (typeof ZhuBopo === 'undefined' || !ZhuBopo.lookup) return '';
+    var syllables = ZhuBopo.lookup(entry.word);
+    return syllables.length === entry.word.length ? syllables.join(' ') : '';
+  }
+
   function chipFor(entry, isSup) {
     var c = document.createElement('span');
     c.className = 'chip' + (isSup ? ' sup' : '');
     var inBasket = ZhuCore.isInBasket(entry.word, entry.char);
     if (inBasket) c.classList.add('in-basket');
-    c.textContent = entry.word + (entry.bopomofo ? '（' + entry.bopomofo + '）' : '') + (inBasket ? ' ✓' : ' ＋');
-    c.title = entry.gloss || '';
+    var main = document.createElement('span');
+    main.className = 'chip-main';
+    var bopomofo = displayBopomofo(entry);
+    main.textContent = entry.word + (bopomofo ? '（' + bopomofo + '）' : '');
+    var action = document.createElement('span');
+    action.className = 'chip-action';
+    action.textContent = inBasket ? '✓' : '＋';
+    main.appendChild(action);
+    c.appendChild(main);
+
+    var sourceText = sourceLabel(entry.publisherSources);
+    if (sourceText) {
+      var source = document.createElement('small');
+      source.className = 'publisher-source';
+      source.textContent = sourceText;
+      c.appendChild(source);
+    }
+    var sourceTitle = (entry.publisherSources || []).map(function (item) {
+      return item.publisher + item.volume + (item.source ? '（' + item.source + '）' : '');
+    }).join('、');
+    c.title = [entry.gloss, sourceTitle].filter(Boolean).join('\n');
+    c.setAttribute('aria-label', entry.word + (sourceText ? '，來源：' + sourceText : ''));
     c.onclick = function () {
       if (inBasket) { ZhuCore.removeFromBasket(entry.word, entry.char); }
       else if (!ZhuCore.addToBasket(entry)) { alert('儲存空間已滿，詞籃沒存進去。請按「清除全部資料」後再試。'); }

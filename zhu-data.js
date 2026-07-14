@@ -157,6 +157,61 @@ var ZhuData = (function () {
       .map(function (item) { return item.word; });
   }
 
+  function publisherSourceKey(source) {
+    return [source.publisher || '', source.volume || '', source.source || ''].join('|');
+  }
+
+  function mergeSupplementWords(index, state, publisherWords) {
+    var excluded = {};
+    optionWords(index, state).forEach(function (word) { excluded[word.word] = true; });
+
+    var result = supplementWords(index, state).map(function (entry) {
+      var copy = {};
+      Object.keys(entry).forEach(function (key) { copy[key] = entry[key]; });
+      return copy;
+    });
+    var byWord = {};
+    result.forEach(function (entry) { byWord[entry.word] = entry; });
+
+    (publisherWords || []).forEach(function (publisherEntry) {
+      var word = (publisherEntry.word || '').trim();
+      if (!word || excluded[word]) return;
+      var sources = (publisherEntry.sources || []).filter(function (source) {
+        return source && source.publisher && source.volume;
+      });
+      if (!sources.length) return;
+
+      var existing = byWord[word];
+      if (existing) {
+        existing.publisherSources = existing.publisherSources || [];
+        sources.forEach(function (source) {
+          if (!existing.publisherSources.some(function (item) { return publisherSourceKey(item) === publisherSourceKey(source); })) {
+            existing.publisherSources.push(source);
+          }
+        });
+        return;
+      }
+
+      var created = {
+        word: word,
+        char: state.char,
+        bopomofo: '',
+        gloss: '',
+        questionId: null,
+        grade: '',
+        source: 'publisher',
+        optionOf: '',
+        wrongChar: null,
+        correctChar: null,
+        publisherSources: sources.slice()
+      };
+      byWord[word] = created;
+      result.push(created);
+    });
+
+    return result;
+  }
+
   var SUPPLEMENT_VISIBLE = 6;
   var basketOps = {
     keyOf: function (item) { return item.word + '@' + item.char; },
@@ -190,6 +245,7 @@ var ZhuData = (function () {
     gradeNum: gradeNum,
     optionWords: optionWords,
     supplementWords: supplementWords,
+    mergeSupplementWords: mergeSupplementWords,
     SUPPLEMENT_VISIBLE: SUPPLEMENT_VISIBLE,
     basketOps: basketOps,
     loadAll: loadAll,
