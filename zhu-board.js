@@ -19,7 +19,11 @@
     $('view-board').classList.toggle('hidden', mode !== 'board');
     $('view-projector').classList.toggle('hidden', mode !== 'projector');
     if (mode === 'prep' && window.ZhuPrep) window.ZhuPrep.render($('view-prep'), { onPickChar: enterBoardFromPrep });
-    if (mode === 'projector' && window.ZhuProjector) window.ZhuProjector.enter($('view-projector'), boardState, index);
+    if (mode === 'projector' && window.ZhuProjector) {
+      window.ZhuProjector.enter($('view-projector'), boardState, index, ZhuCore.getStore(), function () {
+        alert('筆跡空間已滿，請先清除全部資料。');
+      });
+    }
     if (mode !== 'projector' && window.ZhuProjector) window.ZhuProjector.exit();
   }
 

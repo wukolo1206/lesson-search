@@ -235,6 +235,43 @@ var ZhuWrite = (function () {
     return row;
   }
 
+  function renderProjectorWriteRow(item, store, onQuotaFull) {
+    var row = document.createElement('div');
+    row.className = 'projwrite';
+
+    buildCells(item.word).forEach(function (cell, i) {
+      var wrap = document.createElement('div');
+      wrap.className = 'projcell-wrap ' + cell.style;
+      if (i > 0 && i % item.word.length === 0) wrap.classList.add('projgap');
+
+      var guide = document.createElement('span');
+      guide.className = 'projcell-guide';
+      guide.textContent = cell.char || '';
+      wrap.appendChild(guide);
+
+      var canvas = document.createElement('canvas');
+      canvas.width = CELL_PX;
+      canvas.height = CELL_PX;
+      canvas.className = 'projcell-canvas';
+      wrap.appendChild(canvas);
+
+      var ctx = canvas.getContext('2d');
+      var saved = loadInk(store, item.word, item.char, i);
+      if (saved) {
+        var img = new Image();
+        img.onload = function () { ctx.drawImage(img, 0, 0); };
+        img.src = saved;
+      }
+
+      wrap.addEventListener('click', function () {
+        openWriteModal(item, i, cell, canvas, store, onQuotaFull);
+      });
+      row.appendChild(wrap);
+    });
+
+    return row;
+  }
+
   function renderWriteBoard(container, basket, store, onQuotaFull) {
     container.innerHTML = '';
     if (!basket.length) {
@@ -276,6 +313,8 @@ var ZhuWrite = (function () {
     saveInk: saveInk,
     clearInkForWord: clearInkForWord,
     renderWriteBoard: renderWriteBoard,
+    renderProjectorWriteRow: renderProjectorWriteRow,
+    openWriteModal: openWriteModal,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

@@ -19,18 +19,18 @@ var ZhuProjector = (function () {
   var stepIndex = 0;
   var keyHandler = null;
 
-  function enter(container, boardState, index) {
+  function enter(container, boardState, index, store, onQuotaFull) {
     exit();
     stepIndex = 0;
-    render(container, boardState, index);
+    render(container, boardState, index, store, onQuotaFull);
     keyHandler = function (e) {
       if (e.key === 'ArrowRight') {
         e.preventDefault();
-        move(1, container, boardState, index);
+        move(1, container, boardState, index, store, onQuotaFull);
       }
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        move(-1, container, boardState, index);
+        move(-1, container, boardState, index, store, onQuotaFull);
       }
     };
     document.addEventListener('keydown', keyHandler);
@@ -41,12 +41,12 @@ var ZhuProjector = (function () {
     keyHandler = null;
   }
 
-  function move(delta, container, boardState, index) {
+  function move(delta, container, boardState, index, store, onQuotaFull) {
     stepIndex = Math.max(0, Math.min(4, stepIndex + delta));
-    render(container, boardState, index);
+    render(container, boardState, index, store, onQuotaFull);
   }
 
-  function render(container, boardState, index) {
+  function render(container, boardState, index, store, onQuotaFull) {
     container.innerHTML = '';
     if (!boardState.char || !index) {
       var empty = document.createElement('p');
@@ -104,16 +104,7 @@ var ZhuProjector = (function () {
       if (!step.words.length) body.textContent = '（沒有）';
     } else if (step.type === 'write') {
       step.words.forEach(function (w) {
-        var row = document.createElement('div');
-        row.className = 'projwrite';
-        ZhuWrite.buildCells(w.word).forEach(function (cell, i) {
-          var d = document.createElement('span');
-          d.className = 'projcell ' + cell.style;
-          if (i > 0 && i % w.word.length === 0) d.classList.add('projgap');
-          d.textContent = cell.char || '　';
-          row.appendChild(d);
-        });
-        body.appendChild(row);
+        body.appendChild(ZhuWrite.renderProjectorWriteRow(w, store, onQuotaFull));
       });
       if (!step.words.length) body.textContent = '（沒有可練習的詞）';
     }
@@ -121,8 +112,8 @@ var ZhuProjector = (function () {
 
     var controls = document.createElement('div');
     controls.className = 'projcontrols';
-    controls.appendChild(projectorButton('← 上一步', stepIndex === 0, function () { move(-1, container, boardState, index); }));
-    controls.appendChild(projectorButton('下一步 →', stepIndex === 4, function () { move(1, container, boardState, index); }));
+    controls.appendChild(projectorButton('← 上一步', stepIndex === 0, function () { move(-1, container, boardState, index, store, onQuotaFull); }));
+    controls.appendChild(projectorButton('下一步 →', stepIndex === 4, function () { move(1, container, boardState, index, store, onQuotaFull); }));
     container.appendChild(controls);
   }
 
