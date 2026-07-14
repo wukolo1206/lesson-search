@@ -172,11 +172,11 @@
   .practice-box.blank { color:transparent; }
   .practice-bopo { width:7.5mm; height:23mm; display:table-cell; vertical-align:middle; text-align:center; border:.96mm solid #6fa27a; border-left:none; background:#fff; }
   .practice-bopo.empty { color:transparent; }
-  .practice-bopo-inner { display:inline-grid; grid-template-columns:1em .7em; column-gap:.02em; align-items:start; justify-items:center; font-family:"Microsoft JhengHei","Noto Sans Bopomofo",sans-serif; font-size:10pt; font-weight:600; line-height:1; }
+  .practice-bopo-inner { display:inline-grid; grid-template-columns:1em .7em; column-gap:.02em; align-items:start; justify-items:center; font-family:"Microsoft JhengHei","Noto Sans Bopomofo","Bpmf Zihi Sans",sans-serif; font-size:10pt; font-weight:600; line-height:1; }
   .practice-bopo-stack { display:grid; grid-auto-rows:1em; row-gap:.08em; align-items:center; justify-items:center; }
   .practice-bopo-symbol { display:block; min-width:1em; min-height:1em; line-height:1; }
-  .practice-bopo-tone { display:block; min-width:.7em; font-size:1.22em; font-weight:800; line-height:1; }
-  .practice-bopo-light { display:block; grid-column:1/-1; line-height:.55; margin-bottom:.04em; }
+  .practice-bopo-tone { display:block; min-width:.7em; font-size:1.22em; font-weight:800; line-height:1; text-align:center; transform:translate(.03em,var(--tone-offset,0)); }
+  .practice-bopo-light { display:block; grid-column:1/-1; text-align:center; font-weight:800; line-height:.55; margin-bottom:.04em; }
 
   @media print {
     header, main, #basket, #status, #modeTabs, #view-prep, #view-projector, #printPreview { display:none !important; }

@@ -112,24 +112,44 @@ var ZhuPrint = (function () {
     return el;
   }
 
+  function parseBopomofo(value) {
+    value = String(value || '');
+    var leadingLight = value.charAt(0) === '˙';
+    var trailingLight = !leadingLight && value.charAt(value.length - 1) === '˙';
+    var light = leadingLight || trailingLight;
+    var toneMatch = light ? null : value.match(/[ˊˇˋ˙]$/);
+    var sound = leadingLight ? value.slice(1) : (trailingLight ? value.slice(0, -1) : (toneMatch ? value.slice(0, -1) : value));
+    var tone = light ? '˙' : (toneMatch ? toneMatch[0] : '');
+    var symbols = Array.from(sound);
+    var toneOffsets = { 1: '0.05em', 2: '0.63em', 3: '1.21em' };
+    return {
+      symbols: symbols,
+      tone: tone,
+      light: light,
+      toneOffset: light || !tone ? null : (toneOffsets[symbols.length] || '1.21em'),
+    };
+  }
+
   function renderBopomofo(container, value) {
     container.innerHTML = '';
     if (!value) return;
-    var light = value.charAt(0) === '˙';
-    var toneMatch = light ? null : value.match(/[ˊˇˋ˙]$/);
-    var sound = light ? value.slice(1) : (toneMatch ? value.slice(0, -1) : value);
-    var tone = light ? '˙' : (toneMatch ? toneMatch[0] : '');
+    var layout = parseBopomofo(value);
     var inner = createElement('span', 'practice-bopo-inner');
     var stack = createElement('span', 'practice-bopo-stack');
-    Array.from(sound).forEach(function (symbol) {
+    layout.symbols.forEach(function (symbol) {
       stack.appendChild(createElement('span', 'practice-bopo-symbol', symbol));
     });
-    if (light) {
+    if (layout.light) {
+      inner.style.gridTemplateColumns = '1em';
       inner.appendChild(createElement('span', 'practice-bopo-light', '˙'));
       inner.appendChild(stack);
     } else {
       inner.appendChild(stack);
-      if (tone) inner.appendChild(createElement('span', 'practice-bopo-tone', tone));
+      if (layout.tone) {
+        var tone = createElement('span', 'practice-bopo-tone', layout.tone);
+        tone.style.setProperty('--tone-offset', layout.toneOffset || '0');
+        inner.appendChild(tone);
+      }
     }
     container.setAttribute('aria-label', value);
     container.appendChild(inner);
@@ -237,6 +257,7 @@ var ZhuPrint = (function () {
   var api = {
     groupBasketByWord: groupBasketByWord,
     buildPracticeCells: buildPracticeCells,
+    parseBopomofo: parseBopomofo,
     paginatePracticeItems: paginatePracticeItems,
     buildPreviewState: buildPreviewState,
     renderSheet: renderSheet,
