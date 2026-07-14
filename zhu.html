@@ -37,13 +37,60 @@
          background:#fff; cursor:pointer; }
   .btn-primary { background:var(--blue); color:#fff; border-color:var(--blue); }
   .hidden { display:none; }
+  #modeTabs { position:sticky; top:0; z-index:60; display:flex; gap:6px; padding:8px 16px; background:#fff; border-bottom:1px solid var(--line); }
+  #modeTabs .tab { padding:6px 14px; border:1px solid var(--line); border-radius:999px; background:#fff; cursor:pointer; }
+  #modeTabs .tab.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+  #view-prep.hidden, #view-board.hidden, #view-projector.hidden { display:none; }
+  #view-prep { max-width:1100px; margin:0 auto; padding:16px; }
+  .prep-heading { display:flex; align-items:baseline; gap:12px; margin:4px 2px 14px; }
+  .prep-heading strong { font-size:1.35rem; }
+  .prep-heading span, .prep-count { color:var(--muted); font-size:.85rem; }
+  .prep-filters { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .prep-filters select { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:#fff; }
+  .prep-count { margin-bottom:10px; }
+  .prep-chars { margin-top:9px; padding-top:7px; border-top:1px dashed #bfdbfe; }
+  .prep-char { font-size:1.05rem; min-width:42px; }
+  #view-projector { position:fixed; inset:0; background:radial-gradient(circle at 50% 30%,#1e3a5f 0,#0f172a 58%); color:#fff; z-index:50;
+                    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:92px 40px 40px; overflow:auto; }
+  #view-projector.hidden { display:none; }
+  .projchar { font-family:DFKai-SB,"BiauKai","Microsoft JhengHei",serif; font-size:clamp(7rem,18vw,12rem); font-weight:700; line-height:.95; text-shadow:0 10px 40px rgba(0,0,0,.35); }
+  .projlabel { font-size:1.15rem; color:#93c5fd; margin:14px 0 20px; letter-spacing:.08em; }
+  .projbody { font-size:clamp(1.25rem,2.5vw,1.8rem); max-width:950px; text-align:center; display:flex; flex-wrap:wrap; gap:12px; justify-content:center; line-height:1.75; }
+  .projbody .chip { font-size:1.25rem; cursor:default; }
+  .projwrite { display:flex; gap:6px; margin:6px 12px; }
+  .projcell { display:inline-flex; width:2.2em; height:2.2em; border:2px solid #64748b; align-items:center; justify-content:center;
+              background-image:linear-gradient(to right,transparent 49%,#475569 49%,#475569 51%,transparent 51%),linear-gradient(to bottom,transparent 49%,#475569 49%,#475569 51%,transparent 51%); }
+  .projcell.projgap { margin-left:12px; }
+  .projcell.trace { color:#cbd5e1; }
+  .projcell.faint { color:#475569; }
+  .projcell.blank { color:transparent; }
+  .projcontrols { display:flex; gap:12px; margin-top:28px; }
+  .projbtn { padding:9px 18px; border:1px solid #64748b; border-radius:999px; color:#e2e8f0; background:#1e293b; cursor:pointer; }
+  .projbtn:disabled { opacity:.35; cursor:not-allowed; }
+  .projempty { font-size:1.4rem; color:#cbd5e1; }
+  .write-row-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; }
+  .write-row-heading .wlabel { font-weight:700; font-size:1rem; }
+  .write-clear { padding:4px 9px; font-size:.78rem; }
+  .wcells.screen-cells { display:flex; flex-wrap:wrap; gap:8px; }
+  .wcanvasWrap { position:relative; flex:0 0 96px; width:96px; height:96px; border:1px solid #94a3b8;
+                 background-color:#fff; background-image:linear-gradient(to right,transparent 49.5%,#e2e8f0 49.5%,#e2e8f0 50.5%,transparent 50.5%),linear-gradient(to bottom,transparent 49.5%,#e2e8f0 49.5%,#e2e8f0 50.5%,transparent 50.5%); }
+  .wcanvasWrap.wgap { margin-left:16px; }
+  .wcanvasWrap .wguide { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:2.65rem; pointer-events:none; }
+  .wcanvasWrap.trace .wguide { color:#9aa5b1; }
+  .wcanvasWrap.faint .wguide { color:#dfe4ea; }
+  .wcanvasWrap.blank .wguide { color:transparent; }
+  .wcanvas { position:absolute; inset:0; width:96px; height:96px; touch-action:none; cursor:crosshair; }
+  .writable { display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:10px 0 16px; border-bottom:1px solid #e2e8f0; }
+  .writable:last-child { border-bottom:0; }
+  .write-empty { color:var(--muted); font-size:.9rem; padding:8px 0; }
+  @media (max-width:700px) { .prep-filters { grid-template-columns:1fr; } }
 
   /* ── 練習紙（螢幕上不顯示，只在列印時出現）────────────── */
   #printSheet { display:none; }
 
   @media print {
     /* 網頁的東西一律不印 */
-    header, main, #basket, #status { display:none !important; }
+    header, main, #basket, #status, #modeTabs, #view-prep, #view-projector { display:none !important; }
     body { background:#fff; }
     #printSheet { display:block; }
 
@@ -85,30 +132,46 @@
   <a href="class.html" class="btn" style="text-decoration:none">課堂講義</a>
 </header>
 
-<div id="status">載入題庫中…</div>
+<nav id="modeTabs" aria-label="字主板模式">
+  <button class="tab" data-mode="prep" aria-selected="false">📋 備課台</button>
+  <button class="tab active" data-mode="board" aria-selected="true">🔤 字主板</button>
+  <button class="tab" data-mode="projector" aria-selected="false">📽 投影</button>
+</nav>
 
-<main id="app" class="hidden">
-  <div class="panel">
-    <div class="bigchar" id="bigChar">—</div>
-    <div class="charmeta" id="charMeta"></div>
-  </div>
+<section id="view-board">
+  <div id="status">載入題庫中…</div>
 
-  <div class="panel">
-    <h2>考過的題（點一下設為教學情境）</h2>
-    <div id="questions"></div>
-  </div>
+  <main id="app" class="hidden">
+    <div class="panel">
+      <div class="bigchar" id="bigChar">—</div>
+      <div class="charmeta" id="charMeta"></div>
+    </div>
 
-  <div class="panel" id="optionPanel">
-    <h2>選項詞（點一下丟進詞籃）</h2>
-    <div id="optionWords"></div>
-  </div>
+    <div class="panel">
+      <h2>考過的題（點一下設為教學情境）</h2>
+      <div id="questions"></div>
+    </div>
 
-  <div class="panel">
-    <h2>補充詞（點一下丟進詞籃）</h2>
-    <div id="supWords"></div>
-    <button class="btn hidden" id="btnMore"></button>
-  </div>
-</main>
+    <div class="panel" id="optionPanel">
+      <h2>選項詞（點一下丟進詞籃）</h2>
+      <div id="optionWords"></div>
+    </div>
+
+    <div class="panel">
+      <h2>補充詞（點一下丟進詞籃）</h2>
+      <div id="supWords"></div>
+      <button class="btn hidden" id="btnMore"></button>
+    </div>
+
+    <div class="panel">
+      <h2>螢幕手寫</h2>
+      <div id="writeBoard"></div>
+    </div>
+  </main>
+</section>
+
+<section id="view-prep" class="hidden"></section>
+<section id="view-projector" class="hidden"></section>
 
 <div id="printSheet"></div>
 
@@ -122,7 +185,10 @@
 <script src="papaparse.min.js"></script>
 <script src="zhu-data.js"></script>
 <script src="zhu-store.js"></script>
+<script src="zhu-core.js"></script>
 <script src="zhu-write.js"></script>
+<script src="zhu-prep.js"></script>
+<script src="zhu-projector.js"></script>
 <script src="zhu-board.js"></script>
 </body>
 </html>

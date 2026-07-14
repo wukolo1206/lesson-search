@@ -2,21 +2,35 @@
 (function () {
   'use strict';
 
-  var store = ZhuStore.create(window.localStorage);
-  var index = null;
-  var radicals = null;
-
-  var boardState = {
-    char: null,
-    contextQuestionId: null,
-    grade: (store.get('prefs', {}).grade) || '三年級',
-    publisher: '康軒',
-  };
-
-  var basket = store.get('basket', []);
+  ZhuCore.init(window.localStorage);
+  var boardState = ZhuCore.state;
   var supExpanded = false;
 
   var $ = function (id) { return document.getElementById(id); };
+  var index, radicals;
+
+  function switchMode(mode) {
+    document.querySelectorAll('#modeTabs .tab').forEach(function (btn) {
+      var active = btn.getAttribute('data-mode') === mode;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    $('view-prep').classList.toggle('hidden', mode !== 'prep');
+    $('view-board').classList.toggle('hidden', mode !== 'board');
+    $('view-projector').classList.toggle('hidden', mode !== 'projector');
+    if (mode === 'prep' && window.ZhuPrep) window.ZhuPrep.render($('view-prep'), { onPickChar: enterBoardFromPrep });
+    if (mode === 'projector' && window.ZhuProjector) window.ZhuProjector.enter($('view-projector'), boardState, index);
+    if (mode !== 'projector' && window.ZhuProjector) window.ZhuProjector.exit();
+  }
+
+  function enterBoardFromPrep(char, questionId) {
+    switchMode('board');
+    showChar(char, questionId);
+  }
+
+  document.querySelectorAll('#modeTabs .tab').forEach(function (btn) {
+    btn.onclick = function () { switchMode(btn.getAttribute('data-mode')); };
+  });
 
   // ── 載入 ────────────────────────────────────────────────
   function boot() {
@@ -24,14 +38,15 @@
     $('status').classList.remove('hidden');
     $('app').classList.add('hidden');
 
-    ZhuData.loadAll().then(function (tables) {
-      index = ZhuData.buildIndex(tables);
-      radicals = ZhuData.buildRadicalIndex(tables.shape, tables.mistake);
+    ZhuCore.boot(function () {
+      index = ZhuCore.getIndex();
+      radicals = ZhuCore.getRadicals();
       $('status').classList.add('hidden');
       $('app').classList.remove('hidden');
       $('basket').classList.remove('hidden');
       renderBasket();
-    }).catch(function (err) {
+      render();
+    }, function (err) {
       $('status').innerHTML = '';
       var msg = document.createElement('p');
       msg.textContent = '載入失敗：' + err.message + '（請確認網路連線）';
@@ -53,6 +68,9 @@
   }
 
   function render() {
+    ZhuWrite.renderWriteBoard($('writeBoard'), ZhuCore.getBasket(), ZhuCore.getStore(), function () {
+      alert('筆跡空間已滿，請先清除全部資料。');
+    });
     if (!boardState.char) return;
     renderBigChar();
     renderQuestions();
@@ -160,16 +178,13 @@
   function chipFor(entry, isSup) {
     var c = document.createElement('span');
     c.className = 'chip' + (isSup ? ' sup' : '');
-    var key = entry.word + '@' + entry.char;
-    var inBasket = basket.some(function (x) { return x.word + '@' + x.char === key; });
+    var inBasket = ZhuCore.isInBasket(entry.word, entry.char);
     if (inBasket) c.classList.add('in-basket');
     c.textContent = entry.word + (entry.bopomofo ? '（' + entry.bopomofo + '）' : '') + (inBasket ? ' ✓' : ' ＋');
     c.title = entry.gloss || '';
     c.onclick = function () {
-      basket = inBasket
-        ? ZhuData.basketOps.remove(basket, entry.word, entry.char)
-        : ZhuData.basketOps.add(basket, entry);
-      saveBasket();
+      if (inBasket) { ZhuCore.removeFromBasket(entry.word, entry.char); }
+      else if (!ZhuCore.addToBasket(entry)) { alert('儲存空間已滿，詞籃沒存進去。請按「清除全部資料」後再試。'); }
       render();
       renderBasket();
     };
@@ -177,13 +192,8 @@
   }
 
   // ── 詞籃 ────────────────────────────────────────────────
-  function saveBasket() {
-    if (!store.set('basket', basket)) {
-      alert('儲存空間已滿，詞籃沒存進去。請按「清除全部資料」後再試。');
-    }
-  }
-
   function renderBasket() {
+    var basket = ZhuCore.getBasket();
     $('basketCount').textContent = basket.length;
     var box = $('basketItems');
     box.innerHTML = '';
@@ -192,8 +202,7 @@
       s.className = 'chip';
       s.textContent = item.word + ' ×';
       s.onclick = function () {
-        basket = ZhuData.basketOps.remove(basket, item.word, item.char);
-        saveBasket();
+        ZhuCore.removeFromBasket(item.word, item.char);
         render();
         renderBasket();
       };
@@ -211,18 +220,16 @@
   });
   $('grade').value = boardState.grade;
   $('grade').onchange = function () {
-    boardState.grade = this.value;
-    store.set('prefs', { grade: this.value });
+    ZhuCore.setGrade(this.value);
     render();
   };
   $('btnClear').onclick = function () {
     if (!confirm('詞籃、筆跡、偏好都會清掉，確定嗎？')) return;
-    store.clearAll();
-    basket = [];
+    ZhuCore.clearAll();
     renderBasket();
     render();
   };
-  $('btnPrint').onclick = function () { ZhuWrite.printSheet(basket); };
+  $('btnPrint').onclick = function () { ZhuWrite.printSheet(ZhuCore.getBasket()); };
 
   boot();
 })();
