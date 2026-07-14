@@ -103,6 +103,16 @@
   .write-modal-canvas-wrap.blank .wguide { color:transparent; }
   .write-modal-canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }
   .write-modal-actions { display:flex; gap:12px; }
+  .write-mode-toggle { display:flex; align-items:center; gap:6px; font-size:.9rem; color:var(--muted); margin:0 0 10px; cursor:pointer; }
+  .write-modal-word-cells { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:90vw; }
+  .write-modal-cell-wrap { position:relative; width:min(22vw,160px); aspect-ratio:1/1; border:1px solid #94a3b8; background-color:#fff;
+    background-image:linear-gradient(to right,transparent 49.5%,#e2e8f0 49.5%,#e2e8f0 50.5%,transparent 50.5%),linear-gradient(to bottom,transparent 49.5%,#e2e8f0 49.5%,#e2e8f0 50.5%,transparent 50.5%); }
+  .write-modal-cell-wrap.wgap { margin-left:16px; }
+  .write-modal-cell-wrap .wguide { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; font-size:min(10vw,70px); }
+  .write-modal-cell-wrap.trace .wguide { color:#9aa5b1; }
+  .write-modal-cell-wrap.faint .wguide { color:#dfe4ea; }
+  .write-modal-cell-wrap.blank .wguide { color:transparent; }
+  .write-modal-cell-canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }
   @media (max-width:700px) { .prep-filters { grid-template-columns:1fr; } }
 
   /* ── 練習紙（螢幕上不顯示，只在列印時出現）────────────── */

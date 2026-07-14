@@ -65,6 +65,8 @@ var ZhuWrite = (function () {
 
   var CELL_PX = 96;
   var MODAL_PX = 640;
+  var MODAL_WORD_PX = 320;
+  var wholeWordMode = false;
 
   function openWriteModal(item, cellIndex, cell, previewCanvas, store, onQuotaFull) {
     var backdrop = document.createElement('div');
@@ -171,6 +173,130 @@ var ZhuWrite = (function () {
     document.body.appendChild(backdrop);
   }
 
+  function openWriteModalForWord(item, cells, previewCanvases, store, onQuotaFull) {
+    var backdrop = document.createElement('div');
+    backdrop.className = 'write-modal-backdrop';
+
+    var card = document.createElement('div');
+    card.className = 'write-modal-card';
+    backdrop.appendChild(card);
+
+    var title = document.createElement('div');
+    title.className = 'write-modal-title';
+    title.textContent = item.word;
+    card.appendChild(title);
+
+    var cellsRow = document.createElement('div');
+    cellsRow.className = 'write-modal-word-cells';
+    card.appendChild(cellsRow);
+
+    var wordLen = item.word.length;
+    var bigCanvases = cells.map(function (cell, i) {
+      var wrap = document.createElement('div');
+      wrap.className = 'write-modal-cell-wrap ' + cell.style;
+      if (i > 0 && i % wordLen === 0) wrap.classList.add('wgap');
+      cellsRow.appendChild(wrap);
+
+      var guide = document.createElement('span');
+      guide.className = 'wguide';
+      guide.textContent = cell.char;
+      wrap.appendChild(guide);
+
+      var canvas = document.createElement('canvas');
+      canvas.width = MODAL_WORD_PX;
+      canvas.height = MODAL_WORD_PX;
+      canvas.className = 'write-modal-cell-canvas';
+      wrap.appendChild(canvas);
+
+      var ctx = canvas.getContext('2d');
+      var saved = loadInk(store, item.word, item.char, i);
+      if (saved) {
+        var img = new Image();
+        img.onload = function () { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); };
+        img.src = saved;
+      }
+
+      var drawing = false;
+      function pos(e) {
+        var rect = canvas.getBoundingClientRect();
+        return {
+          x: (e.clientX - rect.left) * (canvas.width / rect.width),
+          y: (e.clientY - rect.top) * (canvas.height / rect.height),
+        };
+      }
+      canvas.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        drawing = true;
+        if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+        var point = pos(e);
+        ctx.beginPath();
+        ctx.moveTo(point.x, point.y);
+      });
+      canvas.addEventListener('pointermove', function (e) {
+        if (!drawing) return;
+        e.preventDefault();
+        var point = pos(e);
+        ctx.lineTo(point.x, point.y);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#1e293b';
+        ctx.stroke();
+      });
+      function finishStroke(e) {
+        if (!drawing) return;
+        e.preventDefault();
+        drawing = false;
+      }
+      canvas.addEventListener('pointerup', finishStroke);
+      canvas.addEventListener('pointercancel', finishStroke);
+
+      return canvas;
+    });
+
+    function commitAndClose() {
+      var allOk = true;
+      bigCanvases.forEach(function (canvas, i) {
+        var previewCanvas = previewCanvases[i];
+        var previewCtx = previewCanvas.getContext('2d');
+        previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+        var ok = saveInk(store, item.word, item.char, i, previewCanvas.toDataURL('image/webp', 0.6));
+        if (!ok) allOk = false;
+      });
+      if (!allOk && onQuotaFull) onQuotaFull();
+      document.body.removeChild(backdrop);
+      document.removeEventListener('keydown', onKeydown);
+    }
+
+    var actions = document.createElement('div');
+    actions.className = 'write-modal-actions';
+    card.appendChild(actions);
+
+    var clearBtn = document.createElement('button');
+    clearBtn.className = 'btn write-clear';
+    clearBtn.textContent = '清除';
+    clearBtn.onclick = function () {
+      bigCanvases.forEach(function (canvas) {
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      });
+    };
+    actions.appendChild(clearBtn);
+
+    var doneBtn = document.createElement('button');
+    doneBtn.className = 'btn';
+    doneBtn.textContent = '完成';
+    doneBtn.onclick = commitAndClose;
+    actions.appendChild(doneBtn);
+
+    function onKeydown(e) {
+      if (e.key === 'Escape') commitAndClose();
+    }
+    document.addEventListener('keydown', onKeydown);
+
+    document.body.appendChild(backdrop);
+  }
+
   function renderCanvasRow(item, store, onQuotaFull) {
     var row = document.createElement('div');
     row.className = 'wrow writable';
@@ -220,7 +346,11 @@ var ZhuWrite = (function () {
       }
 
       wrap.addEventListener('click', function () {
-        openWriteModal(item, i, cell, canvas, store, onQuotaFull);
+        if (wholeWordMode && item.word.length > 1) {
+          openWriteModalForWord(item, cells, canvases, store, onQuotaFull);
+        } else {
+          openWriteModal(item, i, cell, canvas, store, onQuotaFull);
+        }
       });
       return canvas;
     });
@@ -239,7 +369,8 @@ var ZhuWrite = (function () {
     var row = document.createElement('div');
     row.className = 'projwrite';
 
-    buildCells(item.word).forEach(function (cell, i) {
+    var cells = buildCells(item.word);
+    var canvases = cells.map(function (cell, i) {
       var wrap = document.createElement('div');
       wrap.className = 'projcell-wrap ' + cell.style;
       if (i > 0 && i % item.word.length === 0) wrap.classList.add('projgap');
@@ -264,9 +395,14 @@ var ZhuWrite = (function () {
       }
 
       wrap.addEventListener('click', function () {
-        openWriteModal(item, i, cell, canvas, store, onQuotaFull);
+        if (wholeWordMode && item.word.length > 1) {
+          openWriteModalForWord(item, cells, canvases, store, onQuotaFull);
+        } else {
+          openWriteModal(item, i, cell, canvas, store, onQuotaFull);
+        }
       });
       row.appendChild(wrap);
+      return canvas;
     });
 
     return row;
@@ -280,6 +416,17 @@ var ZhuWrite = (function () {
       return;
     }
     container.className = '';
+
+    var toggle = document.createElement('label');
+    toggle.className = 'write-mode-toggle';
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = wholeWordMode;
+    checkbox.onchange = function () { wholeWordMode = checkbox.checked; };
+    toggle.appendChild(checkbox);
+    toggle.appendChild(document.createTextNode(' 整詞一起寫（點格子彈出整個詞）'));
+    container.appendChild(toggle);
+
     ZhuData.basketOps.sortByGrade(basket).forEach(function (item) {
       container.appendChild(renderCanvasRow(item, store, onQuotaFull));
     });
@@ -315,6 +462,7 @@ var ZhuWrite = (function () {
     renderWriteBoard: renderWriteBoard,
     renderProjectorWriteRow: renderProjectorWriteRow,
     openWriteModal: openWriteModal,
+    openWriteModalForWord: openWriteModalForWord,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;
