@@ -5,7 +5,7 @@ var ZhuProjector = (function () {
   function buildSteps(question, optionWords, supplementWords) {
     optionWords = optionWords || [];
     supplementWords = supplementWords || [];
-    var explain = question ? [question['記憶訣竅'], question['教學策略']].filter(Boolean).join('　') : '';
+    var explain = question ? [question['記憶訣竅'], question['教學策略']].filter(Boolean).join('\n\n') : '';
     return [
       { type: 'question', label: '題目', text: question ? (question['完整題目與選項'] || '') : '（沒有教學情境）' },
       { type: 'explain', label: '解析', text: explain },
@@ -79,8 +79,21 @@ var ZhuProjector = (function () {
 
     var body = document.createElement('div');
     body.className = 'projbody';
-    if (step.type === 'question' || step.type === 'explain') {
+    if (step.type === 'question') {
       body.textContent = step.text || '（沒有內容）';
+    } else if (step.type === 'explain') {
+      body.classList.add('projexplain');
+      var parts = step.text ? step.text.split('\n\n') : [];
+      if (!parts.length) {
+        body.textContent = '（沒有內容）';
+      } else {
+        parts.forEach(function (part) {
+          var p = document.createElement('p');
+          p.className = 'projexplain-part';
+          p.textContent = part.replace(/(?<!^)([0-9]+\.\s?)/g, '\n$1');
+          body.appendChild(p);
+        });
+      }
     } else if (step.type === 'words') {
       step.words.forEach(function (w) {
         var chip = document.createElement('span');

@@ -51,12 +51,15 @@
   .prep-chars { margin-top:9px; padding-top:7px; border-top:1px dashed #bfdbfe; }
   .prep-char { font-size:1.05rem; min-width:42px; }
   #view-projector { position:fixed; inset:0; background:radial-gradient(circle at 50% 30%,#1e3a5f 0,#0f172a 58%); color:#fff; z-index:50;
-                    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:92px 40px 40px; overflow:auto; }
+                    display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:92px 40px 40px; overflow:auto; }
   #view-projector.hidden { display:none; }
-  .projchar { font-family:DFKai-SB,"BiauKai","Microsoft JhengHei",serif; font-size:clamp(7rem,18vw,12rem); font-weight:700; line-height:.95; text-shadow:0 10px 40px rgba(0,0,0,.35); }
+  .projchar { font-family:DFKai-SB,"BiauKai","Microsoft JhengHei",serif; font-size:clamp(7rem,18vw,12rem); font-weight:700; line-height:1.1; text-shadow:0 10px 40px rgba(0,0,0,.35); }
   .projlabel { font-size:1.15rem; color:#93c5fd; margin:14px 0 20px; letter-spacing:.08em; }
   .projbody { font-size:clamp(1.25rem,2.5vw,1.8rem); max-width:950px; text-align:center; display:flex; flex-wrap:wrap; gap:12px; justify-content:center; line-height:1.75; }
   .projbody .chip { font-size:1.25rem; cursor:default; }
+  .projbody.projexplain { display:block; text-align:left; }
+  .projexplain-part { white-space:pre-line; margin:0 0 16px; }
+  .projexplain-part:last-child { margin-bottom:0; }
   .projwrite { display:flex; gap:6px; margin:6px 12px; }
   .projcell { display:inline-flex; width:2.2em; height:2.2em; border:2px solid #64748b; align-items:center; justify-content:center;
               background-image:linear-gradient(to right,transparent 49%,#475569 49%,#475569 51%,transparent 51%),linear-gradient(to bottom,transparent 49%,#475569 49%,#475569 51%,transparent 51%); }
@@ -83,6 +86,20 @@
   .writable { display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:10px 0 16px; border-bottom:1px solid #e2e8f0; }
   .writable:last-child { border-bottom:0; }
   .write-empty { color:var(--muted); font-size:.9rem; padding:8px 0; }
+  .wcanvasWrap { cursor:pointer; }
+  .write-modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.72); z-index:80;
+                           display:flex; align-items:center; justify-content:center; padding:20px; }
+  .write-modal-card { background:#fff; border-radius:16px; padding:20px; display:flex; flex-direction:column;
+                       align-items:center; gap:14px; max-width:96vw; max-height:96vh; box-shadow:0 20px 60px rgba(0,0,0,.4); }
+  .write-modal-title { font-size:1.1rem; font-weight:700; color:#1e293b; }
+  .write-modal-canvas-wrap { position:relative; width:min(72vw,60vh); aspect-ratio:1/1; border:1px solid #94a3b8; background-color:#fff;
+    background-image:linear-gradient(to right,transparent 49.5%,#e2e8f0 49.5%,#e2e8f0 50.5%,transparent 50.5%),linear-gradient(to bottom,transparent 49.5%,#e2e8f0 49.5%,#e2e8f0 50.5%,transparent 50.5%); }
+  .write-modal-canvas-wrap .wguide { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; font-size:min(40vw,32vh); }
+  .write-modal-canvas-wrap.trace .wguide { color:#9aa5b1; }
+  .write-modal-canvas-wrap.faint .wguide { color:#dfe4ea; }
+  .write-modal-canvas-wrap.blank .wguide { color:transparent; }
+  .write-modal-canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }
+  .write-modal-actions { display:flex; gap:12px; }
   @media (max-width:700px) { .prep-filters { grid-template-columns:1fr; } }
 
   /* ── 練習紙（螢幕上不顯示，只在列印時出現）────────────── */
