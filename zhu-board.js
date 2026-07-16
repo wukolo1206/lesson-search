@@ -131,6 +131,19 @@
     });
     nav.appendChild(chars);
 
+    // 目前字卡水平定位：只動 .queue-chars 的 scrollLeft，不碰 window.scrollY。
+    // 禁用 scrollIntoView（會連 document 一起垂直捲動）。
+    // queueNav 隱藏時 clientWidth/scrollWidth 皆為 0，條件不成立自動跳過。
+    var activeChip = chars.children[active];
+    if (activeChip && chars.scrollWidth > chars.clientWidth) {
+      var charsRect = chars.getBoundingClientRect();
+      var chipRect = activeChip.getBoundingClientRect();
+      var chipLeft = chipRect.left - charsRect.left + chars.scrollLeft;
+      var target = chipLeft - (chars.clientWidth - activeChip.offsetWidth) / 2;
+      var maxScroll = chars.scrollWidth - chars.clientWidth;
+      chars.scrollLeft = Math.min(maxScroll, Math.max(0, target));
+    }
+
     var controls = document.createElement('div');
     controls.className = 'queue-controls';
     var previous = document.createElement('button');

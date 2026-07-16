@@ -73,6 +73,16 @@
   .queue-char { min-width:48px; min-height:42px; padding:5px 10px; border:1px solid #93c5fd; border-radius:8px;
                 background:#fff; color:#1e40af; cursor:pointer; }
   .queue-char.active { background:var(--blue); color:#fff; border-color:var(--blue); font-weight:700; }
+  /* 字卡列固定單列橫向滑動：導覽高度不隨選字數增加 */
+  .queue-chars { flex-wrap:nowrap; overflow-x:auto; }
+  .queue-char { flex:0 0 auto; }
+  /* ID 的 specificity 高於 .hidden，故以 :not(.hidden) 保留載入中／錯誤狀態隱藏 */
+  @media (min-width:900px) {
+    #app:not(.hidden) { display:grid; grid-template-columns:minmax(260px,320px) 1fr;
+                        gap:12px; align-items:start; }
+    #boardSide { position:sticky; top:56px; }  /* #modeTabs 實高約 50px */
+    #boardMain { min-width:0; }                 /* 避免長來源標籤撐出整頁水平捲軸 */
+  }
   #view-projector { position:fixed; inset:0; background:radial-gradient(circle at 50% 30%,#1e3a5f 0,#0f172a 58%); color:#fff; z-index:50;
                     display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:92px 40px 40px; overflow:auto; }
   #view-projector.hidden { display:none; }
@@ -213,31 +223,35 @@
   <div id="status">載入題庫中…</div>
 
   <main id="app" class="hidden">
-    <div id="queueNav" class="panel hidden"></div>
-    <div class="panel">
-      <div class="bigchar" id="bigChar">—</div>
-      <div class="charmeta" id="charMeta"></div>
+    <div id="boardSide">
+      <div id="queueNav" class="panel hidden"></div>
+      <div class="panel">
+        <div class="bigchar" id="bigChar">—</div>
+        <div class="charmeta" id="charMeta"></div>
+      </div>
     </div>
 
-    <div class="panel">
-      <h2>考過的題（點一下設為教學情境）</h2>
-      <div id="questions"></div>
-    </div>
+    <div id="boardMain">
+      <div class="panel" id="optionPanel">
+        <h2>選項詞（點一下丟進詞籃）</h2>
+        <div id="optionWords"></div>
+      </div>
 
-    <div class="panel" id="optionPanel">
-      <h2>選項詞（點一下丟進詞籃）</h2>
-      <div id="optionWords"></div>
-    </div>
+      <div class="panel">
+        <h2>補充詞（題庫＋康軒／翰林／南一 1–6 年級，點一下丟進詞籃）</h2>
+        <div id="supWords"></div>
+        <button class="btn hidden" id="btnMore"></button>
+      </div>
 
-    <div class="panel">
-      <h2>補充詞（題庫＋康軒／翰林／南一 1–6 年級，點一下丟進詞籃）</h2>
-      <div id="supWords"></div>
-      <button class="btn hidden" id="btnMore"></button>
-    </div>
+      <div class="panel">
+        <h2>考過的題（點一下設為教學情境）</h2>
+        <div id="questions"></div>
+      </div>
 
-    <div class="panel">
-      <h2>螢幕手寫</h2>
-      <div id="writeBoard"></div>
+      <div class="panel">
+        <h2>螢幕手寫</h2>
+        <div id="writeBoard"></div>
+      </div>
     </div>
   </main>
 </section>
