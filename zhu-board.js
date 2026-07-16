@@ -317,12 +317,14 @@
     main.className = 'chip-main';
     var bopomofo = displayBopomofo(entry);
     main.textContent = entry.word + (bopomofo ? '（' + bopomofo + '）' : '');
-    var action = document.createElement('span');
+    var action = document.createElement('button');
+    action.type = 'button';
     action.className = 'chip-action';
     action.textContent = inBasket ? '✓' : '＋';
-    main.appendChild(action);
+    action.setAttribute('aria-label', (inBasket ? '從詞籃移除：' : '加入詞籃：') + entry.word);
+    action.title = inBasket ? '從詞籃移除' : '加入詞籃';
     c.appendChild(main);
-
+    c.appendChild(action);
     var sourceText = sourceLabel(entry.publisherSources);
     if (sourceText) {
       var source = document.createElement('small');
@@ -336,7 +338,6 @@
     c.title = [entry.gloss, sourceTitle].filter(Boolean).join('\n');
     c.setAttribute('aria-label', entry.word + (sourceText ? '，來源：' + sourceText : ''));
     // 選取（加/移出詞籃）改由 ＋/✓ 小按鈕負責；chip 本體＝開解釋卡（spec A19 決議）
-    action.style.cursor = 'pointer';
     action.onclick = function (ev) {
       ev.stopPropagation();
       if (inBasket) { ZhuCore.removeFromBasket(entry.word, entry.char); }
