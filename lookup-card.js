@@ -1,4 +1,4 @@
-// 解釋卡 UI 元件：modal、GAS 呼叫、stale-while-revalidate、輪詢、圖片後補
+// 解釋卡 UI 元件：萌典優先、手動 AI、手動圖片、stale-while-revalidate 與輪詢
 // 依賴 lookup-core.js（LookupCore）。模型內容只走節點 API。
 var LookupCard = (function () {
   'use strict';
@@ -9,6 +9,7 @@ var LookupCard = (function () {
   var cache = null;
   var seq = 0;          // requestSeq：每次 open/close 遞增，舊回應一律作廢
   var activeTerm = '';
+  var currentMoedictData = null;
   var els = null;
   var lastFocus = null;
 
@@ -23,6 +24,14 @@ var LookupCard = (function () {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload)
     }).then(function (r) { return r.json(); });
+  }
+
+  function actionButton(label) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = label;
+    btn.style.cssText = 'border:1px solid #2b6cb0;border-radius:999px;background:#fff;color:#1f4e79;padding:7px 13px;margin:4px 6px 4px 0;font-size:.95em;cursor:pointer;';
+    return btn;
   }
 
   // ── modal（建一次；lookup.html 以 <body data-lk-size="normal"> 用學生字級） ──
@@ -45,21 +54,26 @@ var LookupCard = (function () {
     title.style.cssText = 'font-weight:bold;line-height:1.2;font-size:' + (compact ? '1.8em' : '3em') + ';';
     var zhuyin = document.createElement('div');
     zhuyin.style.cssText = 'color:#c62828;margin:2px 0 10px;font-size:' + (compact ? '1.2em' : '1.6em') + ';';
+    var source = document.createElement('div');
+    source.style.cssText = 'color:#1f4e79;margin:0 0 10px;font-size:.9em;font-weight:bold;';
     var extra = document.createElement('div');
     extra.style.cssText = 'color:#555;margin-bottom:8px;font-size:' + (compact ? '1em' : '1.2em') + ';';
     var expl = document.createElement('div');
-    expl.style.cssText = 'line-height:1.7;margin-bottom:10px;font-size:' + (compact ? '1.1em' : '1.5em') + ';';
+    expl.style.cssText = 'line-height:1.7;white-space:pre-line;margin-bottom:10px;font-size:' + (compact ? '1.1em' : '1.5em') + ';';
     var exBox = document.createElement('div');
     exBox.style.cssText = 'line-height:1.8;font-size:' + (compact ? '1.05em' : '1.4em') + ';';
+    var actions = document.createElement('div');
+    actions.style.cssText = 'margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;';
     var status = document.createElement('div');
     status.style.cssText = 'font-size:1.1em;color:#666;margin:10px 0;';
     var imgWrap = document.createElement('div');
     imgWrap.style.cssText = 'margin-top:12px;text-align:center;';
     var note = document.createElement('div');
-    note.textContent = '內容由 AI 生成，僅供教學參考';
+    note.textContent = '';
     note.style.cssText = 'font-size:.75em;color:#aaa;margin-top:14px;text-align:right;';
     dlg.appendChild(close); dlg.appendChild(title); dlg.appendChild(zhuyin);
-    dlg.appendChild(extra); dlg.appendChild(expl); dlg.appendChild(exBox);
+    dlg.appendChild(source); dlg.appendChild(extra); dlg.appendChild(expl); dlg.appendChild(exBox);
+    dlg.appendChild(actions);
     dlg.appendChild(status); dlg.appendChild(imgWrap); dlg.appendChild(note);
     overlay.appendChild(dlg);
     document.body.appendChild(overlay);
@@ -71,7 +85,8 @@ var LookupCard = (function () {
     });
 
     els = { overlay: overlay, close: close, title: title, zhuyin: zhuyin,
-      extra: extra, expl: expl, exBox: exBox, status: status, imgWrap: imgWrap };
+      source: source, extra: extra, expl: expl, exBox: exBox, actions: actions,
+      status: status, imgWrap: imgWrap, note: note };
     return els;
   }
 
@@ -91,18 +106,45 @@ var LookupCard = (function () {
   }
 
   function clearBody() {
-    els.zhuyin.textContent = ''; els.extra.textContent = '';
+    els.zhuyin.textContent = ''; els.source.textContent = ''; els.extra.textContent = '';
     els.expl.textContent = ''; els.exBox.textContent = '';
-    els.status.textContent = ''; els.imgWrap.textContent = '';
+    els.actions.textContent = ''; els.status.textContent = '';
+    els.imgWrap.textContent = ''; els.note.textContent = '';
   }
 
-  function renderLoading() { clearBody(); els.status.textContent = '查詢中…'; }
-  function renderError(msg) { clearBody(); els.status.textContent = msg; }
+  function renderLoading(message) { clearBody(); els.status.textContent = message || '查詢中…'; }
+
+  function renderMoedictUnavailable(term, message) {
+    clearBody();
+    els.title.textContent = term;
+    els.status.textContent = message;
+    var ai = actionButton(message === '萌典查詢失敗' ? '改用 AI 查詢' : 'AI 查詢');
+    ai.onclick = function () { fetchAiText(term, seq, 0); };
+    els.actions.appendChild(ai);
+  }
+
+  function renderActions(term, data) {
+    if ((data.source || 'ai') !== 'ai') {
+      var ai = actionButton('AI 查詢');
+      ai.onclick = function () { fetchAiText(term, seq, 0); };
+      els.actions.appendChild(ai);
+    }
+    if ((data.source || 'ai') === 'ai' && currentMoedictData) {
+      var moedict = actionButton('查看萌典');
+      moedict.onclick = function () {
+        if (!isStale(term, seq)) renderData(term, currentMoedictData);
+      };
+      els.actions.appendChild(moedict);
+    }
+  }
 
   function renderData(term, data) {
+    data = data || {};
+    if (!data.source) data.source = 'ai';
     clearBody();
     els.title.textContent = term;
     els.zhuyin.textContent = data.zhuyin || '';
+    els.source.textContent = data.source === 'moedict' ? '來源：萌典' : '來源：AI';
     els.extra.textContent = (data.extraReadings || [])
       .map(function (r) { return '又讀 ' + r.zhuyin + '：' + r.gloss; }).join('　');
     els.expl.textContent = data.explanation || '';
@@ -120,11 +162,17 @@ var LookupCard = (function () {
       });
       els.exBox.appendChild(line);
     });
-    renderImage(data.imageStatus, data.imageFileId);
+    renderActions(term, data);
+    renderImage(term, data);
+    els.note.textContent = data.source === 'moedict'
+      ? '資料來源：萌典；例句為辭典原文，僅供教學參考'
+      : '內容由 AI 生成，僅供教學參考';
   }
 
-  function renderImage(state, fileId) {
+  function renderImage(term, data) {
     els.imgWrap.textContent = '';
+    var state = data.imageStatus || 'none';
+    var fileId = data.imageFileId || '';
     if (state === 'ready' && LookupCore.fileIdOk(fileId)) {
       var img = document.createElement('img');
       img.src = LookupCore.thumbUrl(fileId);
@@ -148,66 +196,122 @@ var LookupCard = (function () {
       els.imgWrap.appendChild(q);
       return;
     }
-    // unsuitable / blocked / disabled / failed / none：整區收合，純文字卡
+    if (state === 'failed') {
+      var f = document.createElement('div');
+      f.textContent = '圖片生成失敗，請稍後再試';
+      f.style.cssText = 'color:#888;font-size:.9em;';
+      els.imgWrap.appendChild(f);
+      return;
+    }
+    if (state === 'none' && data.imageSuitable !== false) {
+      var image = actionButton('生成圖片');
+      image.onclick = function () { requestImage(term, data, 0); };
+      els.imgWrap.appendChild(image);
+    }
   }
 
   function isStale(term, mySeq) { return mySeq !== seq || term !== activeTerm; }
 
-  function fetchText(term, mySeq, polls) {
+  function fetchMoedict(term, mySeq) {
+    return fetch('https://www.moedict.tw/uni/' + encodeURIComponent(term), {
+      headers: { 'Accept': 'application/json' }
+    }).then(function (r) {
+      if (!r.ok) throw new Error('NOT_FOUND');
+      return r.json();
+    }).then(function (raw) {
+      var data = LookupCore.normalizeMoedict(raw, term);
+      if (!data) throw new Error('NOT_FOUND');
+      if (isStale(term, mySeq)) return null;
+      currentMoedictData = data;
+      renderData(term, data);
+      return data;
+    });
+  }
+
+  function renderAiError(term, message) {
+    if (currentMoedictData) {
+      renderData(term, currentMoedictData);
+      els.status.textContent = message;
+      return;
+    }
+    clearBody();
+    els.title.textContent = term;
+    els.status.textContent = message;
+    var retry = actionButton('AI 查詢');
+    retry.onclick = function () { fetchAiText(term, seq, 0); };
+    els.actions.appendChild(retry);
+  }
+
+  function fetchAiText(term, mySeq, polls) {
+    var local = getCache().get(term);
+    if (local && !isStale(term, mySeq)) {
+      local.source = 'ai';
+      renderData(term, local);
+      els.status.textContent = 'AI 查詢中…';
+    } else if (!currentMoedictData) {
+      renderLoading('AI 查詢中…');
+    } else {
+      els.status.textContent = 'AI 查詢中…';
+    }
     post({ action: 'lookup', term: term, v: 1 }).then(function (res) {
       if (isStale(term, mySeq)) return;
       if (res.ok) {
         getCache().put(term, res.data);          // revalidate：一律以伺服器為準
-        renderData(term, res.data);
-        maybeFetchImage(term, mySeq, res.data, 0);
+        var aiData = Object.assign({}, res.data, { source: 'ai' });
+        renderData(term, aiData);
         return;
       }
       var err = res.error || {};
       if (err.code === 'PENDING' || err.code === 'RATE_LIMITED') {
-        if (polls >= MAX_POLLS) { renderError('等太久了，請再點一次'); return; }
+        if (polls >= MAX_POLLS) { renderAiError(term, '等太久了，請再點一次'); return; }
         setTimeout(function () {
-          if (!isStale(term, mySeq)) fetchText(term, mySeq, polls + 1);
+          if (!isStale(term, mySeq)) fetchAiText(term, mySeq, polls + 1);
         }, LookupCore.pollDelay(err.retryAfterMs, Math.random()));
         return;
       }
       if (err.code === 'DISABLED') getCache().remove(term);   // 治理：清本機
-      renderError(err.message || '查詢失敗');
+      renderAiError(term, err.message || '查詢失敗');
     }).catch(function () {
       if (isStale(term, mySeq)) return;
-      if (!getCache().get(term)) renderError('網路不通，請檢查連線');
-      // 有本機資料 → 維持顯示（離線容忍）
+      if (!local) renderAiError(term, '網路不通，請檢查連線');
     });
   }
 
-  function maybeFetchImage(term, mySeq, data, polls) {
-    if (data.imageSuitable === false) { renderImage('unsuitable', ''); return; }
-    if (data.imageStatus === 'ready') { renderImage('ready', data.imageFileId); return; }
-    if (data.imageStatus !== 'none' && data.imageStatus !== 'pending') {
-      renderImage(data.imageStatus, ''); return;
-    }
-    renderImage('pending', '');
-    post({ action: 'lookupImage', term: term, v: 1 }).then(function (res) {
-      if (isStale(term, mySeq)) return;
+  function requestImage(term, data, polls) {
+    if (isStale(term, seq)) return;
+    if (data.imageSuitable === false) { renderImage(term, data); return; }
+    if (data.imageStatus === 'ready') { renderImage(term, data); return; }
+    data.imageStatus = 'pending';
+    renderImage(term, data);
+    var action = data.source === 'moedict' ? 'lookupImageMoedict' : 'lookupImage';
+    var payload = { action: action, term: term, v: 1 };
+    if (action === 'lookupImageMoedict') payload.explanation = data.explanation || '';
+    post(payload).then(function (res) {
+      if (isStale(term, seq)) return;
       if (res.ok && res.data.imageStatus === 'ready') {
-        var cached = getCache().get(term);
+        data.imageStatus = 'ready';
+        data.imageFileId = res.data.imageFileId;
+        var cached = data.source === 'ai' ? getCache().get(term) : null;
         if (cached) {
           cached.imageStatus = 'ready'; cached.imageFileId = res.data.imageFileId;
           getCache().put(term, cached);
         }
-        renderImage('ready', res.data.imageFileId);
+        renderImage(term, data);
         return;
       }
       var code = res.ok ? res.data.imageStatus : (res.error && res.error.code);
       if (code === 'PENDING') {
-        if (polls >= MAX_POLLS) { renderImage('failed', ''); return; }
+        if (polls >= MAX_POLLS) { data.imageStatus = 'failed'; renderImage(term, data); return; }
         setTimeout(function () {
-          if (!isStale(term, mySeq)) maybeFetchImage(term, mySeq, data, polls + 1);
+          if (!isStale(term, seq)) requestImage(term, data, polls + 1);
         }, LookupCore.pollDelay(res.error && res.error.retryAfterMs, Math.random()));
         return;
       }
-      if (code === 'QUOTA_EXCEEDED') { renderImage('quota', ''); return; }
-      renderImage(code || 'failed', '');
-    }).catch(function () { if (!isStale(term, mySeq)) renderImage('failed', ''); });
+      data.imageStatus = code === 'QUOTA_EXCEEDED' ? 'quota' : (code || 'failed');
+      renderImage(term, data);
+    }).catch(function () {
+      if (!isStale(term, seq)) { data.imageStatus = 'failed'; renderImage(term, data); }
+    });
   }
 
   function open(rawTerm) {
@@ -215,10 +319,14 @@ var LookupCard = (function () {
     if (!LookupCore.isValidTerm(term)) return;
     var mySeq = ++seq;
     activeTerm = term;
+    currentMoedictData = null;
     openModal(term);
-    var local = getCache().get(term);
-    if (local) renderData(term, local); else renderLoading();
-    fetchText(term, mySeq, 0);   // 本機命中也照打（stale-while-revalidate）
+    renderLoading('先查萌典…');
+    fetchMoedict(term, mySeq).catch(function (err) {
+      if (isStale(term, mySeq)) return;
+      renderMoedictUnavailable(term, err && err.message === 'NOT_FOUND'
+        ? '萌典找不到這個詞' : '萌典查詢失敗');
+    });
   }
 
   // ── 🔍 啟動器（右下角固定鈕＋展開輸入框） ──

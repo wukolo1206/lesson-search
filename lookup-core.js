@@ -67,9 +67,78 @@ var LookupCore = (function () {
     return base + Math.floor((rand || 0) * 500);
   }
 
+  function listValue(value) {
+    if (Array.isArray(value)) return value;
+    return value === undefined || value === null || value === '' ? [] : [value];
+  }
+
+  function uniqueStrings(values) {
+    var out = [];
+    (values || []).forEach(function (value) {
+      var s = String(value || '').trim();
+      if (s && out.indexOf(s) === -1) out.push(s);
+    });
+    return out;
+  }
+
+  function definitionGloss(definition) {
+    var type = String(definition.type || '').trim();
+    var def = String(definition.def || '').trim();
+    if (!def) return '';
+    return type ? '（' + type + '）' + def : def;
+  }
+
+  function normalizeMoedict(raw, term) {
+    if (!raw || !Array.isArray(raw.heteronyms)) return null;
+    var heteronyms = raw.heteronyms.filter(function (item) {
+      return item && Array.isArray(item.definitions) && item.definitions.length;
+    });
+    var allDefinitions = [];
+    heteronyms.forEach(function (heteronym) {
+      heteronym.definitions.forEach(function (definition) {
+        if (definition && definition.def) allDefinitions.push(definition);
+      });
+    });
+    if (!allDefinitions.length) return null;
+
+    var readings = uniqueStrings(heteronyms.map(function (item) { return item.bopomofo; }));
+    var examples = [];
+    allDefinitions.forEach(function (definition) {
+      var candidates = listValue(definition.example);
+      if (!candidates.length) candidates = listValue(definition.quote).slice(0, 1);
+      candidates.forEach(function (example) {
+        var s = String(example || '').trim();
+        if (s && examples.indexOf(s) === -1 && examples.length < 4) examples.push(s);
+      });
+    });
+
+    var extraReadings = heteronyms.slice(1).map(function (heteronym) {
+      return {
+        zhuyin: String(heteronym.bopomofo || '').trim(),
+        gloss: heteronym.definitions.map(function (definition) {
+          return String(definition.def || '').trim();
+        }).filter(Boolean).join('；')
+      };
+    }).filter(function (reading) { return reading.zhuyin || reading.gloss; });
+
+    var normalizedTerm = String(term || raw.title || '').trim();
+    return {
+      term: normalizedTerm,
+      zhuyin: readings.join('｜'),
+      explanation: allDefinitions.map(definitionGloss).filter(Boolean).join('\n'),
+      examples: examples,
+      extraReadings: extraReadings,
+      imageSuitable: null,
+      imageStatus: 'none',
+      imageFileId: '',
+      source: 'moedict',
+      sourceUrl: 'https://www.moedict.tw/' + encodeURIComponent(normalizedTerm)
+    };
+  }
+
   return { normalizeTerm: normalizeTerm, isValidTerm: isValidTerm,
     splitHighlight: splitHighlight, fileIdOk: fileIdOk, thumbUrl: thumbUrl,
-    makeCache: makeCache, pollDelay: pollDelay, TTL: TTL };
+    makeCache: makeCache, pollDelay: pollDelay, normalizeMoedict: normalizeMoedict, TTL: TTL };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LookupCore;
