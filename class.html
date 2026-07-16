@@ -927,7 +927,7 @@ function buildListTables(q) {
         <tr>
           <td>${esc(r['來源'])}</td>
           <td class="char-big">${esc(r['破音字'])}</td>
-          <td>${esc(r['詞語'])}</td>
+          <td class="lk-w">${esc(r['詞語'])}</td>
           <td class="reading">${esc(r['注音'])}</td>
           <td>${esc(r['字義說明'])}</td>
         </tr>`).join('')}
@@ -942,7 +942,7 @@ function buildListTables(q) {
         <tr class="${(r['正誤']||'').includes('✓') ? 'row-ok' : 'row-err'}">
           <td><strong>${esc(r['正誤'])}</strong></td>
           <td>${esc(r['錯誤寫法'])}</td>
-          <td>${esc(r['正確詞語'])}</td>
+          <td class="lk-w">${esc(r['正確詞語'])}</td>
           <td>${esc(r['字義說明'])}</td>
         </tr>`).join('')}
       </tbody>
@@ -1087,7 +1087,7 @@ function buildProjTables(q) {
           <tr>
             <td>${esc(r['來源'])}</td>
             <td class="proj-char">${esc(r['破音字'])}</td>
-            <td>${esc(r['詞語'])}</td>
+            <td class="lk-w">${esc(r['詞語'])}</td>
             <td class="proj-reading">${esc(r['注音'])}</td>
             <td>${esc(r['字義說明'])}</td>
           </tr>`).join('')}
@@ -1104,7 +1104,7 @@ function buildProjTables(q) {
           <tr class="${(r['正誤']||'').includes('✓') ? 'proj-row-ok' : 'proj-row-err'}">
             <td><strong>${esc(r['正誤'])}</strong></td>
             <td>${esc(r['錯誤寫法'])}</td>
-            <td>${esc(r['正確詞語'])}</td>
+            <td class="lk-w">${esc(r['正確詞語'])}</td>
             <td>${esc(r['字義說明'])}</td>
           </tr>`).join('')}
         </tbody>
@@ -1147,6 +1147,20 @@ function prevSlide() {
 /* ═══ 事件 & 啟動 ════════════════════════════════════════ */
 ['fGrade','fYear','fCat','fDiff','fTaught'].forEach(id => $(id).addEventListener('change', applyFilter));
 loadData();
+</script>
+<style>
+  td.lk-w { cursor: pointer; text-decoration: underline dotted #999; text-underline-offset: 3px; }
+</style>
+<script src="lookup-core.js"></script>
+<script src="lookup-card.js"></script>
+<script>
+if (window.LookupCard) {
+  LookupCard.mountLauncher();
+  document.addEventListener('click', function (ev) {
+    var td = ev.target && ev.target.closest ? ev.target.closest('td.lk-w') : null;
+    if (td) { var t = td.textContent.trim(); if (t) LookupCard.open(t); }
+  });
+}
 </script>
 </body>
 </html>

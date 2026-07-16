@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>解釋卡快查</title>
+<style>
+  body { font-family: "Microsoft JhengHei", sans-serif; max-width: 560px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 1.3em; color: #1F4E79; }
+  .row { display: flex; gap: 8px; margin: 16px 0; }
+  #term { flex: 1; padding: 12px; font-size: 1.2em; border: 2px solid #1F4E79; border-radius: 10px; }
+  #go { padding: 12px 20px; font-size: 1.1em; border: none; border-radius: 10px; background: #1F4E79; color: #fff; cursor: pointer; }
+  .hint { color: #888; font-size: .9em; }
+</style>
+</head>
+<body data-lk-size="normal">
+<h1>🔍 解釋卡快查</h1>
+<div class="row">
+  <input id="term" type="text" maxlength="10" placeholder="輸入國字詞語（最多 10 字）" autocomplete="off">
+  <button id="go">查詢</button>
+</div>
+<p class="hint">輸入課本或講義上的語詞，看解釋、例句和圖片。內容由 AI 生成，僅供教學參考。</p>
+<script src="lookup-core.js"></script>
+<script src="lookup-card.js"></script>
+<script>
+var lkInput = document.getElementById('term');
+function lkGo() { if (lkInput.value.trim()) { LookupCard.open(lkInput.value); lkInput.value = ''; } }
+document.getElementById('go').onclick = lkGo;
+lkInput.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') lkGo(); });
+lkInput.focus();
+</script>
+</body>
+</html>

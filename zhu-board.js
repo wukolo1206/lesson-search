@@ -335,11 +335,17 @@
     }).join('、');
     c.title = [entry.gloss, sourceTitle].filter(Boolean).join('\n');
     c.setAttribute('aria-label', entry.word + (sourceText ? '，來源：' + sourceText : ''));
-    c.onclick = function () {
+    // 選取（加/移出詞籃）改由 ＋/✓ 小按鈕負責；chip 本體＝開解釋卡（spec A19 決議）
+    action.style.cursor = 'pointer';
+    action.onclick = function (ev) {
+      ev.stopPropagation();
       if (inBasket) { ZhuCore.removeFromBasket(entry.word, entry.char); }
       else if (!ZhuCore.addToBasket(entry)) { alert('儲存空間已滿，詞籃沒存進去。請按「清除全部資料」後再試。'); }
       render();
       renderBasket();
+    };
+    c.onclick = function () {
+      if (window.LookupCard) LookupCard.open(entry.word);
     };
     return c;
   }

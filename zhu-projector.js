@@ -99,6 +99,8 @@ var ZhuProjector = (function () {
         var chip = document.createElement('span');
         chip.className = 'chip';
         chip.textContent = w.word + (w.bopomofo ? '（' + w.bopomofo + '）' : '');
+        chip.style.cursor = 'pointer';
+        chip.onclick = function () { if (window.LookupCard) LookupCard.open(w.word); };
         body.appendChild(chip);
       });
       if (!step.words.length) body.textContent = '（沒有）';
