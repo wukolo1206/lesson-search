@@ -22,6 +22,17 @@ var LookupCore = (function () {
     });
   }
 
+  function queryTerm(search) {
+    var raw = '';
+    try {
+      raw = new URLSearchParams(String(search || '')).get('q') || '';
+    } catch (e) {
+      return '';
+    }
+    var term = normalizeTerm(raw);
+    return isValidTerm(term) ? term : '';
+  }
+
   // 例句標色：切成 [{text, mark}] 片段，由 UI 層轉成文字節點與 <mark>
   function splitHighlight(sentence, term) {
     var out = [];
@@ -136,7 +147,7 @@ var LookupCore = (function () {
     };
   }
 
-  return { normalizeTerm: normalizeTerm, isValidTerm: isValidTerm,
+  return { normalizeTerm: normalizeTerm, isValidTerm: isValidTerm, queryTerm: queryTerm,
     splitHighlight: splitHighlight, fileIdOk: fileIdOk, thumbUrl: thumbUrl,
     makeCache: makeCache, pollDelay: pollDelay, normalizeMoedict: normalizeMoedict, TTL: TTL };
 })();

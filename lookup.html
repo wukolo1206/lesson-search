@@ -28,6 +28,9 @@ function lkGo() { if (lkInput.value.trim()) { LookupCard.open(lkInput.value); lk
 document.getElementById('go').onclick = lkGo;
 lkInput.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') lkGo(); });
 lkInput.focus();
+var initialQuery = new URLSearchParams(window.location.search).toString();
+var initialTerm = LookupCore.queryTerm(initialQuery);
+if (initialTerm) LookupCard.open(initialTerm);
 </script>
 </body>
 </html>
