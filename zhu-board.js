@@ -24,12 +24,7 @@
         renderPrep();
       },
       onStart: function () {
-        var selected = ZhuCore.getSelectedChars();
-        if (!selected.length) return;
-        var active = Math.min(ZhuCore.getActiveSelectedIndex(), selected.length - 1);
-        ZhuCore.setActiveSelectedIndex(active);
-        switchMode('board');
-        showChar(selected[active].char, selected[active].contextQuestionId);
+        enterSelectedBoard();
       },
     });
   }
@@ -57,8 +52,23 @@
     showChar(char, questionId);
   }
 
+  function enterSelectedBoard() {
+    var selected = ZhuCore.getSelectedChars();
+    if (!selected.length) {
+      switchMode('board');
+      return;
+    }
+    var active = Math.min(ZhuCore.getActiveSelectedIndex(), selected.length - 1);
+    ZhuCore.setActiveSelectedIndex(active);
+    enterBoardFromPrep(selected[active].char, selected[active].contextQuestionId);
+  }
+
   document.querySelectorAll('#modeTabs .tab').forEach(function (btn) {
-    btn.onclick = function () { switchMode(btn.getAttribute('data-mode')); };
+    btn.onclick = function () {
+      var mode = btn.getAttribute('data-mode');
+      if (mode === 'board' && ZhuCore.getSelectedChars().length) enterSelectedBoard();
+      else switchMode(mode);
+    };
   });
 
   // ── 載入 ────────────────────────────────────────────────
