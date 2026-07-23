@@ -62,18 +62,34 @@
   .prep-chars { margin-top:9px; padding-top:7px; border-top:1px dashed #bfdbfe; }
   .prep-char { font-size:1.05rem; min-width:42px; min-height:42px; }
   .prep-view-tabs { display:flex; gap:8px; margin:0 0 10px; }
-  .prep-char-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); gap:8px; }
-  .prep-char-card { min-height:64px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink);
-                    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; }
+  .prep-char-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; }
+  .prep-char-card { min-height:92px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink);
+                    display:flex; flex-direction:column; align-items:stretch; justify-content:space-between; overflow:hidden; }
   .prep-char-card:hover, .prep-char-card.selected { border-color:var(--blue); background:#eff6ff; color:#1d4ed8; }
+  .prep-char-card.taught { border-color:#cbd5e1; background:#f1f5f9; color:#64748b; }
+  .prep-char-card.selected { border-color:var(--blue); background:#dbeafe; color:#1d4ed8; }
+  .prep-char-select { flex:1; min-height:58px; border:0; background:transparent; color:inherit; cursor:pointer;
+                      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
   .prep-char-card strong { font-size:1.7rem; line-height:1; }
   .prep-char-card small { color:var(--muted); font-size:.72rem; }
+  .prep-char-wrap { display:inline-flex; align-items:stretch; margin:2px; }
+  .prep-char-wrap .prep-char { margin:0; border-radius:999px 0 0 999px; }
+  .prep-char.taught { background:#f1f5f9; border-color:#cbd5e1; color:#64748b; }
+  .prep-char.selected { background:#dbeafe; border-color:var(--blue); color:#1d4ed8; font-weight:700; }
+  .taught-action { min-height:42px; padding:5px 8px; border:1px solid #cbd5e1; background:#fff; color:#475569;
+                   font-size:.72rem; cursor:pointer; }
+  .prep-char-card .taught-action { border-width:1px 0 0; }
+  .prep-char-wrap .taught-action { border-left:0; border-radius:0 999px 999px 0; }
+  .taught-action.is-taught { background:#e2e8f0; color:#475569; font-weight:700; }
+  .prep-taught-progress { display:flex; align-items:center; justify-content:space-between; gap:8px;
+                          margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); color:var(--muted); }
+  #btnTaught { display:block; min-height:42px; margin:10px auto 0; }
+  #btnTaught.is-taught { background:#e2e8f0; color:#334155; border-color:#94a3b8; }
   .prep-selection-heading, .queue-heading { display:flex; align-items:baseline; gap:10px; }
   .prep-selection-heading span, .queue-heading span { color:var(--muted); font-size:.82rem; }
   .prep-selection-chars, .queue-chars { display:flex; flex-wrap:wrap; gap:4px; margin:8px 0 4px; min-height:34px; align-items:center; }
   .prep-selection-empty { color:var(--muted); font-size:.85rem; }
   .prep-selection-actions, .queue-controls { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
-  .prep-char.selected { background:#dbeafe; border-color:var(--blue); font-weight:700; }
   #queueNav { border-color:#93c5fd; background:#eff6ff; }
   .queue-heading strong { color:#1d4ed8; }
   .queue-char { min-width:48px; min-height:42px; padding:5px 10px; border:1px solid #93c5fd; border-radius:8px;
@@ -242,6 +258,7 @@
       <div class="panel">
         <div class="bigchar" id="bigChar">—</div>
         <div class="charmeta" id="charMeta"></div>
+        <button class="btn hidden" id="btnTaught" aria-pressed="false">標記已教</button>
       </div>
     </div>
 

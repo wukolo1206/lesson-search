@@ -106,13 +106,21 @@ var ZhuPrep = (function () {
         var charGrid = document.createElement('div');
         charGrid.className = 'prep-char-grid';
         charsFromQuestions(ZhuCore.getIndex(), filtered).forEach(function (entry) {
-          var button = document.createElement('button');
           var selected = isSelected(entry.char);
-          button.className = 'prep-char-card' + (selected ? ' selected' : '');
-          button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-          button.innerHTML = '<strong>' + entry.char + '</strong><small>' + entry.questionCount + ' 題</small>';
-          button.onclick = function () { toggleSelected(entry.char, null); };
-          charGrid.appendChild(button);
+          var taught = isTaught(entry.char);
+          var card = document.createElement('div');
+          card.className = 'prep-char-card' + (selected ? ' selected' : '') + (taught ? ' taught' : '');
+
+          var selectButton = document.createElement('button');
+          selectButton.className = 'prep-char-select';
+          selectButton.setAttribute('aria-label', '選取字：' + entry.char);
+          selectButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
+          selectButton.innerHTML = '<strong>' + entry.char + '</strong><small>' + entry.questionCount + ' 題</small>';
+          selectButton.onclick = function () { toggleSelected(entry.char, null); };
+          card.appendChild(selectButton);
+
+          card.appendChild(makeTaughtButton(entry.char, taught));
+          charGrid.appendChild(card);
         });
         listPanel.appendChild(charGrid);
         return;
@@ -136,16 +144,21 @@ var ZhuPrep = (function () {
           var charBox = document.createElement('div');
           charBox.className = 'prep-chars';
           chars.forEach(function (char) {
+            var wrap = document.createElement('span');
+            var taught = isTaught(char);
+            wrap.className = 'prep-char-wrap' + (taught ? ' taught' : '');
             var b = document.createElement('button');
             var selected = isSelected(char);
-            b.className = 'chip prep-char' + (selected ? ' selected' : '');
+            b.className = 'chip prep-char' + (selected ? ' selected' : '') + (taught ? ' taught' : '');
             b.textContent = char + (selected ? ' ✓' : ' ＋');
             b.setAttribute('aria-pressed', selected ? 'true' : 'false');
             b.onclick = function (ev) {
               ev.stopPropagation();
               toggleSelected(char, id);
             };
-            charBox.appendChild(b);
+            wrap.appendChild(b);
+            wrap.appendChild(makeTaughtButton(char, taught));
+            charBox.appendChild(wrap);
           });
           if (!chars.length) charBox.textContent = '（這題抓不到考點字）';
           row.appendChild(charBox);
@@ -192,6 +205,22 @@ var ZhuPrep = (function () {
     }
     selectedPanel.appendChild(selectedBox);
 
+    var taughtProgress = document.createElement('div');
+    taughtProgress.className = 'prep-taught-progress';
+    var taughtCount = opts.getTaughtChars ? opts.getTaughtChars().length : 0;
+    var taughtSummary = document.createElement('span');
+    taughtSummary.textContent = '已教 ' + taughtCount + ' 字';
+    taughtProgress.appendChild(taughtSummary);
+    var resetTaughtButton = document.createElement('button');
+    resetTaughtButton.className = 'btn';
+    resetTaughtButton.textContent = '重設已教紀錄';
+    resetTaughtButton.disabled = taughtCount === 0;
+    resetTaughtButton.onclick = function () {
+      if (opts.onResetTaught) opts.onResetTaught();
+    };
+    taughtProgress.appendChild(resetTaughtButton);
+    selectedPanel.appendChild(taughtProgress);
+
     var selectedActions = document.createElement('div');
     selectedActions.className = 'prep-selection-actions';
     var clearButton = document.createElement('button');
@@ -215,6 +244,24 @@ var ZhuPrep = (function () {
 
     function isSelected(char) {
       return getSelected().some(function (entry) { return entry.char === char; });
+    }
+
+    function isTaught(char) {
+      return opts.isTaughtChar ? opts.isTaughtChar(char) : false;
+    }
+
+    function makeTaughtButton(char, taught) {
+      var button = document.createElement('button');
+      button.className = 'taught-action' + (taught ? ' is-taught' : '');
+      button.textContent = taught ? '✓ 已教' : '標記已教';
+      button.setAttribute('aria-label', (taught ? '取消已教：' : '標記已教：') + char);
+      button.setAttribute('aria-pressed', taught ? 'true' : 'false');
+      button.onclick = function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (opts.onToggleTaught) opts.onToggleTaught(char);
+      };
+      return button;
     }
 
     function toggleSelected(char, questionId) {

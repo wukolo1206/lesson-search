@@ -13,6 +13,8 @@
     if (!window.ZhuPrep) return;
     window.ZhuPrep.render($('view-prep'), {
       getSelectedChars: ZhuCore.getSelectedChars,
+      getTaughtChars: ZhuCore.getTaughtChars,
+      isTaughtChar: ZhuCore.isTaughtChar,
       onToggleChar: function (char, questionId) {
         var selected = ZhuCore.getSelectedChars().some(function (entry) { return entry.char === char; });
         if (selected) ZhuCore.removeSelectedChar(char);
@@ -22,6 +24,23 @@
       onClearSelection: function () {
         ZhuCore.setSelectedChars([]);
         renderPrep();
+      },
+      onToggleTaught: function (char) {
+        if (!ZhuCore.setTaughtChar(char, !ZhuCore.isTaughtChar(char))) {
+          alert('已教紀錄無法儲存，請確認瀏覽器儲存空間。');
+          return;
+        }
+        renderPrep();
+        renderTaughtButton();
+      },
+      onResetTaught: function () {
+        if (!confirm('確定要清除所有已教標記嗎？')) return;
+        if (!ZhuCore.resetTaughtChars()) {
+          alert('已教紀錄無法清除，請確認瀏覽器儲存空間。');
+          return;
+        }
+        renderPrep();
+        renderTaughtButton();
       },
       onStart: function () {
         enterSelectedBoard();
@@ -186,11 +205,25 @@
     ZhuWrite.renderWriteBoard($('writeBoard'), ZhuCore.getBasket(), ZhuCore.getStore(), function () {
       alert('筆跡空間已滿，請先清除全部資料。');
     });
+    renderTaughtButton();
     if (!boardState.char) return;
     renderBigChar();
     renderQuestions();
     renderOptionWords();
     renderSupWords();
+  }
+
+  function renderTaughtButton() {
+    var button = $('btnTaught');
+    if (!button) return;
+    var char = boardState.char;
+    button.classList.toggle('hidden', !char);
+    if (!char) return;
+    var taught = ZhuCore.isTaughtChar(char);
+    button.classList.toggle('is-taught', taught);
+    button.textContent = taught ? '✓ 已教｜取消' : '標記已教';
+    button.setAttribute('aria-label', (taught ? '取消已教：' : '標記已教：') + char);
+    button.setAttribute('aria-pressed', taught ? 'true' : 'false');
   }
 
   function renderBigChar() {
@@ -393,8 +426,16 @@
     ZhuCore.setGrade(this.value);
     render();
   };
+  $('btnTaught').onclick = function () {
+    if (!boardState.char) return;
+    if (!ZhuCore.setTaughtChar(boardState.char, !ZhuCore.isTaughtChar(boardState.char))) {
+      alert('已教紀錄無法儲存，請確認瀏覽器儲存空間。');
+      return;
+    }
+    renderTaughtButton();
+  };
   $('btnClear').onclick = function () {
-    if (!confirm('詞籃、筆跡、偏好都會清掉，確定嗎？')) return;
+    if (!confirm('詞籃、筆跡、偏好都會清掉；已教紀錄會保留。確定嗎？')) return;
     ZhuCore.clearAll();
     renderBasket();
     render();

@@ -8,6 +8,7 @@ var ZhuCore = (function () {
   var tables = null;
   var basket = [];
   var selectedChars = [];
+  var taughtChars = [];
   var activeSelectedIndex = 0;
 
   var state = {
@@ -22,6 +23,7 @@ var ZhuCore = (function () {
     state.grade = (store.get('prefs', {}).grade) || '三年級';
     basket = store.get('basket', []);
     selectedChars = normalizeSelectedChars(store.get('selection', []));
+    taughtChars = normalizeTaughtChars(store.get('taught', []));
     activeSelectedIndex = 0;
     return store;
   }
@@ -42,6 +44,16 @@ var ZhuCore = (function () {
     return store.set('selection', selectedChars);
   }
 
+  function normalizeTaughtChars(chars) {
+    var out = [];
+    (Array.isArray(chars) ? chars : []).forEach(function (char) {
+      char = String(char || '').trim();
+      if (!/^[\u3400-\u9fff]$/.test(char) || out.indexOf(char) !== -1) return;
+      out.push(char);
+    });
+    return out;
+  }
+
   function boot(onReady, onError) {
     ZhuData.loadAll().then(function (loaded) {
       tables = loaded;
@@ -58,6 +70,26 @@ var ZhuCore = (function () {
   function getStore() { return store; }
   function getSelectedChars() { return selectedChars.map(function (entry) { return { char: entry.char, contextQuestionId: entry.contextQuestionId }; }); }
   function getActiveSelectedIndex() { return activeSelectedIndex; }
+  function getTaughtChars() { return taughtChars.slice(); }
+  function isTaughtChar(char) { return taughtChars.indexOf(char) !== -1; }
+
+  function setTaughtChar(char, taught) {
+    char = String(char || '').trim();
+    if (!/^[\u3400-\u9fff]$/.test(char)) return false;
+    var next = taughtChars.slice();
+    var indexValue = next.indexOf(char);
+    if (taught && indexValue === -1) next.push(char);
+    if (!taught && indexValue !== -1) next.splice(indexValue, 1);
+    if (!store.set('taught', next)) return false;
+    taughtChars = next;
+    return true;
+  }
+
+  function resetTaughtChars() {
+    if (!store.set('taught', [])) return false;
+    taughtChars = [];
+    return true;
+  }
 
   function setSelectedChars(queue) {
     selectedChars = normalizeSelectedChars(queue);
@@ -126,6 +158,10 @@ var ZhuCore = (function () {
     getBasket: getBasket,
     getStore: getStore,
     getSelectedChars: getSelectedChars,
+    getTaughtChars: getTaughtChars,
+    isTaughtChar: isTaughtChar,
+    setTaughtChar: setTaughtChar,
+    resetTaughtChars: resetTaughtChars,
     setSelectedChars: setSelectedChars,
     addSelectedChar: addSelectedChar,
     removeSelectedChar: removeSelectedChar,
