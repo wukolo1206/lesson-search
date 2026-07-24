@@ -85,9 +85,20 @@
     .wa-settings > * { flex:1 1 140px; }
   }
   @media print {
+    @page { size:A4; margin:0; }
     body.wa-print-mode > * { display:none !important; }
     body.wa-print-mode > #waPrintSheet { display:block !important; }
-    #waPrintSheet { font-size:16pt; line-height:2; color:#000; }
+    #waPrintSheet {
+      min-height:100vh;
+      padding:16mm 18mm;
+      font-size:16pt;
+      line-height:2;
+      color:#000;
+      overflow-wrap:break-word;
+    }
+    #waPrintSheet h1 { margin:0 0 8mm; font-size:24pt; line-height:1.2; }
+    #waPrintSheet > p { margin:0 0 10mm; font-size:12pt; line-height:1.5; }
+    #waPrintSheet > div > p { margin:0 0 6mm; }
     #waPrintSheet mark { background:transparent; font-weight:700; text-decoration:underline; }
   }
   #modeTabs { position:sticky; top:0; z-index:60; display:flex; gap:6px; padding:8px 16px; background:#fff; border-bottom:1px solid var(--line); }

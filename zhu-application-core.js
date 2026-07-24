@@ -164,6 +164,11 @@
     }).join('');
   }
 
+  function printBlank(term) {
+    term = valueOf(term);
+    return term ? new Array(term.length + 1).join('\uff3f') : '';
+  }
+
   function matchesStored(stored, config) {
     return isObject(stored) && stored.configSignature === configSignature(config);
   }
@@ -188,6 +193,7 @@
     validateResult: validateResult,
     splitTerms: splitTerms,
     toStudentText: toStudentText,
+    printBlank: printBlank,
     matchesStored: matchesStored,
     errorMessage: errorMessage
   };

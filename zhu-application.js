@@ -204,12 +204,12 @@ var ZhuApplication = (function () {
     sheet.appendChild(meta);
     var content = document.createElement('div');
     if (currentResult.mode === 'passage') {
-      appendVersionText(content, currentResult.passage, currentResult.terms, currentVersion === 'student');
+      appendVersionText(content, currentResult.passage, currentResult.terms, currentVersion === 'student', true);
     } else {
       currentResult.sentences.forEach(function (item, index) {
         var line = document.createElement('p');
         line.appendChild(document.createTextNode((index + 1) + '. '));
-        appendVersionText(line, item.text, [item.term], currentVersion === 'student');
+        appendVersionText(line, item.text, [item.term], currentVersion === 'student', true);
         content.appendChild(line);
       });
     }
@@ -276,11 +276,11 @@ var ZhuApplication = (function () {
     }
   }
 
-  function appendVersionText(container, text, terms, student) {
+  function appendVersionText(container, text, terms, student, printMode) {
     var parts = ZhuApplicationCore.splitTerms(text, terms);
     parts.forEach(function (part) {
       if (part.term && student) {
-        container.appendChild(document.createTextNode('＿＿'));
+        container.appendChild(document.createTextNode(printMode ? ZhuApplicationCore.printBlank(part.term) : '＿＿'));
       } else if (part.term) {
         var mark = document.createElement('mark');
         mark.textContent = part.text;
