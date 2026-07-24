@@ -48,6 +48,48 @@
          background:#fff; cursor:pointer; }
   .btn-primary { background:var(--blue); color:#fff; border-color:var(--blue); }
   .hidden { display:none; }
+  .wa-overlay { position:fixed; inset:0; z-index:8500; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(15,23,42,.58); }
+  .wa-overlay.hidden { display:none; }
+  .wa-dialog { width:min(960px,100%); max-height:calc(100vh - 40px); overflow:auto; background:#fff;
+    border-radius:24px; box-shadow:0 24px 70px rgba(15,23,42,.28); }
+  .wa-header { position:sticky; top:0; z-index:1; display:flex; justify-content:space-between; align-items:center;
+    padding:18px 22px; background:#fff; border-bottom:1px solid var(--line); }
+  .wa-header h2 { margin:0; }
+  .wa-close { min-width:44px; min-height:44px; font-size:28px; }
+  .wa-body { padding:20px 22px 24px; }
+  .wa-terms { border:1px solid var(--line); border-radius:16px; padding:14px; }
+  #waTermChoices { display:flex; flex-wrap:wrap; gap:10px; }
+  .wa-term-choice { display:inline-flex; align-items:center; gap:8px; min-height:42px; padding:6px 12px;
+    border:1px solid #bfdbfe; border-radius:999px; background:#eff6ff; }
+  .wa-term-choice input { width:20px; height:20px; }
+  .wa-settings,.wa-actions,.wa-version-tabs { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin-top:16px; }
+  .wa-settings label { display:grid; gap:5px; font-weight:700; }
+  .wa-settings select { min-height:42px; padding:7px 36px 7px 10px; }
+  .wa-status { min-height:1.5em; color:#475569; }
+  .wa-error { color:#b91c1c; }
+  .wa-version-tabs button { min-height:42px; padding:8px 18px; border:1px solid var(--line); border-radius:999px; background:#fff; }
+  .wa-version-tabs button[aria-selected="true"] { background:var(--blue); color:#fff; border-color:var(--blue); }
+  #waOutput { margin-top:16px; padding:18px; border:1px solid var(--line); border-radius:16px;
+    font-size:1.2rem; line-height:1.9; white-space:pre-wrap; }
+  #waOutput mark { background:#fef08a; color:inherit; padding:0 .08em; }
+  #waDictionary { margin-top:16px; border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+  .wa-dictionary-row { padding:10px 0; border-top:1px solid var(--line); }
+  .wa-dictionary-row:first-child { border-top:0; }
+  .wa-dictionary-row h3,.wa-dictionary-row p { margin:4px 0; }
+  .wa-print-sheet { display:none; }
+  @media (max-width:700px) {
+    .wa-overlay { padding:0; }
+    .wa-dialog { width:100%; height:100%; max-height:none; border-radius:0; }
+    .wa-body { padding:16px; }
+    .wa-settings > * { flex:1 1 140px; }
+  }
+  @media print {
+    body.wa-print-mode > * { display:none !important; }
+    body.wa-print-mode > #waPrintSheet { display:block !important; }
+    #waPrintSheet { font-size:16pt; line-height:2; color:#000; }
+    #waPrintSheet mark { background:transparent; font-weight:700; text-decoration:underline; }
+  }
   #modeTabs { position:sticky; top:0; z-index:60; display:flex; gap:6px; padding:8px 16px; background:#fff; border-bottom:1px solid var(--line); }
   #modeTabs .tab { padding:6px 14px; border:1px solid var(--line); border-radius:999px; background:#fff; cursor:pointer; }
   #modeTabs .tab.active { background:var(--blue); color:#fff; border-color:var(--blue); }
@@ -312,9 +354,59 @@
 <div id="basket" class="hidden">
   <strong>🧺 詞籃 <span id="basketCount">0</span></strong>
   <span id="basketItems"></span>
+  <button class="btn btn-primary" id="btnWordApplication" disabled>✏️ 語詞應用</button>
   <button class="btn btn-primary" id="btnPrint">🖨 列印練習紙</button>
   <button class="btn" id="btnClear">清除全部資料</button>
 </div>
+
+<div id="waOverlay" class="wa-overlay hidden" aria-hidden="true">
+  <section id="waDialog" class="wa-dialog" role="dialog" aria-modal="true" aria-labelledby="waTitle">
+    <header class="wa-header">
+      <h2 id="waTitle" tabindex="-1">語詞應用</h2>
+      <button class="btn wa-close" id="waClose" type="button" aria-label="關閉語詞應用">×</button>
+    </header>
+    <div class="wa-body">
+      <fieldset class="wa-terms">
+        <legend>選擇要使用的完整詞語</legend>
+        <div id="waTermChoices"></div>
+        <p id="waTermError" class="wa-error" role="status"></p>
+      </fieldset>
+      <div class="wa-settings">
+        <label>年段
+          <select id="waLevel">
+            <option value="low">低年級</option>
+            <option value="middle" selected>中年級</option>
+            <option value="high">高年級</option>
+          </select>
+        </label>
+        <label>形式
+          <select id="waMode">
+            <option value="passage" selected>短文</option>
+            <option value="sentences">造句</option>
+          </select>
+        </label>
+        <button class="btn btn-primary" id="waGenerate" type="button">生成應用內容</button>
+      </div>
+      <p id="waStatus" class="wa-status" role="status" aria-live="polite"></p>
+      <section id="waResult" class="wa-result hidden">
+        <div class="wa-version-tabs" role="tablist" aria-label="內容版本">
+          <button id="waTeacherTab" type="button" role="tab" aria-selected="true">教師版</button>
+          <button id="waStudentTab" type="button" role="tab" aria-selected="false">學生版</button>
+        </div>
+        <article id="waOutput" aria-live="polite"></article>
+        <details id="waDictionary">
+          <summary>讀音與詞義</summary>
+          <div id="waDictionaryBody"></div>
+        </details>
+        <div class="wa-actions">
+          <button class="btn" id="waPrint" type="button">列印</button>
+          <button class="btn btn-primary" id="waRegenerate" type="button">重新生成</button>
+        </div>
+      </section>
+    </div>
+  </section>
+</div>
+<section id="waPrintSheet" class="wa-print-sheet" aria-hidden="true"></section>
 
 <script src="papaparse.min.js"></script>
 <script src="zhu-data.js"></script>
@@ -326,9 +418,14 @@
 <script src="zhu-bopo.js"></script>
 <script src="zhu-print.js"></script>
 <script src="zhu-projector.js"></script>
-<script src="zhu-board.js"></script>
 <script src="lookup-core.js"></script>
+<script src="zhu-application-core.js"></script>
+<script src="zhu-application.js"></script>
+<script src="zhu-board.js"></script>
 <script src="lookup-card.js"></script>
-<script>if (window.LookupCard) LookupCard.mountLauncher();</script>
+<script>
+if (window.LookupCard) LookupCard.mountLauncher();
+if (window.ZhuApplication) ZhuApplication.mount();
+</script>
 </body>
 </html>

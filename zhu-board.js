@@ -88,7 +88,9 @@
   document.querySelectorAll('#modeTabs .tab').forEach(function (btn) {
     btn.onclick = function () {
       var mode = btn.getAttribute('data-mode');
-      if (mode === 'board' && ZhuCore.getSelectedChars().length) enterSelectedBoard(false);
+      if (mode === 'board' && $('view-board').classList.contains('hidden') && ZhuCore.getSelectedChars().length) {
+        enterSelectedBoard(true);
+      }
       else switchMode(mode);
     };
   });
@@ -414,6 +416,7 @@
       };
       box.appendChild(s);
     });
+    $('btnWordApplication').disabled = basket.length === 0;
   }
 
   // ── 事件 ────────────────────────────────────────────────
@@ -438,10 +441,14 @@
     renderTaughtButton();
   };
   $('btnClear').onclick = function () {
-    if (!confirm('詞籃、筆跡、偏好都會清掉；已教紀錄會保留。確定嗎？')) return;
+    if (!confirm('詞籃、筆跡、偏好與語詞應用結果都會清掉；已教紀錄會保留。確定嗎？')) return;
     ZhuCore.clearAll();
     renderBasket();
     render();
+  };
+  $('btnWordApplication').onclick = function () {
+    if (!ZhuCore.getBasket().length) return;
+    ZhuApplication.open(ZhuCore.getBasket(), $('btnWordApplication'));
   };
   $('btnPrint').onclick = function () {
     if (window.ZhuPrint) ZhuPrint.openPreview({ basket: ZhuCore.getBasket() });

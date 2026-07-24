@@ -141,6 +141,14 @@ var ZhuCore = (function () {
     return basket.some(function (x) { return x.word + '@' + x.char === key; });
   }
 
+  function getWordApplicationResult() {
+    return store.get('wordApplication', null);
+  }
+
+  function setWordApplicationResult(result) {
+    return store.set('wordApplication', result);
+  }
+
   function clearAll() {
     store.clearAll();
     basket = [];
@@ -171,6 +179,8 @@ var ZhuCore = (function () {
     addToBasket: addToBasket,
     removeFromBasket: removeFromBasket,
     isInBasket: isInBasket,
+    getWordApplicationResult: getWordApplicationResult,
+    setWordApplicationResult: setWordApplicationResult,
     clearAll: clearAll,
   };
 })();
