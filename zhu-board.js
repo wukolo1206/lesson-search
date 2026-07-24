@@ -43,7 +43,7 @@
         renderTaughtButton();
       },
       onStart: function () {
-        enterSelectedBoard();
+        enterSelectedBoard(true);
       },
     });
   }
@@ -71,7 +71,7 @@
     showChar(char, questionId);
   }
 
-  function enterSelectedBoard() {
+  function enterSelectedBoard(useQuestionContext) {
     var selected = ZhuCore.getSelectedChars();
     if (!selected.length) {
       switchMode('board');
@@ -79,13 +79,16 @@
     }
     var active = Math.min(ZhuCore.getActiveSelectedIndex(), selected.length - 1);
     ZhuCore.setActiveSelectedIndex(active);
-    enterBoardFromPrep(selected[active].char, selected[active].contextQuestionId);
+    enterBoardFromPrep(
+      selected[active].char,
+      useQuestionContext ? selected[active].contextQuestionId : null
+    );
   }
 
   document.querySelectorAll('#modeTabs .tab').forEach(function (btn) {
     btn.onclick = function () {
       var mode = btn.getAttribute('data-mode');
-      if (mode === 'board' && ZhuCore.getSelectedChars().length) enterSelectedBoard();
+      if (mode === 'board' && ZhuCore.getSelectedChars().length) enterSelectedBoard(false);
       else switchMode(mode);
     };
   });
