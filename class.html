@@ -468,6 +468,9 @@
       .unit-cb, .btn-taught-toggle, .ans-wrap, .ref-toggle, .ref-body {
         display: none !important;
       }
+      body.print-selected-only .lesson-unit:not(.selected) {
+        display: none !important;
+      }
       html, body { width: auto; min-height: auto; }
       body {
         background: white;
@@ -674,12 +677,12 @@
   <button class="btn btn-proj"   onclick="enterProjector()">▶ 投影模式</button>
   <button class="btn btn-print"  id="btnQuiz" onclick="toggleQuizMode()" style="background:#a78bfa;color:white">📝 題目模式</button>
   <button class="btn btn-print"  onclick="qqOpen()" style="background:#7c3aed;color:white">✏️ 快速測驗</button>
-  <button class="btn btn-print"  onclick="window.print()">🖨️ 列印講義</button>
+  <button class="btn btn-print"  onclick="printHandout()">🖨️ 列印講義</button>
   <button class="btn btn-reset"  onclick="selectAll()">全選</button>
   <button class="btn btn-reset"  onclick="selectNone()">取消全選</button>
   <button class="btn btn-reset"  onclick="clearTaught()" title="清除所有已教過的記錄">🗑️ 清除教學記錄</button>
   <span class="cnt-info" id="selInfo" style="display:none">
-    已勾選 <strong id="selCnt" style="color:#2563eb">0</strong> 題（投影將只播勾選的）
+    已勾選 <strong id="selCnt" style="color:#2563eb">0</strong> 題（投影／列印只使用勾選題目）
   </span>
   <span class="cnt-info" id="totalInfo">
     共 <strong id="cnt">0</strong> 道題目
@@ -1493,6 +1496,15 @@ function selectNone() {
     if (unit) unit.classList.remove('selected');
   });
   updateSelCount();
+}
+
+function printHandout() {
+  const checked = document.querySelectorAll('.unit-cb:checked');
+  document.body.classList.toggle('print-selected-only', checked.length > 0);
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('print-selected-only');
+  }, { once: true });
+  window.print();
 }
 
 /* ═══ 投影模式 ════════════════════════════════════════════ */
