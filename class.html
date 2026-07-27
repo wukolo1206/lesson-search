@@ -565,7 +565,7 @@
 
 <!-- 分數統計列 -->
 <div id="scoreBar">
-  <span>🎯 測驗模式</span>
+  <span>🎯 題目模式</span>
   <span>答對 <strong id="scoreRight">0</strong> 題</span>
   <span>答錯 <strong id="scoreWrong">0</strong> 題</span>
   <span id="scoreTotal" style="opacity:.7"></span>
@@ -575,8 +575,8 @@
 <!-- 操作列 -->
 <div class="action-bar">
   <button class="btn btn-proj"   onclick="enterProjector()">▶ 投影模式</button>
+  <button class="btn btn-print"  id="btnQuiz" onclick="toggleQuizMode()" style="background:#a78bfa;color:white">📝 題目模式</button>
   <button class="btn btn-print"  onclick="qqOpen()" style="background:#7c3aed;color:white">✏️ 快速測驗</button>
-  <button class="btn btn-print"  id="btnQuiz" onclick="toggleQuizMode()" style="background:#a78bfa;color:white">📝 測驗模式</button>
   <button class="btn btn-print"  onclick="window.print()">🖨️ 列印講義</button>
   <button class="btn btn-reset"  onclick="selectAll()">全選</button>
   <button class="btn btn-reset"  onclick="selectNone()">取消全選</button>
@@ -1021,7 +1021,7 @@ function toggleQuizMode() {
   quizActive = !quizActive;
   document.body.classList.toggle('quiz-mode', quizActive);
   const btn = $('btnQuiz');
-  btn.textContent = quizActive ? '✕ 結束測驗' : '📝 測驗模式';
+  btn.textContent = quizActive ? '✕ 結束題目模式' : '📝 題目模式';
   btn.style.background = quizActive ? '#dc2626' : '#7c3aed';
   $('scoreBar').classList.toggle('visible', quizActive);
   if (quizActive) { qRight = 0; qWrong = 0; updateScore(); resetOptButtons(); }
