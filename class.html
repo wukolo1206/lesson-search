@@ -941,6 +941,9 @@ function deriveAnswerCZ(q) {
 
 function getAnswer(q) {
   const uid = q['題目ID'] || q['題號'];
+  // 官方解答最優先（已比對教育部官方解答卷逐題確認，比老師手動設定與程式推算都可靠）
+  const official = (q['答案'] || '').trim();
+  if (official) return official;
   if (ANSWERS[uid] != null) return String(ANSWERS[uid]);
   if (q._cz.length) return deriveAnswerCZ(q);
   if (q._py.length) return deriveAnswerPY(q);
@@ -981,7 +984,11 @@ function selectOpt(btn, uid, key) {
   const container = document.getElementById('opts-' + uid);
   if (!container) return;
   const btns = container.querySelectorAll('.opt-btn');
-  const answer = ANSWERS[uid] != null ? String(ANSWERS[uid]) : null;
+  // 與 buildQuizSection 用同一套判斷（官方解答優先），否則會出現
+  // 「明明有答案卻還要老師設定」的狀況
+  const qRow = ALL.find(x => String(x['題目ID'] || x['題號']) === String(uid));
+  const answer = qRow ? getAnswer(qRow)
+                      : (ANSWERS[uid] != null ? String(ANSWERS[uid]) : null);
 
   if (answer == null) {
     // 老師設定答案模式
