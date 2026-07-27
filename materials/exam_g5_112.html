@@ -68,6 +68,8 @@
 </ol>
 <hr />
 <div class="answer-section">
+<button class="answer-toggle" onclick="this.parentElement.classList.toggle('expanded');this.textContent = this.parentElement.classList.contains('expanded') ? '🙈 收合答案' : '👁 顯示答案';">👁 顯示答案</button>
+<div class="answer-body">
 <h2 id="_2">二、 答案與核答區</h2>
 <table>
 <thead>
@@ -119,6 +121,7 @@
 </tr>
 </tbody>
 </table>
+</div>
 </div>
   </main>
 </body>

@@ -280,7 +280,7 @@ tr:nth-child(even) td {
   background-color: #f8fafc;
 }
 
-/* 答案區在螢幕上顯示 */
+/* 答案區在螢幕上預設收合，點擊按鈕才展開 */
 .answer-section {
   margin-top: 32px;
   padding: 20px;
@@ -294,6 +294,30 @@ tr:nth-child(even) td {
   border-bottom-color: #fee2e2;
 }
 
+.answer-toggle {
+  cursor: pointer;
+  background-color: #b91c1c;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.answer-toggle:hover {
+  background-color: #991b1b;
+}
+
+.answer-body {
+  display: none;
+  margin-top: 16px;
+}
+
+.answer-section.expanded .answer-body {
+  display: block;
+}
+
 /* 列印樣式處理 */
 @media print {
   body {
@@ -301,17 +325,17 @@ tr:nth-child(even) td {
     color: #000000;
     padding-bottom: 0;
   }
-  
+
   .print-hidden, header, .answer-section {
     display: none !important;
   }
-  
+
   main {
     margin: 0;
     max-width: 100%;
     padding: 0;
   }
-  
+
   table, tr, td, th {
     page-break-inside: avoid;
   }
