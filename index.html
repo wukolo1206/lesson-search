@@ -150,6 +150,17 @@
       color: var(--gray-700); white-space: pre-wrap; word-break: break-all;
     }
     .sec { display: flex; flex-direction: column; gap: 3px; }
+
+    /* 官方解答：預設收合，點擊才展開 */
+    .ans-toggle {
+      align-self: flex-start; margin-top: 6px; cursor: pointer;
+      background: #b91c1c; color: #fff; border: none; border-radius: 6px;
+      padding: 5px 12px; font-size: .78rem; font-weight: 700;
+    }
+    .ans-toggle:hover { background: #991b1b; }
+    .ans-body { display: none; margin-top: 7px; font-size: .84rem; font-weight: 700; color: #b91c1c; }
+    .ans-wrap.open .ans-body { display: block; }
+    @media print { .ans-wrap { display: none !important; } }
     .sec-lbl {
       font-size: .73rem; font-weight: 600;
       color: var(--gray-600); display: flex; align-items: center; gap: 3px;
@@ -334,6 +345,14 @@ let ALL = [], SHOWN = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
+/* 官方解答：預設收合，點擊才展開 */
+function toggleAnswer(uid, btn) {
+  const el = document.getElementById('ans-' + uid);
+  if (!el) return;
+  const open = el.classList.toggle('open');
+  btn.textContent = open ? '🙈 收合答案' : '👁 顯示答案';
+}
+
 function setStep(n, state) { // state: 'active' | 'done'
   const el = $('s'+n);
   if (!el) return;
@@ -497,6 +516,11 @@ function card(q, i) {
     <div class="sec">
       <div class="sec-lbl">📝 完整題目與選項</div>
       <div class="q-box">${esc(q['完整題目與選項'])}</div>
+      ${(q['答案'] || '').trim() ? `
+      <div class="ans-wrap" id="ans-${esc(q['題目ID'])}">
+        <button class="ans-toggle" onclick="toggleAnswer('${esc(q['題目ID'])}', this)">👁 顯示答案</button>
+        <div class="ans-body">正確答案：(${esc(q['答案'].trim())})</div>
+      </div>` : ''}
     </div>` : ''}
 
     ${q['學生迷思'] ? `

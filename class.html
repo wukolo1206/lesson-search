@@ -205,6 +205,16 @@
     }
     .q-text { font-size: .95rem; line-height: 1.85; white-space: pre-wrap; color: var(--gray-800); }
 
+    /* 官方解答：預設收合，點擊才展開（避免投影時被學生看到） */
+    .ans-toggle {
+      margin-top: 12px; cursor: pointer;
+      background: #b91c1c; color: #fff; border: none; border-radius: 6px;
+      padding: 7px 14px; font-size: .82rem; font-weight: 700;
+    }
+    .ans-toggle:hover { background: #991b1b; }
+    .ans-body { display: none; margin-top: 10px; font-size: .95rem; font-weight: 700; color: #b91c1c; }
+    .ans-wrap.open .ans-body { display: block; }
+
     /* ── 測驗模式 ── */
     .quiz-section { padding: 16px 20px; }
     .q-question {
@@ -401,6 +411,8 @@
       .row-ok td { background: #f0fdf4 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .row-err td { background: #fff1f2 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .question-section { background: #fffbeb !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      /* 列印／存PDF 一律不印出官方解答（發給學生用） */
+      .ans-wrap { display: none !important; }
     }
 
     @media (max-width: 700px) {
@@ -729,6 +741,7 @@ function unitHtml(q) {
   <div class="question-section">
     <div class="q-label">📝 題目與選項</div>
     <div class="q-text">${esc(qText)}</div>
+    ${buildAnswerSection(q, uid)}
   </div>` : ''}
   ${buildQuizSection(q, uid)}
   ${buildRefSection(q, uid)}
@@ -913,6 +926,24 @@ function toggleRef(id, btn) {
   if (!el) return;
   const open = el.classList.toggle('open');
   btn.classList.toggle('open', open);
+}
+
+/* 官方解答區：預設收合，點擊才展開 */
+function buildAnswerSection(q, uid) {
+  const ans = (q['答案'] || '').trim();
+  if (!ans) return '';
+  return `
+  <div class="ans-wrap" id="ans-${esc(uid)}">
+    <button class="ans-toggle" onclick="toggleAnswer('${esc(uid)}', this)">👁 顯示答案</button>
+    <div class="ans-body">正確答案：(${esc(ans)})</div>
+  </div>`;
+}
+
+function toggleAnswer(uid, btn) {
+  const el = document.getElementById('ans-' + uid);
+  if (!el) return;
+  const open = el.classList.toggle('open');
+  btn.textContent = open ? '🙈 收合答案' : '👁 顯示答案';
 }
 
 /* 列表版比較表 */
