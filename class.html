@@ -311,6 +311,67 @@
     }
     #projector.active { display: flex; }
 
+    /* ═══ 快速測驗（全螢幕覆蓋，會計分） ═══ */
+    #quickquiz {
+      display: none; position: fixed; inset: 0; z-index: 9998;
+      background: #f8fafc; overflow-y: auto;
+      font-family: 'Microsoft JhengHei', sans-serif;
+    }
+    #quickquiz.active { display: block; }
+    .qq-top {
+      background: #1e293b; color: #fff; padding: 12px 22px;
+      display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 2;
+    }
+    .qq-top h2 { font-size: 1.02rem; font-weight: 800; }
+    .qq-inner { max-width: 780px; margin: 0 auto; padding: 22px 18px 60px; }
+    .qq-card { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 20px; }
+    .qq-card + .qq-card { margin-top: 14px; }
+    .qq-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; }
+    .qq-fld { display: flex; flex-direction: column; gap: 5px; }
+    .qq-fld label { font-size: .78rem; font-weight: 700; color: var(--gray-700); }
+    .qq-fld select {
+      padding: 7px 10px; border: 1px solid var(--gray-300); border-radius: 7px;
+      font-family: inherit; font-size: .88rem; background: #fff;
+    }
+    .qq-cats { display: flex; flex-wrap: wrap; gap: 8px; }
+    .qq-cats label {
+      display: flex; align-items: center; gap: 5px; cursor: pointer;
+      border: 1px solid var(--gray-300); border-radius: 99px; padding: 5px 12px;
+      font-size: .82rem; background: #fff;
+    }
+    .qq-cats input { accent-color: #7c3aed; cursor: pointer; }
+    .qq-btn {
+      border: none; border-radius: 8px; padding: 11px 18px; cursor: pointer;
+      font-family: inherit; font-size: .92rem; font-weight: 700;
+    }
+    .qq-primary { background: #7c3aed; color: #fff; }
+    .qq-primary:hover { background: #6d28d9; }
+    .qq-ghost { background: var(--gray-100); color: var(--gray-800); border: 1px solid var(--gray-300); }
+    .qq-bar-bg { height: 7px; background: var(--gray-200); border-radius: 99px; overflow: hidden; }
+    .qq-bar { height: 100%; background: #7c3aed; width: 0; transition: width .25s; }
+    .qq-meta { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+    .qq-tag { font-size: .74rem; padding: 2px 9px; border-radius: 99px; background: var(--gray-100); color: var(--gray-700); }
+    .qq-qtext { font-size: 1.02rem; line-height: 1.9; white-space: pre-wrap; margin-bottom: 14px; }
+    .qq-opts { display: flex; flex-direction: column; gap: 9px; }
+    .qq-opt {
+      text-align: left; border: 2px solid var(--gray-200); background: #fff;
+      border-radius: 9px; padding: 11px 14px; cursor: pointer;
+      font-family: inherit; font-size: .93rem; line-height: 1.6;
+    }
+    .qq-opt:hover:not(.locked) { border-color: #7c3aed; background: #faf5ff; }
+    .qq-opt.locked { cursor: default; }
+    .qq-opt.correct { border-color: #16a34a; background: #f0fdf4; }
+    .qq-opt.wrong   { border-color: #dc2626; background: #fef2f2; }
+    .qq-fb { margin-top: 14px; padding: 13px 15px; border-radius: 9px; font-size: .88rem; line-height: 1.75; }
+    .qq-fb.ok { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .qq-fb.ng { background: #fef2f2; border: 1px solid #fecaca; }
+    .qq-score { text-align: center; padding: 8px 0 4px; }
+    .qq-score .num { font-size: 2.6rem; font-weight: 900; color: #7c3aed; }
+    .qq-rev { border-top: 1px dashed var(--gray-300); padding-top: 12px; margin-top: 12px; font-size: .86rem; line-height: 1.7; }
+    .qq-rev .hit { color: #16a34a; font-weight: 700; }
+    .qq-rev .mis { color: #dc2626; font-weight: 700; }
+    @media print { #quickquiz { display: none !important; } }
+
     .proj-topbar {
       background: #1e293b; padding: 12px 28px;
       display: flex; align-items: center; gap: 12px; flex-shrink: 0;
@@ -514,7 +575,8 @@
 <!-- 操作列 -->
 <div class="action-bar">
   <button class="btn btn-proj"   onclick="enterProjector()">▶ 投影模式</button>
-  <button class="btn btn-print"  id="btnQuiz" onclick="toggleQuizMode()" style="background:#7c3aed;color:white">📝 測驗模式</button>
+  <button class="btn btn-print"  onclick="qqOpen()" style="background:#7c3aed;color:white">✏️ 快速測驗</button>
+  <button class="btn btn-print"  id="btnQuiz" onclick="toggleQuizMode()" style="background:#a78bfa;color:white">📝 測驗模式</button>
   <button class="btn btn-print"  onclick="window.print()">🖨️ 列印講義</button>
   <button class="btn btn-reset"  onclick="selectAll()">全選</button>
   <button class="btn btn-reset"  onclick="selectNone()">取消全選</button>
@@ -549,6 +611,88 @@
     <button class="btn-nav" id="btnNext" onclick="nextSlide()">下一題 →</button>
   </div>
   <div class="proj-hint">← → 切換題目 &nbsp;|&nbsp; 空白鍵 顯示題目 / 下一題 &nbsp;|&nbsp; T 標記已教 &nbsp;|&nbsp; Esc 離開</div>
+</div>
+
+<!-- 快速測驗（全螢幕覆蓋） -->
+<div id="quickquiz">
+  <div class="qq-top">
+    <h2>✏️ 快速測驗</h2>
+    <span id="qqTopInfo" style="font-size:.82rem;opacity:.8"></span>
+    <button class="qq-btn qq-ghost" style="margin-left:auto;padding:6px 14px" onclick="qqExit()">✕ 離開</button>
+  </div>
+  <div class="qq-inner">
+
+    <!-- 設定 -->
+    <div class="qq-card" id="qqSetup">
+      <h3 style="font-size:1rem;font-weight:800;margin-bottom:14px">📋 設定測驗條件</h3>
+      <div class="qq-row">
+        <div class="qq-fld">
+          <label>年　級</label>
+          <select id="qqGrade">
+            <option value="ALL">全部年級（綜合）</option>
+            <option value="三年級">三年級</option>
+            <option value="四年級">四年級</option>
+            <option value="五年級">五年級</option>
+            <option value="六年級">六年級</option>
+          </select>
+        </div>
+        <div class="qq-fld">
+          <label>年　度</label>
+          <select id="qqYear"><option value="">全部年度</option></select>
+        </div>
+        <div class="qq-fld">
+          <label>題　數</label>
+          <select id="qqCount">
+            <option value="5">5 題（快速練習）</option>
+            <option value="10" selected>10 題（標準測驗）</option>
+            <option value="15">15 題（加強訓練）</option>
+            <option value="20">20 題（完整考試）</option>
+          </select>
+        </div>
+      </div>
+      <div class="qq-fld" style="margin-bottom:16px">
+        <label>選擇類別（可複選，不勾＝全部）</label>
+        <div class="qq-cats" id="qqCats"></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="qq-btn qq-primary" style="flex:2;min-width:180px" onclick="qqStart()">✏️ 線上作答（計分）</button>
+        <button class="qq-btn qq-ghost" style="flex:1;min-width:140px" onclick="qqPrintPaper()">🖨️ 產出測驗卷</button>
+      </div>
+      <p style="font-size:.78rem;color:var(--gray-500);margin-top:10px;text-align:center">
+        線上作答 → 立即判對錯並顯示迷思分析　｜　測驗卷 → 開新視窗可直接列印（含答案卡）
+      </p>
+    </div>
+
+    <!-- 作答中 -->
+    <div class="qq-card" id="qqArea" style="display:none">
+      <div class="qq-bar-bg"><div class="qq-bar" id="qqBar"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--gray-600);margin:8px 0 14px">
+        <span id="qqProg"></span>
+        <span id="qqRunScore"></span>
+      </div>
+      <div class="qq-meta" id="qqMeta"></div>
+      <div class="qq-qtext" id="qqText"></div>
+      <div class="qq-opts" id="qqOpts"></div>
+      <div class="qq-fb" id="qqFb" style="display:none"></div>
+      <div id="qqNextRow" style="display:none;text-align:right;margin-top:16px">
+        <button class="qq-btn qq-primary" onclick="qqNext()">下一題 →</button>
+      </div>
+    </div>
+
+    <!-- 結果 -->
+    <div class="qq-card" id="qqResult" style="display:none">
+      <div class="qq-score">
+        <div class="num" id="qqScoreNum"></div>
+        <div style="font-size:.9rem;color:var(--gray-600)" id="qqScoreSub"></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px">
+        <button class="qq-btn qq-primary" onclick="qqReset()">重新測驗</button>
+        <button class="qq-btn qq-ghost" onclick="qqToggleReview()">查看詳解 📖</button>
+      </div>
+      <div id="qqReview" style="display:none;margin-top:18px"></div>
+    </div>
+
+  </div>
 </div>
 
 <script>
@@ -946,6 +1090,226 @@ function toggleAnswer(uid, btn) {
   btn.textContent = open ? '🙈 收合答案' : '👁 顯示答案';
 }
 
+/* ═══ 快速測驗（移植自 GAS 版，並加上計分） ═══════════════ */
+let QQ = null;
+
+function qqOpen() {
+  if (!ALL.length) { alert('資料尚未載入完成，請稍候再試。'); return; }
+
+  // 類別選項：依現有資料動態產生
+  const cats = [...new Set(ALL.map(q => (q['類別'] || '').trim()).filter(Boolean))].sort();
+  $('qqCats').innerHTML = cats.map(c =>
+    `<label><input type="checkbox" value="${esc(c)}">${esc(c)}</label>`).join('');
+
+  const years = [...new Set(ALL.map(q => (q['年度'] || '').trim()).filter(Boolean))]
+                  .sort((a, b) => b.localeCompare(a));
+  $('qqYear').innerHTML = '<option value="">全部年度</option>' +
+    years.map(y => `<option value="${esc(y)}">${esc(y)} 年</option>`).join('');
+
+  qqReset();
+  document.getElementById('quickquiz').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function qqExit() {
+  document.getElementById('quickquiz').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function qqReset() {
+  QQ = null;
+  $('qqSetup').style.display  = 'block';
+  $('qqArea').style.display   = 'none';
+  $('qqResult').style.display = 'none';
+  $('qqReview').style.display = 'none';
+  $('qqTopInfo').textContent  = '';
+}
+
+/* 依設定條件挑出題庫 */
+function qqPool() {
+  const grade = $('qqGrade').value;
+  const year  = $('qqYear').value;
+  const cats  = [...document.querySelectorAll('#qqCats input:checked')].map(x => x.value);
+
+  return ALL.filter(q => {
+    if (!(q['完整題目與選項'] || '').trim()) return false;      // 沒題目的跳過
+    if (!parseOptions(q['完整題目與選項']))  return false;      // 選項解析不出來的跳過
+    if (grade !== 'ALL' && q['年級'] !== grade) return false;
+    if (year && q['年度'] !== year) return false;
+    if (cats.length && !cats.includes((q['類別'] || '').trim())) return false;
+    return true;
+  });
+}
+
+function qqStart() {
+  const pool = qqPool();
+  const want = parseInt($('qqCount').value, 10);
+  if (pool.length < 1) { alert('所選條件沒有可用題目，請放寬年級／年度／類別。'); return; }
+
+  const shuffled = pool.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  QQ = { pool: shuffled.slice(0, Math.min(want, shuffled.length)), cur: 0, log: [], right: 0 };
+
+  if (QQ.pool.length < want) {
+    $('qqTopInfo').textContent = `符合條件只有 ${QQ.pool.length} 題`;
+  }
+  $('qqSetup').style.display  = 'none';
+  $('qqResult').style.display = 'none';
+  $('qqArea').style.display   = 'block';
+  qqShow();
+}
+
+function qqShow() {
+  const q = QQ.pool[QQ.cur], total = QQ.pool.length;
+  $('qqBar').style.width  = `${(QQ.cur / total) * 100}%`;
+  $('qqProg').textContent = `第 ${QQ.cur + 1} 題 / 共 ${total} 題`;
+  $('qqRunScore').textContent = `目前答對 ${QQ.right} 題`;
+
+  $('qqMeta').innerHTML = [q['年級'], q['年度'] ? q['年度'] + ' 年' : '', q['類別'], q['考點類型']]
+    .filter(Boolean).map(t => `<span class="qq-tag">${esc(t)}</span>`).join('');
+
+  const opts = parseOptions(q['完整題目與選項']) || [];
+  const stem = q['完整題目與選項'].substring(0, q['完整題目與選項'].search(/[（(][1-4１-４][)）]/)).trim()
+               || q['完整題目與選項'];
+  $('qqText').textContent = stem;
+  $('qqOpts').innerHTML = opts.map(o =>
+    `<button class="qq-opt" data-key="${esc(o.key)}" onclick="qqPick('${esc(o.key)}',this)">(${esc(o.key)}) ${esc(o.text)}</button>`
+  ).join('');
+
+  $('qqFb').style.display = 'none';
+  $('qqNextRow').style.display = 'none';
+}
+
+function qqPick(key, btn) {
+  const q = QQ.pool[QQ.cur];
+  const ans = (q['答案'] || '').trim();     // 官方解答
+  const ok  = ans && key === ans;
+
+  document.querySelectorAll('#qqOpts .qq-opt').forEach(b => {
+    b.classList.add('locked');
+    b.onclick = null;
+    if (ans && b.dataset.key === ans) b.classList.add('correct');
+  });
+  if (ans && !ok) btn.classList.add('wrong');
+
+  if (ok) QQ.right++;
+  QQ.log.push({ q, chosen: key, ok: !!ok, ans });
+
+  const fb = $('qqFb');
+  fb.className = 'qq-fb ' + (ok ? 'ok' : 'ng');
+  fb.innerHTML =
+    (ans
+      ? `<strong>${ok ? '✅ 答對了！' : '❌ 答錯了'}</strong>　你選 (${esc(key)})${ok ? '' : `，正確答案是 <strong>(${esc(ans)})</strong>`}<br>`
+      : `<strong>📌 你選了 (${esc(key)})</strong>（本題無官方解答，不計分）<br>`)
+    + (q['學生迷思'] ? `<div style="margin-top:7px;color:#b91c1c">⚠ 學生常見迷思：${esc(q['學生迷思'])}</div>` : '')
+    + (q['教學策略'] ? `<div style="margin-top:4px;color:#1d4ed8">💡 教學策略：${esc(q['教學策略'])}</div>` : '');
+  fb.style.display = 'block';
+
+  $('qqRunScore').textContent = `目前答對 ${QQ.right} 題`;
+  $('qqNextRow').style.display = 'block';
+}
+
+function qqNext() {
+  QQ.cur++;
+  if (QQ.cur < QQ.pool.length) qqShow();
+  else qqFinish();
+}
+
+function qqFinish() {
+  const total = QQ.pool.length, right = QQ.right;
+  const pct = total ? Math.round(right / total * 100) : 0;
+  $('qqArea').style.display   = 'none';
+  $('qqResult').style.display = 'block';
+  $('qqScoreNum').textContent = `${pct} 分`;
+  $('qqScoreSub').textContent = `共 ${total} 題，答對 ${right} 題、答錯 ${total - right} 題`;
+  $('qqReview').style.display = 'none';
+}
+
+function qqToggleReview() {
+  const box = $('qqReview');
+  if (box.style.display === 'block') { box.style.display = 'none'; return; }
+  box.innerHTML = QQ.log.map((a, i) => `
+    <div class="qq-rev">
+      <div><strong>第 ${i + 1} 題</strong>　${esc(a.q['年級'])} ‧ ${esc(a.q['年度'])}年 ‧ ${esc(a.q['類別'])}
+        <span class="${a.ok ? 'hit' : 'mis'}">${a.ok ? '✅ 答對' : '❌ 答錯'}</span></div>
+      <div style="margin:4px 0;color:var(--gray-700)">${esc((a.q['完整題目與選項'] || '').slice(0, 120))}${(a.q['完整題目與選項'] || '').length > 120 ? '…' : ''}</div>
+      <div>你選 (${esc(a.chosen)})${a.ans ? `　正解 (${esc(a.ans)})` : ''}</div>
+      ${a.q['學生迷思'] ? `<div style="color:#b91c1c;margin-top:3px">⚠ ${esc(a.q['學生迷思'])}</div>` : ''}
+      ${a.q['教學策略'] ? `<div style="color:#1d4ed8;margin-top:2px">💡 ${esc(a.q['教學策略'])}</div>` : ''}
+    </div>`).join('');
+  box.style.display = 'block';
+}
+
+/* 產出可列印測驗卷（純前端，開新視窗） */
+function qqPrintPaper() {
+  const pool = qqPool();
+  const want = parseInt($('qqCount').value, 10);
+  if (pool.length < 1) { alert('所選條件沒有可用題目，請放寬年級／年度／類別。'); return; }
+
+  const shuffled = pool.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const sel = shuffled.slice(0, Math.min(want, shuffled.length));
+
+  const gradeV = $('qqGrade').value === 'ALL' ? '三～六年級' : $('qqGrade').value;
+  const yearV  = $('qqYear').value ? $('qqYear').value + ' 年' : '各年度';
+  const catsV  = [...document.querySelectorAll('#qqCats input:checked')].map(x => x.value);
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+
+  let body = '';
+  sel.forEach((q, i) => {
+    const full = q['完整題目與選項'] || '';
+    const opts = parseOptions(full) || [];
+    const stem = full.substring(0, full.search(/[（(][1-4１-４][)）]/)).trim() || full;
+    body += `<div class="qb"><strong>${i + 1}.</strong>（　　）${esc(stem)}`;
+    if (opts.length >= 2) {
+      body += `<div class="op">` + opts.map(o => `<div>(${esc(o.key)}) ${esc(o.text)}</div>`).join('') + `</div>`;
+    }
+    body += `</div>`;
+  });
+
+  const cards = sel.map((_, i) =>
+    `<div class="cc"><div class="cn">${i + 1}</div><div class="cb"></div></div>`).join('');
+  const keys = sel.map((q, i) => `${i + 1}.(${esc((q['答案'] || '－').trim())})`).join('　');
+
+  const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">
+<title>字音形測驗卷</title><style>
+body{font-family:"標楷體",serif;max-width:820px;margin:0 auto;padding:30px;font-size:14px;color:#111}
+h1{text-align:center;font-size:1.45em;margin-bottom:6px}
+.meta{text-align:center;color:#555;font-size:.9em;margin-bottom:18px;border-bottom:2px solid #333;padding-bottom:10px}
+.info{display:flex;gap:36px;justify-content:center;margin-bottom:18px}
+.info span{border-bottom:1px solid #333;display:inline-block;min-width:110px}
+.qb{margin-bottom:16px;page-break-inside:avoid;line-height:1.9}
+.op{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;margin-top:5px}
+.card{margin-top:26px;border-top:2px dashed #999;padding-top:14px}
+.cc{display:inline-block;text-align:center;margin:0 8px 8px 0}
+.cn{font-size:.82em;color:#555}
+.cb{border:1px solid #999;width:42px;height:28px;border-radius:4px}
+.ansk{margin-top:22px;border-top:2px dashed #999;padding-top:12px;font-size:.9em;line-height:2}
+@media print{.np{display:none}.ansk{page-break-before:always}}
+</style></head><body>
+<h1>國小國語　字音形測驗</h1>
+<div class="meta">${esc(gradeV)}　${esc(yearV)}　${esc(catsV.length ? catsV.join('、') : '全部類別')}　共 ${sel.length} 題　${dateStr}</div>
+<div class="info"><div>班級：<span></span></div><div>姓名：<span></span></div><div>得分：<span></span></div></div>
+${body}
+<div class="card"><strong>答案卡</strong><div style="margin-top:9px">${cards}</div></div>
+<div class="ansk"><strong>教師用　參考答案</strong><div>${keys}</div></div>
+<div class="np" style="text-align:center;margin-top:22px">
+  <button onclick="window.print()" style="padding:10px 28px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:1em;cursor:pointer">🖨️ 列印測驗卷</button>
+</div></body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { alert('瀏覽器阻擋了新視窗，請允許彈出視窗後再試。'); return; }
+  w.document.write(html);
+  w.document.close();
+}
+
 /* 列表版比較表 */
 function buildListTables(q) {
   const parts = [];
@@ -1049,6 +1413,11 @@ function exitProjector() {
 }
 
 function onKey(e) {
+  // 快速測驗開著時，Esc 先關快速測驗（不影響投影模式的按鍵）
+  if (document.getElementById('quickquiz').classList.contains('active')) {
+    if (e.key === 'Escape') qqExit();
+    return;
+  }
   if (e.key === 'Escape') { exitProjector(); return; }
   if (e.key === 'ArrowRight' || e.key === ' ') {
     e.preventDefault();
