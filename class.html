@@ -458,22 +458,119 @@
     }
 
     /* ── 列印樣式 ── */
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
+
     @media print {
-      #loading, .filter-bar, .action-bar, #projector { display: none !important; }
-      header { padding: 12px 20px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      body { background: white; }
-      main { padding: 12px 0 0; max-width: 100%; }
-      .lesson-unit {
-        border: 1px solid #ccc; border-radius: 8px;
-        margin-bottom: 16px; page-break-inside: avoid; break-inside: avoid;
+      #loading, .filter-bar, .action-bar, #projector, #lkLauncher, .header-links,
+      .unit-cb, .btn-taught-toggle, .ans-wrap, .ref-toggle, .ref-body {
+        display: none !important;
       }
-      .unit-head { background: #f0f4ff !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      .teach-tbl th { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      .row-ok td { background: #f0fdf4 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      .row-err td { background: #fff1f2 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      .question-section { background: #fffbeb !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      /* 列印／存PDF 一律不印出官方解答（發給學生用） */
-      .ans-wrap { display: none !important; }
+      html, body { width: auto; min-height: auto; }
+      body {
+        background: white;
+        color: #111827;
+        font-size: 9.5pt;
+      }
+      header {
+        padding: 3mm 4mm;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      header h1 { font-size: 13pt; line-height: 1.2; }
+      header p { display: none; }
+      main {
+        padding: 3mm 0 0;
+        max-width: none;
+        margin: 0;
+      }
+      .lesson-unit {
+        border: 1px solid #b8c0cc;
+        border-radius: 0;
+        margin-bottom: 4mm;
+        overflow: visible;
+        page-break-inside: auto;
+        break-inside: auto;
+        box-shadow: none !important;
+      }
+      .unit-head {
+        padding: 2.5mm 4mm;
+        gap: 1.5mm;
+        border-bottom-width: 1px;
+        page-break-after: avoid;
+        break-after: avoid-page;
+        background: #f0f4ff !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      .unit-title {
+        font-size: 10pt;
+        margin-top: 1mm;
+      }
+      .badge {
+        padding: .5mm 2mm;
+        font-size: 7.5pt;
+      }
+      .table-section {
+        padding: 3mm 4mm;
+        border-bottom-width: 1px;
+      }
+      .sec-label {
+        font-size: 7.5pt;
+        margin-bottom: 2mm;
+      }
+      .spacer { height: 2mm; }
+      .teach-tbl {
+        font-size: 8.5pt;
+        page-break-inside: auto;
+        break-inside: auto;
+      }
+      .teach-tbl thead { display: table-header-group; }
+      .teach-tbl tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .teach-tbl th {
+        padding: 1.5mm 2mm;
+        font-size: 8pt;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      .teach-tbl td {
+        padding: 1.5mm 2mm;
+        line-height: 1.3;
+      }
+      .char-big { font-size: 10pt; }
+      .reading { font-size: 9pt; }
+      .question-section {
+        padding: 2.5mm 4mm;
+        border-left-width: 1mm;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        background: #fffbeb !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      .q-label {
+        font-size: 7.5pt;
+        margin-bottom: 1.5mm;
+      }
+      .q-text {
+        font-size: 9pt;
+        line-height: 1.45;
+      }
+      .row-ok td {
+        background: #f0fdf4 !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      .row-err td {
+        background: #fff1f2 !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
     }
 
     @media (max-width: 700px) {
@@ -500,7 +597,7 @@
       <h1>🎓 國語字音形 — 課堂講義</h1>
       <p>字音形比較表為主 · 搭配考題 · 支援投影 / 列印</p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div class="header-links" style="display:flex;gap:10px;flex-wrap:wrap">
       <a href="materials/index.html"
          style="display:inline-block;padding:8px 18px;background:rgba(255,255,255,.2);
                 color:white;border-radius:8px;text-decoration:none;font-size:.88rem;
