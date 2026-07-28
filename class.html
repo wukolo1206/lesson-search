@@ -192,7 +192,60 @@
     .row-err td { background: #fff1f2 !important; }
     .char-big  { font-size: 1.15rem; font-weight: 700; color: #1e40af; }
     .reading   { font-size: 1rem; color: #7c3aed; font-weight: 600; }
-    .concised-explanation { overflow-wrap: anywhere; }
+    .heteronym-table-wrap { width: 100%; overflow-x: auto; }
+    .heteronym-tbl { min-width: 820px; table-layout: fixed; }
+    .heteronym-source-col { width: 9%; }
+    .heteronym-char-col { width: 7%; }
+    .heteronym-word-col { width: 11%; }
+    .heteronym-reading-col { width: 12%; }
+    .heteronym-explanation-col { width: 61%; }
+    .heteronym-tbl th,
+    .heteronym-tbl .source-cell,
+    .heteronym-tbl .char-big,
+    .heteronym-tbl .proj-char,
+    .heteronym-tbl .word-cell,
+    .heteronym-tbl .reading,
+    .heteronym-tbl .proj-reading {
+      white-space: nowrap;
+    }
+    .heteronym-tbl .char-big,
+    .heteronym-tbl .proj-char { text-align: center; }
+    .bopomofo-token { display: inline-block; white-space: nowrap; }
+    .concised-explanation {
+      overflow-wrap: break-word;
+      word-break: normal;
+    }
+    .explanation-row {
+      display: grid;
+      grid-template-columns: max-content minmax(0, 1fr);
+      align-items: start;
+      column-gap: .65em;
+    }
+    .explanation-row + .explanation-row {
+      margin-top: .45em;
+      padding-top: .45em;
+      border-top: 1px dashed #cbd5e1;
+    }
+    .explanation-label {
+      margin-top: .08em;
+      padding: .08em .45em;
+      border-radius: 999px;
+      font-size: .72em;
+      font-weight: 700;
+      line-height: 1.55;
+      white-space: nowrap;
+    }
+    .explanation-official { background: #dbeafe; color: #1e40af; }
+    .explanation-teaching { background: #fef3c7; color: #92400e; }
+    .explanation-text {
+      min-width: 0;
+      white-space: pre-line;
+      overflow-wrap: break-word;
+      word-break: normal;
+    }
+    #projector .explanation-row + .explanation-row { border-top-color: #475569; }
+    #projector .explanation-official { background: #1e3a8a; color: #dbeafe; }
+    #projector .explanation-teaching { background: #78350f; color: #fef3c7; }
     .concised-source {
       margin-top: 8px;
       color: var(--gray-600);
@@ -554,6 +607,19 @@
         padding: 1.5mm 2mm;
         line-height: 1.3;
       }
+      .heteronym-table-wrap { overflow: visible; }
+      .heteronym-tbl { min-width: 0; table-layout: fixed; }
+      .heteronym-source-col { width: 10%; }
+      .heteronym-char-col { width: 8%; }
+      .heteronym-word-col { width: 12%; }
+      .heteronym-reading-col { width: 13%; }
+      .heteronym-explanation-col { width: 57%; }
+      .explanation-label { font-size: 6.5pt; }
+      .explanation-row { column-gap: 1mm; }
+      .explanation-row + .explanation-row {
+        margin-top: 1mm;
+        padding-top: 1mm;
+      }
       .char-big { font-size: 10pt; }
       .reading { font-size: 9pt; }
       .concised-source {
@@ -810,6 +876,7 @@
 </div>
 
 <script src="class-concised-glosses.js"></script>
+<script src="class-gloss-format.js"></script>
 <script>
 /* ═══ 設定 ═══════════════════════════════════════════════ */
 const SHEET_ID = '1MoZ0VhgJ9fSWktZUjunX1IMJwDuFBP_qyZFuEnH6uGo';
@@ -893,11 +960,36 @@ function lookupConcisedGloss(row) {
 function buildHeteronymExplanation(row) {
   const teaching = String(row['字義說明'] || '').trim();
   const official = lookupConcisedGloss(row);
-  if (official && teaching) {
-    return official.definition + '｜考點：' + teaching;
+  return {
+    official: official ? official.definition : '',
+    teaching
+  };
+}
+
+function renderHeteronymExplanation(row) {
+  const explanation = buildHeteronymExplanation(row);
+  const rows = [];
+  if (explanation.official) {
+    rows.push(
+      '<div class="explanation-row">' +
+        '<span class="explanation-label explanation-official">簡編本</span>' +
+        '<span class="explanation-text">' +
+          ClassGlossFormat.formatText(explanation.official) +
+        '</span>' +
+      '</div>'
+    );
   }
-  if (official) return official.definition;
-  return teaching ? '考點：' + teaching : '';
+  if (explanation.teaching) {
+    rows.push(
+      '<div class="explanation-row">' +
+        '<span class="explanation-label explanation-teaching">考點</span>' +
+        '<span class="explanation-text">' +
+          ClassGlossFormat.formatText(explanation.teaching) +
+        '</span>' +
+      '</div>'
+    );
+  }
+  return rows.join('');
 }
 
 function buildConcisedSource(rows) {
@@ -1478,18 +1570,27 @@ function buildListTables(q) {
 
   if (q._py.length) parts.push(`
     <div class="sec-label">破音字比較</div>
-    <table class="teach-tbl">
+    <div class="heteronym-table-wrap">
+    <table class="teach-tbl heteronym-tbl">
+      <colgroup>
+        <col class="heteronym-source-col">
+        <col class="heteronym-char-col">
+        <col class="heteronym-word-col">
+        <col class="heteronym-reading-col">
+        <col class="heteronym-explanation-col">
+      </colgroup>
       <thead><tr><th>來源</th><th>破音字</th><th>詞語</th><th>注音</th><th>語詞說明</th></tr></thead>
       <tbody>${q._py.map(r => `
         <tr>
-          <td>${esc(r['來源'])}</td>
+          <td class="source-cell">${esc(r['來源'])}</td>
           <td class="char-big">${esc(r['破音字'])}</td>
-          <td class="lk-w">${esc(r['詞語'])}</td>
+          <td class="lk-w word-cell">${esc(r['詞語'])}</td>
           <td class="reading">${esc(r['注音'])}</td>
-          <td class="concised-explanation">${esc(buildHeteronymExplanation(r))}</td>
+          <td class="concised-explanation">${renderHeteronymExplanation(r)}</td>
         </tr>`).join('')}
       </tbody>
     </table>
+    </div>
     ${buildConcisedSource(q._py)}`);
 
   if (q._cz.length) parts.push(`
@@ -1653,18 +1754,27 @@ function buildProjTables(q) {
   if (q._py.length) parts.push(`
     <div>
       <div class="proj-sec-label">▎ 破音字比較</div>
-      <table class="proj-tbl">
+      <div class="heteronym-table-wrap">
+      <table class="proj-tbl heteronym-tbl">
+        <colgroup>
+          <col class="heteronym-source-col">
+          <col class="heteronym-char-col">
+          <col class="heteronym-word-col">
+          <col class="heteronym-reading-col">
+          <col class="heteronym-explanation-col">
+        </colgroup>
         <thead><tr><th>來源</th><th>破音字</th><th>詞語</th><th>注音</th><th>語詞說明</th></tr></thead>
         <tbody>${q._py.map(r => `
           <tr>
-            <td>${esc(r['來源'])}</td>
+            <td class="source-cell">${esc(r['來源'])}</td>
             <td class="proj-char">${esc(r['破音字'])}</td>
-            <td class="lk-w">${esc(r['詞語'])}</td>
+            <td class="lk-w word-cell">${esc(r['詞語'])}</td>
             <td class="proj-reading">${esc(r['注音'])}</td>
-            <td class="concised-explanation">${esc(buildHeteronymExplanation(r))}</td>
+            <td class="concised-explanation">${renderHeteronymExplanation(r)}</td>
           </tr>`).join('')}
         </tbody>
       </table>
+      </div>
       ${buildConcisedSource(q._py)}
     </div>`);
 
