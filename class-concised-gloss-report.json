@@ -1,0 +1,212 @@
+{
+  "ambiguous": [],
+  "ambiguousRows": 0,
+  "ambiguousUniqueKeys": 0,
+  "builtOn": "2026-07-28",
+  "matchedRows": 81,
+  "matchedUniqueKeys": 80,
+  "missing": [
+    {
+      "key": "二月份\u001f分\u001fㄈㄣˋ",
+      "rowCount": 1,
+      "targetChar": "分",
+      "targetReading": "ㄈㄣˋ",
+      "word": "二月份"
+    },
+    {
+      "key": "倒地\u001f倒\u001fㄉㄠˇ",
+      "rowCount": 1,
+      "targetChar": "倒",
+      "targetReading": "ㄉㄠˇ",
+      "word": "倒地"
+    },
+    {
+      "key": "倒茶\u001f倒\u001fㄉㄠˋ",
+      "rowCount": 1,
+      "targetChar": "倒",
+      "targetReading": "ㄉㄠˋ",
+      "word": "倒茶"
+    },
+    {
+      "key": "分清\u001f分\u001fㄈㄣ",
+      "rowCount": 1,
+      "targetChar": "分",
+      "targetReading": "ㄈㄣ",
+      "word": "分清"
+    },
+    {
+      "key": "切蛋糕\u001f切\u001fㄑㄧㄝ",
+      "rowCount": 1,
+      "targetChar": "切",
+      "targetReading": "ㄑㄧㄝ",
+      "word": "切蛋糕"
+    },
+    {
+      "key": "反省／省電\u001f省\u001fㄒㄧㄥˇ／ㄕㄥˇ",
+      "rowCount": 1,
+      "targetChar": "省",
+      "targetReading": "ㄒㄧㄥˇ／ㄕㄥˇ",
+      "word": "反省／省電"
+    },
+    {
+      "key": "口耳相傳\u001f相\u001fㄒㄧㄤ",
+      "rowCount": 1,
+      "targetChar": "相",
+      "targetReading": "ㄒㄧㄤ",
+      "word": "口耳相傳"
+    },
+    {
+      "key": "吃喝／喝采\u001f喝\u001fㄏㄜ／ㄏㄜˋ",
+      "rowCount": 1,
+      "targetChar": "喝",
+      "targetReading": "ㄏㄜ／ㄏㄜˋ",
+      "word": "吃喝／喝采"
+    },
+    {
+      "key": "吃相\u001f相\u001fㄒㄧㄤˋ",
+      "rowCount": 1,
+      "targetChar": "相",
+      "targetReading": "ㄒㄧㄤˋ",
+      "word": "吃相"
+    },
+    {
+      "key": "吃閉門羹／口吃\u001f吃\u001fㄔ／ㄐㄧ",
+      "rowCount": 1,
+      "targetChar": "吃",
+      "targetReading": "ㄔ／ㄐㄧ",
+      "word": "吃閉門羹／口吃"
+    },
+    {
+      "key": "各行／銀行\u001f行\u001fㄏㄤˊ",
+      "rowCount": 1,
+      "targetChar": "行",
+      "targetReading": "ㄏㄤˊ",
+      "word": "各行／銀行"
+    },
+    {
+      "key": "喪氣／喪葬\u001f喪\u001fㄙㄤˋ／ㄙㄤ",
+      "rowCount": 1,
+      "targetChar": "喪",
+      "targetReading": "ㄙㄤˋ／ㄙㄤ",
+      "word": "喪氣／喪葬"
+    },
+    {
+      "key": "得（必須義ㄉㄟˇ）\u001f得\u001fㄉㄟˇ",
+      "rowCount": 2,
+      "targetChar": "得",
+      "targetReading": "ㄉㄟˇ",
+      "word": "得（必須義ㄉㄟˇ）"
+    },
+    {
+      "key": "教練／宗教\u001f教\u001fㄐㄧㄠˋ",
+      "rowCount": 1,
+      "targetChar": "教",
+      "targetReading": "ㄐㄧㄠˋ",
+      "word": "教練／宗教"
+    },
+    {
+      "key": "暴怒\u001f暴\u001fㄅㄠˋ",
+      "rowCount": 1,
+      "targetChar": "暴",
+      "targetReading": "ㄅㄠˋ",
+      "word": "暴怒"
+    },
+    {
+      "key": "氣得\u001f得\u001fㄉㄜ˙",
+      "rowCount": 2,
+      "targetChar": "得",
+      "targetReading": "ㄉㄜ˙",
+      "word": "氣得"
+    },
+    {
+      "key": "沒了主意\u001f沒\u001fㄇㄟˊ",
+      "rowCount": 1,
+      "targetChar": "沒",
+      "targetReading": "ㄇㄟˊ",
+      "word": "沒了主意"
+    },
+    {
+      "key": "直率／效率\u001f率\u001fㄕㄨㄞˋ／ㄌㄩˋ",
+      "rowCount": 1,
+      "targetChar": "率",
+      "targetReading": "ㄕㄨㄞˋ／ㄌㄩˋ",
+      "word": "直率／效率"
+    },
+    {
+      "key": "相安\u001f相\u001fㄒㄧㄤ",
+      "rowCount": 1,
+      "targetChar": "相",
+      "targetReading": "ㄒㄧㄤ",
+      "word": "相安"
+    },
+    {
+      "key": "相差\u001f相\u001fㄒㄧㄤ",
+      "rowCount": 1,
+      "targetChar": "相",
+      "targetReading": "ㄒㄧㄤ",
+      "word": "相差"
+    },
+    {
+      "key": "節省／反省\u001f省\u001fㄕㄥˇ／ㄒㄧㄥˇ",
+      "rowCount": 1,
+      "targetChar": "省",
+      "targetReading": "ㄕㄥˇ／ㄒㄧㄥˇ",
+      "word": "節省／反省"
+    },
+    {
+      "key": "處理／好處\u001f處\u001fㄔㄨˇ／ㄔㄨˋ",
+      "rowCount": 1,
+      "targetChar": "處",
+      "targetReading": "ㄔㄨˇ／ㄔㄨˋ",
+      "word": "處理／好處"
+    },
+    {
+      "key": "解禁\u001f禁\u001fㄐㄧㄣˋ",
+      "rowCount": 1,
+      "targetChar": "禁",
+      "targetReading": "ㄐㄧㄣˋ",
+      "word": "解禁"
+    },
+    {
+      "key": "調查／調皮\u001f調\u001fㄉㄧㄠˋ／ㄊㄧㄠˊ",
+      "rowCount": 1,
+      "targetChar": "調",
+      "targetReading": "ㄉㄧㄠˋ／ㄊㄧㄠˊ",
+      "word": "調查／調皮"
+    },
+    {
+      "key": "跑得\u001f得\u001fㄉㄜ˙",
+      "rowCount": 2,
+      "targetChar": "得",
+      "targetReading": "ㄉㄜ˙",
+      "word": "跑得"
+    },
+    {
+      "key": "重新／重量\u001f重\u001fㄔㄨㄥˊ／ㄓㄨㄥˋ",
+      "rowCount": 1,
+      "targetChar": "重",
+      "targetReading": "ㄔㄨㄥˊ／ㄓㄨㄥˋ",
+      "word": "重新／重量"
+    },
+    {
+      "key": "鑽木取火\u001f鑽\u001fㄗㄨㄢ",
+      "rowCount": 1,
+      "targetChar": "鑽",
+      "targetReading": "ㄗㄨㄢ",
+      "word": "鑽木取火"
+    }
+  ],
+  "missingRows": 30,
+  "missingUniqueKeys": 27,
+  "officialRows": 45130,
+  "overrideUniqueKeys": 0,
+  "overrides": [],
+  "pronunciationLengthDiagnostics": [],
+  "schemaVersion": 1,
+  "sourceSha256": "fc83d27eb3fbf6fcfdb791e7d05ef60946b58ef8e8857ed165b612217b392806",
+  "sourceVersion": "dict_concised_2014_20260626",
+  "sourceWorkbook": "dict_concised_2014_20260626.xlsx",
+  "sourceWorksheet": "辭典匯出_1150626",
+  "targetRows": 111,
+  "uniqueTargetKeys": 107
+}

@@ -192,6 +192,15 @@
     .row-err td { background: #fff1f2 !important; }
     .char-big  { font-size: 1.15rem; font-weight: 700; color: #1e40af; }
     .reading   { font-size: 1rem; color: #7c3aed; font-weight: 600; }
+    .concised-explanation { overflow-wrap: anywhere; }
+    .concised-source {
+      margin-top: 8px;
+      color: var(--gray-600);
+      font-size: .72rem;
+      line-height: 1.45;
+    }
+    .concised-source a { color: inherit; }
+    #projector .concised-source { color: #94a3b8; }
 
     /* 題目區 */
     .question-section {
@@ -547,6 +556,11 @@
       }
       .char-big { font-size: 10pt; }
       .reading { font-size: 9pt; }
+      .concised-source {
+        margin-top: 1.5mm;
+        font-size: 6.8pt;
+        break-inside: avoid;
+      }
       .question-section {
         padding: 2.5mm 4mm;
         border-left-width: 1mm;
@@ -795,6 +809,7 @@
   </div>
 </div>
 
+<script src="class-concised-glosses.js"></script>
 <script>
 /* ═══ 設定 ═══════════════════════════════════════════════ */
 const SHEET_ID = '1MoZ0VhgJ9fSWktZUjunX1IMJwDuFBP_qyZFuEnH6uGo';
@@ -859,6 +874,46 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const gradeClass = g => ({'三年級':'b-g3','四年級':'b-g4','五年級':'b-g5','六年級':'b-g6'}[g]||'b-yr');
 const diffClass  = d => ({'基礎':'b-ez','中階':'b-md','進階':'b-hd'}[d]||'b-yr');
+
+function lookupConcisedGloss(row) {
+  if (
+    !window.ClassConcisedGlosses ||
+    ClassConcisedGlosses.schemaVersion !== 1 ||
+    typeof ClassConcisedGlosses.lookup !== 'function'
+  ) {
+    return null;
+  }
+  return ClassConcisedGlosses.lookup(
+    row['詞語'],
+    row['破音字'],
+    row['注音']
+  );
+}
+
+function buildHeteronymExplanation(row) {
+  const teaching = String(row['字義說明'] || '').trim();
+  const official = lookupConcisedGloss(row);
+  if (official && teaching) {
+    return official.definition + '｜考點：' + teaching;
+  }
+  if (official) return official.definition;
+  return teaching ? '考點：' + teaching : '';
+}
+
+function buildConcisedSource(rows) {
+  if (!rows.some(row => lookupConcisedGloss(row))) return '';
+  const version = esc(ClassConcisedGlosses.meta.sourceVersion);
+  return `
+    <div class="concised-source">
+      語詞釋義來源：
+      <a href="https://dict.concised.moe.edu.tw/" target="_blank" rel="noopener">
+        中華民國教育部（Ministry of Education, R.O.C.）。《國語辭典簡編本》
+      </a>
+      （版本編號：${version}）
+      網址：https://dict.concised.moe.edu.tw/
+      ｜<a href="licenses/moe-concised/conciseddict_10312.pdf" target="_blank" rel="noopener">完整使用說明</a>
+    </div>`;
+}
 
 function fetch_csv(name) {
   return new Promise((ok, err) =>
@@ -1424,17 +1479,18 @@ function buildListTables(q) {
   if (q._py.length) parts.push(`
     <div class="sec-label">破音字比較</div>
     <table class="teach-tbl">
-      <thead><tr><th>來源</th><th>破音字</th><th>詞語</th><th>注音</th><th>字義說明</th></tr></thead>
+      <thead><tr><th>來源</th><th>破音字</th><th>詞語</th><th>注音</th><th>語詞說明</th></tr></thead>
       <tbody>${q._py.map(r => `
         <tr>
           <td>${esc(r['來源'])}</td>
           <td class="char-big">${esc(r['破音字'])}</td>
           <td class="lk-w">${esc(r['詞語'])}</td>
           <td class="reading">${esc(r['注音'])}</td>
-          <td>${esc(r['字義說明'])}</td>
+          <td class="concised-explanation">${esc(buildHeteronymExplanation(r))}</td>
         </tr>`).join('')}
       </tbody>
-    </table>`);
+    </table>
+    ${buildConcisedSource(q._py)}`);
 
   if (q._cz.length) parts.push(`
     <div class="sec-label">錯別字辨析</div>
@@ -1598,17 +1654,18 @@ function buildProjTables(q) {
     <div>
       <div class="proj-sec-label">▎ 破音字比較</div>
       <table class="proj-tbl">
-        <thead><tr><th>來源</th><th>破音字</th><th>詞語</th><th>注音</th><th>字義說明</th></tr></thead>
+        <thead><tr><th>來源</th><th>破音字</th><th>詞語</th><th>注音</th><th>語詞說明</th></tr></thead>
         <tbody>${q._py.map(r => `
           <tr>
             <td>${esc(r['來源'])}</td>
             <td class="proj-char">${esc(r['破音字'])}</td>
             <td class="lk-w">${esc(r['詞語'])}</td>
             <td class="proj-reading">${esc(r['注音'])}</td>
-            <td>${esc(r['字義說明'])}</td>
+            <td class="concised-explanation">${esc(buildHeteronymExplanation(r))}</td>
           </tr>`).join('')}
         </tbody>
       </table>
+      ${buildConcisedSource(q._py)}
     </div>`);
 
   if (q._cz.length) parts.push(`
