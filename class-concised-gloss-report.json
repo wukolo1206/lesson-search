@@ -208,5 +208,122 @@
   "sourceWorkbook": "dict_concised_2014_20260626.xlsx",
   "sourceWorksheet": "辭典匯出_1150626",
   "targetRows": 111,
-  "uniqueTargetKeys": 107
+  "uniqueTargetKeys": 107,
+  "wordTargets": {
+    "ambiguous": [],
+    "ambiguousRows": 0,
+    "ambiguousUniqueKeys": 0,
+    "matchedRows": 229,
+    "matchedUniqueKeys": 210,
+    "missing": [
+      {
+        "rowCount": 1,
+        "word": "一份"
+      },
+      {
+        "rowCount": 1,
+        "word": "一棟"
+      },
+      {
+        "rowCount": 2,
+        "word": "作則"
+      },
+      {
+        "rowCount": 1,
+        "word": "倒地"
+      },
+      {
+        "rowCount": 2,
+        "word": "借書"
+      },
+      {
+        "rowCount": 1,
+        "word": "公頃"
+      },
+      {
+        "rowCount": 1,
+        "word": "四捨"
+      },
+      {
+        "rowCount": 1,
+        "word": "小島"
+      },
+      {
+        "rowCount": 1,
+        "word": "小鳥"
+      },
+      {
+        "rowCount": 1,
+        "word": "抬舉"
+      },
+      {
+        "rowCount": 1,
+        "word": "拆開"
+      },
+      {
+        "rowCount": 1,
+        "word": "持有"
+      },
+      {
+        "rowCount": 1,
+        "word": "捧著"
+      },
+      {
+        "rowCount": 1,
+        "word": "提出"
+      },
+      {
+        "rowCount": 1,
+        "word": "摘下"
+      },
+      {
+        "rowCount": 1,
+        "word": "擠出"
+      },
+      {
+        "rowCount": 1,
+        "word": "日暮"
+      },
+      {
+        "rowCount": 1,
+        "word": "沖水"
+      },
+      {
+        "rowCount": 1,
+        "word": "減料"
+      },
+      {
+        "rowCount": 1,
+        "word": "病媒蚊"
+      },
+      {
+        "rowCount": 1,
+        "word": "百科"
+      },
+      {
+        "rowCount": 1,
+        "word": "組別"
+      },
+      {
+        "rowCount": 1,
+        "word": "趕到"
+      },
+      {
+        "rowCount": 1,
+        "word": "身旁"
+      },
+      {
+        "rowCount": 1,
+        "word": "鐵壁"
+      },
+      {
+        "rowCount": 1,
+        "word": "飄落"
+      }
+    ],
+    "missingRows": 28,
+    "missingUniqueKeys": 26,
+    "targetRows": 257,
+    "uniqueTargetKeys": 236
+  }
 }

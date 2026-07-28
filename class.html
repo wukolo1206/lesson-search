@@ -957,6 +957,17 @@ function lookupConcisedGloss(row) {
   );
 }
 
+function lookupConcisedWordGloss(row) {
+  if (
+    !window.ClassConcisedGlosses ||
+    ClassConcisedGlosses.schemaVersion !== 1 ||
+    typeof ClassConcisedGlosses.lookupWord !== 'function'
+  ) {
+    return null;
+  }
+  return ClassConcisedGlosses.lookupWord(row['語詞']);
+}
+
 function buildHeteronymExplanation(row) {
   const teaching = String(row['字義說明'] || '').trim();
   const official = lookupConcisedGloss(row);
@@ -992,8 +1003,29 @@ function renderHeteronymExplanation(row) {
   return rows.join('');
 }
 
-function buildConcisedSource(rows) {
-  if (!rows.some(row => lookupConcisedGloss(row))) return '';
+function renderSimilarExplanation(row) {
+  const official = lookupConcisedWordGloss(row);
+  const label = official ? '簡編本' : '原說明';
+  const labelClass = official
+    ? 'explanation-official'
+    : 'explanation-teaching';
+  const text = official
+    ? official.definition
+    : String(row['解釋'] || '').trim();
+  return (
+    '<div class="explanation-row">' +
+      '<span class="explanation-label ' + labelClass + '">' +
+        label +
+      '</span>' +
+      '<span class="explanation-text">' +
+        ClassGlossFormat.formatText(text) +
+      '</span>' +
+    '</div>'
+  );
+}
+
+function buildConcisedSource(rows, lookupFn = lookupConcisedGloss) {
+  if (!rows.some(row => lookupFn(row))) return '';
   const version = esc(ClassConcisedGlosses.meta.sourceVersion);
   return `
     <div class="concised-source">
@@ -1615,10 +1647,11 @@ function buildListTables(q) {
         <tr>
           <td class="char-big">${esc(r['字'])}</td>
           <td>${esc(r['語詞'])}</td>
-          <td>${esc(r['解釋'])}</td>
+          <td class="concised-explanation">${renderSimilarExplanation(r)}</td>
         </tr>`).join('')}
       </tbody>
-    </table>`);
+    </table>
+    ${buildConcisedSource(q._xj, lookupConcisedWordGloss)}`);
 
   return parts.join('<div class="spacer"></div>');
 }
@@ -1803,10 +1836,11 @@ function buildProjTables(q) {
           <tr>
             <td class="proj-char">${esc(r['字'])}</td>
             <td>${esc(r['語詞'])}</td>
-            <td>${esc(r['解釋'])}</td>
+            <td class="concised-explanation">${renderSimilarExplanation(r)}</td>
           </tr>`).join('')}
         </tbody>
       </table>
+      ${buildConcisedSource(q._xj, lookupConcisedWordGloss)}
     </div>`);
 
   return parts.join('');
