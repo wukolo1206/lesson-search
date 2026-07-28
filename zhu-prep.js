@@ -42,7 +42,7 @@ var ZhuPrep = (function () {
 
   // ── 以下是 DOM，Node 測試不會走到 ──────────────────────
   var GRADES = ['三年級', '四年級', '五年級', '六年級'];
-  var CATEGORIES = ['同音字辨析', '常見錯別字', '形聲字與形近字讀音', '成語', '破音字', '詞義理解與應用', '部首辨識'];
+  var CATEGORIES = ['同音字辨析', '常見錯別字', '形近字辨析', '成語', '多音字', '詞義理解與應用', '部首辨識'];
   var currentFilters = { grade: '', year: '', category: '' };
   var expandedId = null;
   var viewMode = 'questions';

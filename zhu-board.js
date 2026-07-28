@@ -56,8 +56,15 @@
     });
     $('view-prep').classList.toggle('hidden', mode !== 'prep');
     $('view-board').classList.toggle('hidden', mode !== 'board');
+    $('view-practice').classList.toggle('hidden', mode !== 'practice');
     $('view-projector').classList.toggle('hidden', mode !== 'projector');
+    // 詞籃屬於字主板，跟產練習卷無關；留著會跟釘在底部的動作列疊在一起
+    var basket = $('basket');
+    if (basket) basket.classList.toggle('hidden', mode === 'practice');
     if (mode === 'prep') renderPrep();
+    if (mode === 'practice' && window.ZhuPractice) {
+      window.ZhuPractice.render($('view-practice'));
+    }
     if (mode === 'projector' && window.ZhuProjector) {
       window.ZhuProjector.enter($('view-projector'), boardState, index, ZhuCore.getStore(), function () {
         alert('筆跡空間已滿，請先清除全部資料。');
