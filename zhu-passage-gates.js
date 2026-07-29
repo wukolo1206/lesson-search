@@ -1,5 +1,6 @@
-// zhu-passage-gates.js — P5「短文填國字」的四道品質門禁
+// zhu-passage-gates.js — P5「短文填國字」的五道品質門禁
 //
+// 呼叫順序固定：format → leak → unique → answer → difficulty（見 check()）。
 // 規則沿用 scripts/variant_gates.py，差別是套用於整篇短文而非單句。
 // 生成與把關刻意分開：短文由外部 AI（ChatGPT 等）貼回，本模組只負責檢查，
 // 是純函式、可重跑、可測試，不是黑箱。
@@ -87,6 +88,7 @@ var ZhuPassageGates = (function () {
     if (code.indexOf('format.') === 0) { return 'blocking'; }
     if (code.indexOf('leak.') === 0) { return 'blocking'; }
     if (code.indexOf('unique.') === 0) { return 'confirm'; }
+    if (code.indexOf('answer.') === 0) { return 'confirm'; }
     if (code.indexOf('difficulty.') === 0) { return 'overridable'; }
     return 'blocking';
   }
@@ -274,6 +276,56 @@ var ZhuPassageGates = (function () {
     return problems;
   }
 
+  // ------------------------------------------------------------------ 答案成詞
+
+  // gateUnique 的鏡像：那道問「代入干擾字會不會**也**成詞」（防兩個答案都對），
+  // 這道問「代入目標字到底**成不成**詞」。兩件事對稱，過去只做了一半——
+  // AI 因此能造出避開所有陷阱、卻沒真的組成詞的空格：參考語詞給「發明」，
+  // 但它寫成「自己{}出好東西」，填回去是「自己明出」，「明」在那裡什麼都不是。
+  //
+  // severity 用 confirm 而非 blocking：詞庫 21,905 詞不可能涵蓋所有合理搭配，
+  // 硬擋會誤殺；而這種問題老師一眼就看得出來，判斷權給老師比較合適。
+  function gateAnswer(doc, ctx) {
+    doc = doc || {};
+    ctx = ctx || {};
+    var paragraphs = doc['段落'] || [];
+    var slots = ctx.slots || [];
+    var bopo = ctx.bopo;
+    var problems = [];
+    if (!bopo || typeof bopo.lookup !== 'function') { return problems; }
+
+    var locs = locateBlanks(paragraphs);
+
+    slots.forEach(function (s) {
+      var loc = locs[s.blank - 1];
+      if (!loc || !s.target) { return; }
+      var before = cjkOnly(loc.before).slice(-2);
+      var after = cjkOnly(loc.after).slice(0, 2);
+
+      // 前後都沒有中文字就湊不出任何候選詞。這時回報「不成詞」是誣賴，
+      // 不是判斷——無從判斷就不報。
+      if (!before && !after) { return; }
+
+      for (var nb = 0; nb <= 2; nb++) {
+        for (var na = 0; na <= 2; na++) {
+          if (nb === 0 && na === 0) { continue; }
+          var w = (nb ? before.slice(before.length - nb) : '') + s.target + (na ? after.slice(0, na) : '');
+          if (w.length >= 2 && bopo.lookup(w).length) { return; }   // 任何一個成詞就過關
+        }
+      }
+
+      problems.push(problem('answer.notAWord', {
+        paragraph: loc.paragraph,
+        blank: s.blank,
+        chars: [s.target],
+        message: '填入「' + s.target + '」後不成詞（' + before + s.target + after +
+          '）——這個位置可能不適合挖這個字'
+      }));
+    });
+
+    return problems;
+  }
+
   // ------------------------------------------------------------------ 難度
 
   function gateDifficulty(doc, ctx) {
@@ -366,6 +418,7 @@ var ZhuPassageGates = (function () {
     problems = problems.concat(gateFormat(doc, ctx));
     problems = problems.concat(gateLeak(doc, ctx));
     problems = problems.concat(gateUnique(doc, ctx));
+    problems = problems.concat(gateAnswer(doc, ctx));
     problems = problems.concat(gateDifficulty(doc, ctx));
     return problems;
   }
@@ -376,6 +429,7 @@ var ZhuPassageGates = (function () {
     gateFormat: gateFormat,
     gateLeak: gateLeak,
     gateUnique: gateUnique,
+    gateAnswer: gateAnswer,
     gateDifficulty: gateDifficulty
   };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }

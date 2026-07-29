@@ -19,9 +19,11 @@ var ZhuPractice = (function () {
 
   // ───────────────────────────────────── 排版（對應 Python 的 paragraphs()）
 
+  // 填國字：一個字一格（「　」），與學生的書寫習慣一致。
+  // 填注音：一個音最多三個符號加聲調（如 ㄓㄨㄤˋ），單格寫不下，內部留寬。
   function blankWidth(answer, fallback) {
     if (answer && BOPOMOFO.test(answer)) { return 5; }
-    if (answer) { return Math.max(2, answer.length + 2); }
+    if (answer) { return Math.max(1, answer.length); }
     return fallback;
   }
 
@@ -32,8 +34,8 @@ var ZhuPractice = (function () {
       out += pieces[i];
       if (i < answers.length) {
         out += showAnswer
-          ? '（' + answers[i] + '）'
-          : '（' + repeat('　', blankWidth(answers[i], fallbackWidth)) + '）';
+          ? '「' + answers[i] + '」'
+          : '「' + repeat('　', blankWidth(answers[i], fallbackWidth)) + '」';
       }
     }
     return out;
