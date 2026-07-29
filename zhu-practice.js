@@ -982,7 +982,8 @@ var ZhuPractice = (function () {
       '<strong>草稿</strong><span>'
       + '<b>✓ ' + nBank + ' 句</b>來自句庫（完整句、已過品質門禁，可直接用）；'
       + '<b>✎ ' + nStub + ' 句</b>還是骨架（只把語詞挖空，請改寫成完整句子）。'
-      + '<code>{}</code> 是填空位置，不要刪掉。</span>';
+      + '<code>{}</code> 是填空位置，不要刪掉——'
+      + '下載的 Word 裡會變成「　」格子，答案版則直接印出答案。</span>';
 
     state.notes.forEach(function (n) {
       panel.appendChild(el('div', 'pgen-note', '※ ' + n));
