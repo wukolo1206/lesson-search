@@ -1,7 +1,7 @@
 // zhu-passage-prompt.js — 產給外部 AI 的短文提示詞
 //
 // 本模組無外部依賴：參考語詞在 slot 裡已由 zhu-passage-slots.js 備妥。
-// 四條硬規則與 zhu-passage-gates.js 的四道門禁一一對應，用詞要一致——
+// 四條硬規則與 zhu-passage-checks.js 的四道門禁一一對應，用詞要一致——
 // 提示詞說的與門禁擋的不同調，老師會反覆修卻修不過。
 var ZhuPassagePrompt = (function () {
   'use strict';

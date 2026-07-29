@@ -1,4 +1,4 @@
-// zhu-passage-gates.js — P5「短文填國字」的五道品質門禁
+// zhu-passage-checks.js — P5「短文填國字」的五道品質門禁
 //
 // 呼叫順序固定：format → leak → unique → answer → difficulty（見 check()）。
 // 規則沿用 scripts/variant_gates.py，差別是套用於整篇短文而非單句。
