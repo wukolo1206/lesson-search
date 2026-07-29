@@ -191,7 +191,9 @@ var ZhuPractice = (function () {
       var q = ZhuPracticeData.byId(id);
       if (!q) { return; }
       q['字組'].forEach(function (g) {
-        var key = g['類型'] + '|' + g['字'].join('/');
+        // 去重鍵必須排序：資料裡「提/題」與「題/提」是同一組字的兩種寫法，
+        // 不排序會讓 4 組重複字組逃過去重，同一張卷子出兩次一樣的辨析題。
+        var key = g['類型'] + '|' + ZhuPassageSlots.canonicalKey(g['字']);
         if (seen[key]) { return; }
         seen[key] = true;
         groups.push({ q: q, g: g });
@@ -334,6 +336,91 @@ var ZhuPractice = (function () {
     return { '題型': '填字成詞', '標題': '語文進階：填字成詞', '小題': items };
   }
 
+  // 規格 §8.2：放行只對「當次檢查結果」有效。正文、答案、slots、年級
+  // 任一改變就清掉放行與檢查結果——否則老師放行了超綱字、接著改了正文，
+  // 舊放行會沿用到沒檢查過的新內容。
+  function invalidatePassage() {
+    state.passage.problems = [];
+    state.passage.overridden = false;
+    state.passage.confirmed = false;
+    state.passage.checked = false;
+  }
+
+  function passageBlockers() {
+    return state.passage.problems.filter(function (p) { return p.severity === 'blocking'; });
+  }
+
+  // 可併入草稿／可下載的條件
+  function passageReady() {
+    var p = state.passage;
+    if (!p.doc) { return false; }
+    if (!p.checked) { return false; }
+    if (passageBlockers().length) { return false; }
+    if (!p.confirmed) { return false; }
+    var soft = p.problems.filter(function (x) { return x.severity !== 'blocking'; });
+    return soft.length === 0 || p.overridden;
+  }
+
+  function rebuildSlots() {
+    var entries = [];
+    Object.keys(state.picked).forEach(function (id) {
+      var q = ZhuPracticeData.byId(id);
+      if (!q) { return; }
+      q['字組'].forEach(function (g) { entries.push({ qid: q.id, g: g }); });
+    });
+    var out = ZhuPassageSlots.build(entries, {
+      bank: (typeof ZhuVariantBank !== 'undefined') ? ZhuVariantBank : null,
+      words: (typeof ZhuBopo !== 'undefined') ? ZhuBopo : null,
+      learned: (typeof ZhuLearnedChars !== 'undefined') ? ZhuLearnedChars : null,
+      grade: gradeNumber(state.passage.grade),
+      overrides: state.passage.overrides
+    });
+    var before = JSON.stringify(state.passage.slots);
+    state.passage.slots = out.slots;
+    state.passage.ok = out.ok;
+    state.passage.conflicts = out.conflicts;
+    state.passage.excluded = out.excluded;
+    state.passage.shortBy = out.shortBy;
+    // slots 變了才清放行（§8.2）。每次 render 都無條件清會讓老師剛勾好的
+    // 確認項立刻被抹掉，畫面上看起來像按鈕壞了。
+    if (JSON.stringify(out.slots) !== before) { invalidatePassage(); }
+    return out;
+  }
+
+  // ZhuPassageSlots.build() 吃數字年級、ZhuPassagePrompt/ZhuPassageGates 吃中文年級字串。
+  var GRADE_NUMBER = { '三年級': 3, '四年級': 4, '五年級': 5, '六年級': 6 };
+  function gradeNumber(grade) { return GRADE_NUMBER[grade] || null; }
+
+  function runPassageGates() {
+    var p = state.passage;
+    var parsed = ZhuPassageParse.parse(p.raw);
+    if (!parsed.ok) {
+      p.doc = null;
+      p.problems = parsed.problems;
+      p.checked = true;
+      return;
+    }
+    p.doc = { '段落': parsed['段落'], '答案': parsed['答案'] };
+    p.problems = ZhuPassageGates.check(p.doc, {
+      slots: p.slots,
+      grade: p.grade,
+      bopo: (typeof ZhuBopo !== 'undefined') ? ZhuBopo : null,
+      learned: (typeof ZhuLearnedChars !== 'undefined') ? ZhuLearnedChars : null
+    });
+    p.checked = true;
+  }
+
+  function passageSection() {
+    var p = state.passage;
+    if (!passageReady()) { return null; }
+    return {
+      '題型': '短文填國字',
+      '標題': '填入適當的國字',
+      '段落': p.doc['段落'].slice(),
+      '答案': p.doc['答案'].slice()
+    };
+  }
+
   /**
    * 由勾選的考古題產生卷稿草稿（骨架版）。
    * 目前句子直接用細目表的代表語詞挖空，老師要在編輯區改寫成完整句子。
@@ -345,10 +432,26 @@ var ZhuPractice = (function () {
     var notes = [];
 
     if (type === 'A') {
-      pushIf(sections, groupSection(groups));
-      pushIf(sections, idiomSection(groups));
-      notes.push('卷型 A 的第一大題「短文填國字」需要整篇情境短文，'
-        + '骨架版無法自動生成（要等變式句庫）。目前先出後兩個大題，短文請自行加寫。');
+      // 規格 §4.1：後兩大題只用「本篇採用」的最多 12 組，否則三大題閉環會破——
+      // 第一大題練的字與第二、三大題不是同一批。
+      var keys = {};
+      state.passage.slots.forEach(function (s) { keys[s.groupKey] = true; });
+      var scoped = state.passage.slots.length
+        ? groups.filter(function (e) {
+            return e.g['類型'] !== '對比字組'
+              || keys[ZhuPassageSlots.canonicalKey(e.g['字'])];
+          })
+        : groups;
+
+      var passage = passageSection();
+      if (passage) {
+        sections.push(passage);
+      } else {
+        notes.push('第一大題「短文填國字」尚未完成——請先在上方產提示詞、'
+          + '貼回外部 AI 的短文並通過檢查。目前先出後兩個大題。');
+      }
+      pushIf(sections, groupSection(scoped));
+      pushIf(sections, idiomSection(scoped));
     } else {
       pushIf(sections, soundSection(groups));
       pushIf(sections, pickSection(groups));
@@ -379,7 +482,26 @@ var ZhuPractice = (function () {
 
   // ───────────────────────────────────── 介面
 
-  var state = { picked: {}, type: 'B', draft: null, notes: [], filters: {} };
+  var state = {
+    picked: {}, type: 'B', draft: null, notes: [], filters: {},
+    // 短文（P5）
+    passage: {
+      grade: '',          // 老師指定的出卷年級，空字串＝未指定
+      overrides: {},      // groupKey → 選定的 target
+      slots: [],
+      ok: false,
+      conflicts: [],      // target 撞字（§4.1 第 4 步）
+      excluded: [],       // 超過 12 組被截掉的（§4.1）
+      shortBy: 0,         // 不足 4 組時還差幾組
+      promptText: '',
+      raw: '',            // 老師貼回的原始文字
+      doc: null,          // 解析後的 { 段落, 答案 }
+      problems: [],
+      overridden: false,  // 老師是否已放行
+      confirmed: false,   // 老師是否已勾「故事連貫」
+      checked: false      // 是否跑過門禁且結果對應目前內容
+    }
+  };
   var chrome = {};   // 需要局部更新的 DOM：計數列與動作按鈕
   var tplCache = null;
 
@@ -439,6 +561,10 @@ var ZhuPractice = (function () {
       return;
     }
 
+    if (!state.passage.grade) {
+      try { state.passage.grade = localStorage.getItem('zhuPassageGrade') || ''; } catch (e) {}
+    }
+
     var head = el('div', 'prep-heading');
     head.innerHTML = '<strong>產練習卷</strong><span>勾考古題 → 產草稿 → 改句子 → 下載 Word。'
       + '考點與答案照抄考古題，題目重寫。</span>';
@@ -448,11 +574,28 @@ var ZhuPractice = (function () {
     container.appendChild(buildFilterBar(container));
     container.appendChild(buildQuestionList(container));
     container.appendChild(buildActionBar(container));
+    // 短文面板有自己的錨點，勾選考古題時只重繪這個錨點（見 refreshPassagePanel），
+    // 不整頁重繪——整頁重繪會換掉整份考古題清單的 DOM，捲動位置跳回頂端，
+    // 而勾題→看字組湊到幾組正是這個面板最常互動的動作。
+    var passageAnchor = el('div', 'pgen-passage-anchor');
+    container.appendChild(passageAnchor);
+    chrome.passageAnchor = passageAnchor;
+    refreshPassagePanel(container);
     if (state.draft) {
       chrome.draft = buildDraftPanel(container);
       container.appendChild(chrome.draft);
     }
     updateChrome();
+  }
+
+  function refreshPassagePanel(container) {
+    if (!chrome.passageAnchor) { return; }
+    chrome.passageAnchor.innerHTML = '';
+    if (state.type === 'A' && pickedIds().length) {
+      rebuildSlots();
+      var pp = buildPassagePanel(container);
+      if (pp) { chrome.passageAnchor.appendChild(pp); }
+    }
   }
 
   function buildFilterBar(container) {
@@ -513,11 +656,14 @@ var ZhuPractice = (function () {
       var cb = el('input');
       cb.type = 'checkbox';
       cb.checked = !!state.picked[q.id];
-      // 勾選不整頁重繪：重繪會換掉整份清單的 DOM，捲動位置會跳回頂端
+      // 勾選不整頁重繪：重繪會換掉整份清單的 DOM，捲動位置會跳回頂端。
+      // 短文面板獨立重繪（見 refreshPassagePanel）——卷型 A 時勾題就是為了
+      // 湊對比字組，面板必須跟著每次勾選即時更新，否則老師會以為勾選沒反應。
       cb.onchange = function () {
         state.picked[q.id] = cb.checked;
         if (state.draft) { dropDraft(container); }
         updateChrome();
+        refreshPassagePanel(container);
       };
       row.appendChild(cb);
 
@@ -593,6 +739,233 @@ var ZhuPractice = (function () {
 
     bar.appendChild(actions);
     return bar;
+  }
+
+  function buildPassagePanel(container) {
+    var p = state.passage;
+    var panel = el('div', 'panel pgen-passage');
+    panel.appendChild(el('div', 'prep-selection-heading')).innerHTML =
+      '<strong>第一大題：短文填國字</strong>'
+      + '<span>系統產提示詞 → 你貼去 ChatGPT／Gemini → 把回覆貼回來 → 自動檢查</span>';
+
+    // 出卷年級（規格 §4.3：必選，不從考古題猜——老師可能跨年級勾題）
+    var gradeRow = el('div', 'pgen-step');
+    gradeRow.appendChild(document.createTextNode('學生程度（出卷年級）：'));
+    var sel = document.createElement('select');
+    var blankOpt = document.createElement('option');
+    blankOpt.value = ''; blankOpt.textContent = '請選擇';
+    sel.appendChild(blankOpt);
+    ['三年級', '四年級', '五年級', '六年級'].forEach(function (g) {
+      var o = document.createElement('option');
+      o.value = g; o.textContent = g;
+      if (p.grade === g) { o.selected = true; }
+      sel.appendChild(o);
+    });
+    sel.onchange = function () {
+      p.grade = sel.value;
+      try { localStorage.setItem('zhuPassageGrade', sel.value); } catch (e) {}
+      invalidatePassage();
+      refreshPassagePanel(container);
+    };
+    gradeRow.appendChild(sel);
+    panel.appendChild(gradeRow);
+
+    // target 衝突（§4.1 第 4 步）必須在產提示詞前解決，否則送出的提示詞注定失敗
+    if (p.conflicts && p.conflicts.length) {
+      p.conflicts.forEach(function (c) {
+        panel.appendChild(el('div', 'pgen-warn',
+          '「' + c.char + '」同時被 ' + c.groupKeys.join('、')
+          + ' 選為要挖的字。請切換其中一組要挖的字，或取消勾選該題。'));
+      });
+    }
+
+    // 注意：`build()` 在組數不足時仍會回傳 slots（讓畫面能顯示已經湊到哪些字組），
+    // 門檻只反映在 ok／shortBy。所以這裡不可以用 `!p.slots.length` 判斷不足。
+    if (!p.ok) {
+      var got = p.slots.length;
+      var pickedN = pickedIds().length;
+      var ratio = got > 0 ? (pickedN / got) : 0;
+      var suggestMore = ratio > 0
+        ? Math.max(1, Math.ceil(ratio * p.shortBy))
+        : null;
+      var msg = p.shortBy
+        ? ('已湊到 ' + got + ' 組對比字組，還差 ' + p.shortBy + ' 組才能產生短文（至少 4 組）。'
+           + (suggestMore
+              ? ('依目前比例（已勾 ' + pickedN + ' 題 ÷ 已得 ' + got + ' 組），'
+                 + '建議再多勾約 ' + suggestMore + ' 題有對比字組的考古題。')
+              : '請多勾幾題有對比字組的考古題。'))
+        : '請先解決上面的字組衝突。';
+      panel.appendChild(el('div', 'pgen-note', msg));
+      return panel;
+    }
+
+    if (p.excluded && p.excluded.length) {
+      panel.appendChild(el('div', 'pgen-note',
+        '本篇採用 ' + p.slots.length + ' 組，另有 ' + p.excluded.length + ' 組未納入：'
+        + p.excluded.map(function (e) { return e.chars.join('／'); }).join('、')
+        + '。第二、三大題也只會用本篇採用的這批字組。'));
+    }
+
+    // 每組的目標字切換
+    var slotRow = el('div', 'pgen-step');
+    slotRow.appendChild(document.createTextNode('要挖的字（可切換）：'));
+    p.slots.forEach(function (s) {
+      var wrap = el('span', 'pgen-slot');
+      var ss = document.createElement('select');
+      var all = [s.target].concat(s.distractors.map(function (d) { return d.char; }));
+      all.sort().forEach(function (c) {
+        var o = document.createElement('option');
+        o.value = c; o.textContent = c;
+        if (c === s.target) { o.selected = true; }
+        ss.appendChild(o);
+      });
+      // 只重繪面板：年級與目標字會改變 slots，但 slots 只影響這個面板，
+      // 題目清單不受影響。整頁重繪會把畫面彈回題目清單頂端，老師勾一次就要
+      // 重捲一次，還看不出剛剛的操作有沒有生效。
+      ss.onchange = function () {
+        p.overrides[s.groupKey] = ss.value;
+        refreshPassagePanel(container);
+      };
+      wrap.appendChild(ss);
+      wrap.appendChild(el('span', 'pgen-note', s.groupKey
+        + (s.wordSource === '無' ? '（無參考語詞）' : '')));
+      slotRow.appendChild(wrap);
+    });
+    panel.appendChild(slotRow);
+
+    // 產提示詞
+    var actions = el('div', 'prep-selection-actions');
+    var btn = el('button', 'btn', '① 產短文提示詞');
+    btn.disabled = !p.grade;
+    btn.onclick = function () {
+      var text = ZhuPassagePrompt.build(p.slots, p.grade);
+      copyToClipboard(text);
+      p.promptText = text;
+      refreshPassagePanel(container);
+    };
+    actions.appendChild(btn);
+    panel.appendChild(actions);
+    if (!p.grade) {
+      panel.appendChild(el('div', 'pgen-note', '※ 請先選出卷年級才能產提示詞。'));
+    }
+    if (p.promptText) {
+      panel.appendChild(el('div', 'pgen-note', '提示詞已複製到剪貼簿，貼給外部 AI：'));
+      panel.appendChild(el('div', 'pgen-prompt-box', p.promptText));
+    }
+
+    // 貼回
+    panel.appendChild(el('div', 'pgen-step', '② 把 AI 的回覆整段貼在這裡：'));
+    var ta = document.createElement('textarea');
+    ta.value = p.raw;
+    ta.oninput = function () { p.raw = ta.value; invalidatePassage(); };
+    panel.appendChild(ta);
+
+    var act2 = el('div', 'prep-selection-actions');
+    var chk = el('button', 'btn', '③ 檢查');
+    // 檢查後最需要就地看結果，整頁重繪會把老師彈離剛產生的問題清單
+    chk.onclick = function () { runPassageGates(); refreshPassagePanel(container); };
+    act2.appendChild(chk);
+    panel.appendChild(act2);
+
+    // 檢查結果
+    if (p.checked) {
+      if (!p.problems.length) {
+        panel.appendChild(el('div', 'pgen-ok', '✓ 四道門禁全過'));
+      } else {
+        // 摘要放最上面：10～12 個空、好幾條軟性警告時面板很長，
+        // 沒有摘要老師得整個捲完才知道自己卡在哪、能不能用。
+        var nBlock = 0, nConfirm = 0, nOver = 0;
+        p.problems.forEach(function (x) {
+          if (x.severity === 'blocking') { nBlock++; }
+          else if (x.severity === 'confirm') { nConfirm++; }
+          else { nOver++; }
+        });
+        var parts = [];
+        if (nBlock) { parts.push(nBlock + ' 個必須修正'); }
+        if (nConfirm) { parts.push(nConfirm + ' 個需確認'); }
+        if (nOver) { parts.push(nOver + ' 個可放行'); }
+        panel.appendChild(el('div',
+          nBlock ? 'pgen-summary pgen-summary-blocking' : 'pgen-summary',
+          '檢查結果：' + parts.join('、') + (nBlock ? '（還不能用）' : '')));
+
+        p.problems.forEach(function (x) {
+          var where = [];
+          if (x.paragraph) { where.push('第 ' + x.paragraph + ' 段'); }
+          if (x.sentence) { where.push('第 ' + x.sentence + ' 句'); }
+          if (x.blank) { where.push('第 ' + x.blank + ' 空'); }
+          panel.appendChild(el('div', 'pgen-issue pgen-issue-' + x.severity,
+            (where.length ? where.join('') + '：' : '') + x.message));
+        });
+        var fix = el('button', 'btn', '複製修正提示詞');
+        fix.onclick = function () {
+          copyToClipboard(ZhuPassagePrompt.buildFix(p.problems, p.raw));
+        };
+        panel.appendChild(fix);
+
+        var soft = p.problems.filter(function (x) { return x.severity !== 'blocking'; });
+        if (!passageBlockers().length && soft.length) {
+          // 各自獨立成行：這一項是「放棄門禁警告」，與下面「聲明自己讀過」
+          // 是語意完全不同的兩個決定，並排會被當成同一個控制項的兩半一起掃過去勾掉。
+          var ov = el('label', 'pgen-confirm');
+          var cb = document.createElement('input');
+          cb.type = 'checkbox'; cb.checked = p.overridden;
+          cb.onchange = function () { p.overridden = cb.checked; refreshPassagePanel(container); };
+          ov.appendChild(cb);
+          ov.appendChild(el('span', 'pgen-confirm-text',
+            '我確認以上問題可以接受，仍要使用這篇短文'));
+          panel.appendChild(ov);
+        }
+        if (passageBlockers().length) {
+          panel.appendChild(el('div', 'pgen-note',
+            '※ 上面標紅的問題無法放行——答案錯位或洩題的卷子沒有發下去的價值，請修正後重貼。'));
+        }
+      }
+
+      // 敘事結構是人工覆核項，門禁查不到（規格 §4）。
+      // 視覺上明顯區隔（分隔線＋說明小字）：整個功能只靠這一個勾選框保證有人
+      // 真的讀過短文，它若看起來像上面放行框的附屬品，這道人工防線就形同虛設。
+      if (p.doc && !passageBlockers().length) {
+        var human = el('div', 'pgen-human');
+        human.appendChild(el('div', 'pgen-human-hint',
+          '下面這一項程式檢查不到，需要你自己讀過：'));
+        var lb = el('label', 'pgen-confirm');
+        var cb2 = document.createElement('input');
+        cb2.type = 'checkbox'; cb2.checked = p.confirmed;
+        cb2.onchange = function () { p.confirmed = cb2.checked; refreshPassagePanel(container); };
+        lb.appendChild(cb2);
+        lb.appendChild(el('span', 'pgen-confirm-text',
+          '我已確認這篇短文是連貫的故事（有起因、經過、結果）'));
+        human.appendChild(lb);
+        panel.appendChild(human);
+      }
+    }
+
+    return panel;
+  }
+
+  function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        var p = navigator.clipboard.writeText(text);
+        // writeText 失敗時是回傳 rejected Promise，不是 throw——try/catch 接不到。
+        // 少了這個 fallback，老師在 file:// 開檔或未授權剪貼簿時按「產提示詞」，
+        // 畫面寫著「已複製到剪貼簿」但其實什麼都沒複製到，貼過去是空的。
+        if (p && typeof p['catch'] === 'function') {
+          p['catch'](function () { legacyCopy(text); });
+        }
+        return;
+      }
+    } catch (e) {}
+    legacyCopy(text);
+  }
+
+  function legacyCopy(text) {
+    var t = document.createElement('textarea');
+    t.value = text;
+    document.body.appendChild(t);
+    t.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(t);
   }
 
   function buildDraftPanel(container) {
@@ -716,6 +1089,9 @@ var ZhuPractice = (function () {
     blankWidth: blankWidth,
     fill: fill,
     render: render,
+    invalidatePassage: invalidatePassage,
+    passageReady: passageReady,
+    passageSection: passageSection,
     _state: state
   };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }

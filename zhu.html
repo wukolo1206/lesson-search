@@ -145,6 +145,29 @@
   .pgen-ans { flex:0 0 auto; font-size:13px; color:#0f766e; padding-top:8px; white-space:nowrap; }
   .pgen-ans-bank { color:#15803d; font-weight:600; }
   .pgen-warn { color:#b91c1c; font-size:13px; margin:8px 0; min-height:18px; }
+  /* 短文填國字 */
+  .pgen-passage { margin:12px 0; padding:10px; border:1px solid var(--line); border-radius:8px; }
+  .pgen-passage textarea { width:100%; min-height:160px; font:inherit; padding:8px;
+                           border:1px solid var(--line); border-radius:6px; resize:vertical; }
+  .pgen-prompt-box { white-space:pre-wrap; font-size:13px; line-height:1.6; max-height:220px;
+                     overflow:auto; background:#f8fafc; padding:8px; border-radius:6px; }
+  .pgen-slot { display:inline-flex; gap:4px; align-items:center; margin:0 6px 6px 0; }
+  .pgen-slot select { font:inherit; padding:2px 4px; }
+  .pgen-issue { font-size:13px; margin:4px 0; padding:4px 8px; border-radius:4px; }
+  .pgen-issue-blocking { background:#fef2f2; color:#b91c1c; }
+  .pgen-issue-confirm { background:#fffbeb; color:#b45309; }
+  .pgen-issue-overridable { background:#f0f9ff; color:#075985; }
+  .pgen-ok { color:#15803d; font-weight:600; }
+  .pgen-summary { font-size:14px; font-weight:600; margin:8px 0 6px; color:#334155; }
+  .pgen-summary-blocking { color:#b91c1c; }
+  /* 兩個確認項各自成行：語意不同的決定不可並排，避免被一起掃過去勾掉 */
+  .pgen-confirm { display:flex; align-items:flex-start; gap:8px; margin:8px 0;
+                  font-size:13px; line-height:1.5; color:#334155; cursor:pointer; }
+  .pgen-confirm input { flex:0 0 auto; width:16px; height:16px; margin-top:2px; }
+  .pgen-confirm-text { flex:1 1 auto; min-width:0; }
+  /* 人工覆核項：分隔線＋說明，與上面的放行框明顯區隔 */
+  .pgen-human { margin-top:12px; padding-top:10px; border-top:1px solid var(--line); }
+  .pgen-human-hint { font-size:12px; color:#b45309; margin:0 0 2px; }
   @media (max-width:640px) {
     .pgen-item { flex-direction:column; gap:2px; }
     .pgen-ans { padding-top:0; }
@@ -467,6 +490,11 @@
 <script src="zhu-practice-template.js"></script>
 <script src="zhu-practice-data.js"></script>
 <script src="zhu-variant-bank.js"></script>
+<script src="zhu-learned-chars.js"></script>
+<script src="zhu-passage-slots.js"></script>
+<script src="zhu-passage-prompt.js"></script>
+<script src="zhu-passage-parse.js"></script>
+<script src="zhu-passage-gates.js"></script>
 <script src="zhu-practice.js"></script>
 <script src="zhu-print.js"></script>
 <script src="zhu-projector.js"></script>
