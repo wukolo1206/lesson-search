@@ -115,63 +115,6 @@
   .prep-chars { margin-top:9px; padding-top:7px; border-top:1px dashed #bfdbfe; }
   .prep-char { font-size:1.05rem; min-width:42px; min-height:42px; }
   .prep-view-tabs { display:flex; gap:8px; margin:0 0 10px; }
-  /* 產練習卷 */
-  .pgen-list { max-height:52vh; overflow:auto; }
-  .pgen-q { display:flex; gap:10px; align-items:center; padding:5px 4px; border-bottom:1px solid #eef2f7; cursor:pointer; }
-  .pgen-q:last-child { border-bottom:0; }
-  .pgen-q:hover { background:#f8fafc; }
-  .pgen-q input { flex:0 0 auto; width:18px; height:18px; }
-  /* 題目與字組同一行，一頁才看得到夠多題 */
-  .pgen-q-body { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; min-width:0; }
-  .pgen-q-title { font-size:14px; }
-  .pgen-q-chips { display:inline-flex; flex-wrap:wrap; gap:4px; }
-  .pgen-q-chips .chip { font-size:12px; padding:1px 8px; min-height:0; }
-  /* 動作列釘在底部：按鈕原本在清單下方，捲不到就找不到下一步 */
-  /* 右側留白避開解釋卡的浮動按鈕，否則最後一顆鈕會被蓋住 */
-  .pgen-actions { position:sticky; bottom:0; z-index:20; margin-bottom:0;
-                  padding-right:70px; box-shadow:0 -6px 16px rgba(15,23,42,.08); }
-  .pgen-actions .prep-selection-actions { flex-wrap:wrap; }
-  .pgen-draft .prep-selection-actions { flex-wrap:wrap; padding-right:70px; }
-  .pgen-step { font-size:13px; color:var(--muted); margin:0 0 8px; }
-  .pgen-step b { color:var(--blue); }
-  .pgen-chip-thin { opacity:.55; border-style:dashed; }
-  .pgen-draft { margin-top:12px; }
-  .pgen-sec-title { font-weight:700; margin:14px 0 6px; }
-  .pgen-group-title { font-weight:600; margin:8px 0 4px 8px; font-size:14px; }
-  .pgen-note { font-size:13px; color:#64748b; margin:2px 0 6px; line-height:1.5; }
-  .pgen-item { display:flex; gap:8px; align-items:flex-start; margin:0 0 6px 8px; }
-  .pgen-input { flex:1 1 auto; min-width:0; font:inherit; padding:6px 8px; border:1px solid var(--line);
-                    border-radius:6px; resize:vertical; min-height:36px; }
-  .pgen-ans { flex:0 0 auto; font-size:13px; color:#0f766e; padding-top:8px; white-space:nowrap; }
-  .pgen-ans-bank { color:#15803d; font-weight:600; }
-  .pgen-warn { color:#b91c1c; font-size:13px; margin:8px 0; min-height:18px; }
-  /* 短文填國字 */
-  .pgen-passage { margin:12px 0; padding:10px; border:1px solid var(--line); border-radius:8px; }
-  .pgen-passage textarea { width:100%; min-height:160px; font:inherit; padding:8px;
-                           border:1px solid var(--line); border-radius:6px; resize:vertical; }
-  .pgen-prompt-box { white-space:pre-wrap; font-size:13px; line-height:1.6; max-height:220px;
-                     overflow:auto; background:#f8fafc; padding:8px; border-radius:6px; }
-  .pgen-slot { display:inline-flex; gap:4px; align-items:center; margin:0 6px 6px 0; }
-  .pgen-slot select { font:inherit; padding:2px 4px; }
-  .pgen-issue { font-size:13px; margin:4px 0; padding:4px 8px; border-radius:4px; }
-  .pgen-issue-blocking { background:#fef2f2; color:#b91c1c; }
-  .pgen-issue-confirm { background:#fffbeb; color:#b45309; }
-  .pgen-issue-overridable { background:#f0f9ff; color:#075985; }
-  .pgen-ok { color:#15803d; font-weight:600; }
-  .pgen-summary { font-size:14px; font-weight:600; margin:8px 0 6px; color:#334155; }
-  .pgen-summary-blocking { color:#b91c1c; }
-  /* 兩個確認項各自成行：語意不同的決定不可並排，避免被一起掃過去勾掉 */
-  .pgen-confirm { display:flex; align-items:flex-start; gap:8px; margin:8px 0;
-                  font-size:13px; line-height:1.5; color:#334155; cursor:pointer; }
-  .pgen-confirm input { flex:0 0 auto; width:16px; height:16px; margin-top:2px; }
-  .pgen-confirm-text { flex:1 1 auto; min-width:0; }
-  /* 人工覆核項：分隔線＋說明，與上面的放行框明顯區隔 */
-  .pgen-human { margin-top:12px; padding-top:10px; border-top:1px solid var(--line); }
-  .pgen-human-hint { font-size:12px; color:#b45309; margin:0 0 2px; }
-  @media (max-width:640px) {
-    .pgen-item { flex-direction:column; gap:2px; }
-    .pgen-ans { padding-top:0; }
-  }
   .prep-char-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; }
   .prep-char-card { min-height:92px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink);
                     display:flex; flex-direction:column; align-items:stretch; justify-content:space-between; overflow:hidden; }
@@ -330,6 +273,7 @@
     .practice-box, .practice-bopo { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
 </style>
+<link rel="stylesheet" href="zhu-practice.css">
 </head>
 <body>
 
@@ -495,6 +439,7 @@
 <script src="zhu-passage-prompt.js"></script>
 <script src="zhu-passage-parse.js"></script>
 <script src="zhu-passage-checks.js"></script>
+<script src="zhu-practice-workflow.js"></script>
 <script src="zhu-practice.js"></script>
 <script src="zhu-print.js"></script>
 <script src="zhu-projector.js"></script>

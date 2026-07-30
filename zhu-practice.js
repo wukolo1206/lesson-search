@@ -349,23 +349,20 @@ var ZhuPractice = (function () {
   }
 
   function passageBlockers() {
-    return state.passage.problems.filter(function (p) { return p.severity === 'blocking'; });
+    return (state.passage.problems || []).filter(function (problem) {
+      return ZhuPracticeWorkflow.severityOf(problem) === 'blocking';
+    });
   }
 
   // 可併入草稿／可下載的條件
   function passageReady() {
-    var p = state.passage;
-    if (!p.doc) { return false; }
-    if (!p.checked) { return false; }
-    if (passageBlockers().length) { return false; }
-    if (!p.confirmed) { return false; }
-    var soft = p.problems.filter(function (x) { return x.severity !== 'blocking'; });
-    return soft.length === 0 || p.overridden;
+    return ZhuPracticeWorkflow.passageReady(state.passage);
   }
 
   function rebuildSlots() {
     var entries = [];
     Object.keys(state.picked).forEach(function (id) {
+      if (!state.picked[id]) { return; }
       var q = ZhuPracticeData.byId(id);
       if (!q) { return; }
       q['字組'].forEach(function (g) { entries.push({ qid: q.id, g: g }); });
@@ -484,8 +481,18 @@ var ZhuPractice = (function () {
 
   // ───────────────────────────────────── 介面
 
+  var STORAGE_KEY = 'zhuPracticeWorkflowV1';
+  var SAVE_DELAY = 180;
   var state = {
-    picked: {}, type: 'B', draft: null, notes: [], filters: {},
+    picked: {}, type: 'B', draft: null, notes: [],
+    filters: {
+      grade: '',
+      year: '',
+      category: '',
+      query: '',
+      selectedOnly: false
+    },
+    currentStep: 'select', draftValid: false, notice: '',
     // 短文（P5）
     passage: {
       grade: '',          // 老師指定的出卷年級，空字串＝未指定
@@ -504,8 +511,96 @@ var ZhuPractice = (function () {
       checked: false      // 是否跑過門禁且結果對應目前內容
     }
   };
+  var defaultState = JSON.parse(JSON.stringify(state));
+  var restoreAttempted = false;
+  var saveTimer = null;
   var chrome = {};   // 需要局部更新的 DOM：計數列與動作按鈕
   var tplCache = null;
+
+  function mergeState(defaults, saved) {
+    var merged = JSON.parse(JSON.stringify(defaults));
+    if (!saved || typeof saved !== 'object') { return merged; }
+    Object.keys(saved).forEach(function (key) {
+      if (key === 'passage') {
+        Object.keys(saved.passage || {}).forEach(function (passageKey) {
+          merged.passage[passageKey] = saved.passage[passageKey];
+        });
+      } else {
+        merged[key] = saved[key];
+      }
+    });
+    if (!merged.filters || typeof merged.filters !== 'object') {
+      merged.filters = JSON.parse(JSON.stringify(defaults.filters));
+    } else {
+      Object.keys(defaults.filters || {}).forEach(function (key) {
+        if (merged.filters[key] === undefined) {
+          merged.filters[key] = defaults.filters[key];
+        }
+      });
+    }
+    if (typeof merged.filters.query !== 'string') {
+      merged.filters.query = String(merged.filters.query || '');
+    }
+    merged.filters.selectedOnly = merged.filters.selectedOnly === true;
+    if (!merged.picked || typeof merged.picked !== 'object') { merged.picked = {}; }
+    return merged;
+  }
+
+  function applyState(next) {
+    Object.keys(state).forEach(function (key) { delete state[key]; });
+    Object.keys(next).forEach(function (key) { state[key] = next[key]; });
+  }
+
+  function setNotice(message) {
+    state.notice = message;
+    if (chrome.save) { chrome.save.textContent = message; }
+  }
+
+  function saveWorkflow() {
+    saveTimer = null;
+    try {
+      localStorage.setItem(STORAGE_KEY, ZhuPracticeWorkflow.serialize(state));
+      setNotice('已自動儲存');
+    } catch (error) {
+      setNotice('無法儲存，但仍可繼續操作');
+    }
+  }
+
+  function scheduleSave() {
+    if (saveTimer !== null) { clearTimeout(saveTimer); }
+    saveTimer = setTimeout(saveWorkflow, SAVE_DELAY);
+  }
+
+  function flushPendingSave() {
+    if (saveTimer === null) { return; }
+    clearTimeout(saveTimer);
+    saveWorkflow();
+  }
+
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('pagehide', flushPendingSave);
+  }
+
+  function restoreWorkflow() {
+    if (restoreAttempted) { return; }
+    restoreAttempted = true;
+    var raw;
+    try {
+      raw = localStorage.getItem(STORAGE_KEY);
+    } catch (error) {
+      setNotice('無法讀取上次進度，已使用安全的初始狀態');
+      return;
+    }
+    if (!raw) { return; }
+    var restored = ZhuPracticeWorkflow.restore(raw);
+    if (!restored.ok) {
+      applyState(mergeState(defaultState, {}));
+      setNotice(restored.reason || '上次進度無法還原');
+      return;
+    }
+    applyState(mergeState(defaultState, restored.state));
+    setNotice('已還原上次進度');
+  }
 
   function updateChrome() {
     var n = pickedIds().length;
@@ -519,6 +614,9 @@ var ZhuPractice = (function () {
       chrome.step.innerHTML = n
         ? ('已勾 <b>' + n + '</b> 題　→　選卷型，再按「產生草稿」')
         : '第一步：在上面勾要出題的考古題（可跨年級年度多勾）';
+    }
+    if (chrome.selectionStatus) {
+      chrome.selectionStatus.textContent = '已選 ' + n + ' 題';
     }
   }
 
@@ -556,6 +654,7 @@ var ZhuPractice = (function () {
   }
 
   function render(container) {
+    restoreWorkflow();
     container.innerHTML = '';
     if (typeof ZhuPracticeData === 'undefined') {
       container.appendChild(el('div', 'prep-selection-empty',
@@ -563,53 +662,224 @@ var ZhuPractice = (function () {
       return;
     }
 
+    var validStep = ZhuPracticeWorkflow.steps().some(function (step) {
+      return step.id === state.currentStep;
+    });
+    if (!validStep) { state.currentStep = 'select'; }
+
     if (!state.passage.grade) {
       try { state.passage.grade = localStorage.getItem('zhuPassageGrade') || ''; } catch (e) {}
     }
 
-    var head = el('div', 'prep-heading');
-    head.innerHTML = '<strong>產練習卷</strong><span>勾考古題 → 產草稿 → 改句子 → 下載 Word。'
-      + '考點與答案照抄考古題，題目重寫。</span>';
-    container.appendChild(head);
-
     chrome = {};
-    container.appendChild(buildFilterBar(container));
-    container.appendChild(buildQuestionList(container));
-    container.appendChild(buildActionBar(container));
-    // 短文面板有自己的錨點，勾選考古題時只重繪這個錨點（見 refreshPassagePanel），
-    // 不整頁重繪——整頁重繪會換掉整份考古題清單的 DOM，捲動位置跳回頂端，
-    // 而勾題→看字組湊到幾組正是這個面板最常互動的動作。
-    var passageAnchor = el('div', 'pgen-passage-anchor');
-    container.appendChild(passageAnchor);
-    chrome.passageAnchor = passageAnchor;
-    refreshPassagePanel(container);
-    if (state.draft) {
-      chrome.draft = buildDraftPanel(container);
-      container.appendChild(chrome.draft);
-    }
+    container.appendChild(buildWorkflowShell(container));
     updateChrome();
+    scrollCurrentStepIntoView(container);
+  }
+
+  function activateStep(container, stepId) {
+    state.currentStep = stepId;
+    scheduleSave();
+    render(container);
+    var main = container.querySelector('.pgen-workspace-main');
+    if (!main) { return; }
+    try {
+      main.focus({ preventScroll: true });
+    } catch (e) {
+      main.focus();
+    }
+  }
+
+  function scrollCurrentStepIntoView(container) {
+    var current = container.querySelector('.pgen-step-tab[aria-current="step"]');
+    if (current && current.scrollIntoView) {
+      current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }
+
+  function buildWorkflowShell(container) {
+    if (state.currentStep === 'draft') { ensureDraft(); }
+    var shell = el('section', 'pgen-workflow');
+    shell.appendChild(buildWorkflowHeader());
+
+    chrome.stepNav = buildStepNav(container);
+    shell.appendChild(chrome.stepNav);
+
+    var workspace = el('div', 'pgen-workspace-grid');
+    workspace.appendChild(buildCurrentStep(container));
+    workspace.appendChild(buildStepHelp());
+    shell.appendChild(workspace);
+
+    chrome.workflowActions = buildWorkflowActions(container);
+    shell.appendChild(chrome.workflowActions);
+    return shell;
+  }
+
+  function buildWorkflowHeader() {
+    var header = el('header', 'pgen-workflow-header');
+    var copy = el('div', 'pgen-workflow-heading');
+    copy.appendChild(el('h1', 'pgen-workflow-title', '字音形出卷台'));
+    copy.appendChild(el('p', 'pgen-workflow-subtitle',
+      (state.passage.grade || '尚未選年級') + ' · '
+      + (state.type === 'A' ? '情境卷 A' : '操練卷 B')));
+    header.appendChild(copy);
+
+    var save = el('span', 'pgen-save-state', state.notice || '尚未儲存');
+    save.setAttribute('aria-live', 'polite');
+    chrome.save = save;
+    header.appendChild(save);
+    return header;
+  }
+
+  function buildStepNav(container) {
+    var nav = el('nav', 'pgen-step-nav');
+    nav.setAttribute('aria-label', '出卷步驟');
+    var ready = ZhuPracticeWorkflow.readiness(state);
+    ZhuPracticeWorkflow.steps().forEach(function (step, index) {
+      var status = ready[step.id];
+      var cls = 'pgen-step-tab';
+      if (step.id === state.currentStep) { cls += ' is-current'; }
+      if (status.complete) { cls += ' is-complete'; }
+      var label = (index + 1 < 10 ? '0' : '') + (index + 1) + ' ' + step.title;
+      var button = el('button', cls, label + (status.complete ? ' ✓' : ''));
+      button.type = 'button';
+      if (status.complete) {
+        button.setAttribute('aria-label', label + '，已完成');
+      }
+      if (step.id === state.currentStep) {
+        button.setAttribute('aria-current', 'step');
+      }
+      button.disabled = !status.canEnter;
+      if (!status.canEnter && status.reason) { button.title = status.reason; }
+      button.onclick = function () {
+        activateStep(container, step.id);
+      };
+      nav.appendChild(button);
+    });
+    return nav;
+  }
+
+  function buildCurrentStep(container) {
+    var main = el('main', 'pgen-workspace-main');
+    var stepLabels = {
+      select: '選題',
+      prompt: '準備短文',
+      check: '檢查短文',
+      draft: '編輯草稿',
+      download: '預覽下載'
+    };
+    main.setAttribute('tabindex', '-1');
+    main.setAttribute('aria-label', stepLabels[state.currentStep] + '工作區');
+    if (state.currentStep === 'select') {
+      main.appendChild(buildSelectStep(container));
+    } else if (state.currentStep === 'prompt') {
+      main.appendChild(buildPromptStep(container));
+    } else if (state.currentStep === 'check') {
+      main.appendChild(buildCheckStep(container));
+    } else if (state.currentStep === 'draft') {
+      main.appendChild(buildDraftStep(container));
+    } else {
+      main.appendChild(buildDownloadStep(container));
+    }
+    return main;
+  }
+
+  function buildSelectStep(container) {
+    var step = el('div', 'pgen-select-step');
+    step.appendChild(buildFilterBar(container));
+    step.appendChild(buildQuestionList(container));
+    return step;
+  }
+
+  function buildStepHelp() {
+    var aside = el('aside', 'pgen-workspace-help');
+    aside.appendChild(el('h2', 'pgen-help-title', '這一步怎麼做？'));
+    aside.appendChild(el('p', 'pgen-note',
+      state.currentStep === 'select'
+        ? '先選考古題；湊到至少 4 組可用對比字後即可前進。'
+        : '依中央工作區提示完成目前任務。'));
+    return aside;
+  }
+
+  function buildWorkflowActions(container) {
+    var order = ['select', 'prompt', 'check', 'draft', 'download'];
+    var nextLabels = [
+      '下一步：準備短文',
+      '下一步：貼回短文',
+      '下一步：編輯草稿',
+      '下一步：預覽下載'
+    ];
+    var index = order.indexOf(state.currentStep);
+    if (index < 0) { index = 0; }
+
+    var footer = el('footer', 'pgen-workflow-actions');
+    var back = el('button', 'pgen-workflow-back',
+      index === 0 ? '← 返回字主板' : '← 上一步');
+    back.type = 'button';
+    back.disabled = index === 0;
+    back.onclick = function () {
+      activateStep(container, order[index - 1]);
+    };
+    footer.appendChild(back);
+    footer.appendChild(el('span', 'pgen-workflow-progress',
+      '步驟 ' + (index + 1) + '／5'));
+
+    if (index === order.length - 1) {
+      footer.appendChild(el('span', 'pgen-workflow-action-spacer'));
+      return footer;
+    }
+
+    var nextId = order[index + 1];
+    var nextReady = ZhuPracticeWorkflow.readiness(state)[nextId];
+    var next = el('button', 'pgen-workflow-next', nextLabels[index]);
+    next.type = 'button';
+    next.disabled = !nextReady.canEnter;
+    if (!nextReady.canEnter && nextReady.reason) { next.title = nextReady.reason; }
+    next.onclick = function () {
+      activateStep(container, nextId);
+    };
+    footer.appendChild(next);
+    return footer;
+  }
+
+  function refreshWorkflowNavigation(container) {
+    if (chrome.stepNav && chrome.stepNav.parentNode) {
+      var nav = buildStepNav(container);
+      chrome.stepNav.parentNode.replaceChild(nav, chrome.stepNav);
+      chrome.stepNav = nav;
+    }
+    if (chrome.workflowActions && chrome.workflowActions.parentNode) {
+      var actions = buildWorkflowActions(container);
+      chrome.workflowActions.parentNode.replaceChild(actions, chrome.workflowActions);
+      chrome.workflowActions = actions;
+    }
   }
 
   function refreshPassagePanel(container) {
-    if (!chrome.passageAnchor) { return; }
-    chrome.passageAnchor.innerHTML = '';
-    if (state.type === 'A' && pickedIds().length) {
-      rebuildSlots();
-      var pp = buildPassagePanel(container);
-      if (pp) { chrome.passageAnchor.appendChild(pp); }
-    }
+    var selector = state.currentStep === 'prompt'
+      ? '.pgen-prompt-card'
+      : '.pgen-check-card';
+    var current = container.querySelector(selector);
+    if (!current || !current.parentNode) { return; }
+    var next = state.currentStep === 'prompt'
+      ? buildPromptStep(container)
+      : buildCheckStep(container);
+    current.parentNode.replaceChild(next, current);
+    refreshWorkflowNavigation(container);
   }
 
   function buildFilterBar(container) {
-    var bar = el('div', 'panel prep-filters');
+    var bar = el('div', 'panel prep-filters pgen-filter-toolbar');
     var qs = ZhuPracticeData.questions();
     var grades = uniq(qs.map(function (q) { return q['年級']; }));
     var years = uniq(qs.map(function (q) { return String(q['年度']); })).sort();
     var cats = uniq(qs.map(function (q) { return q['類別']; }));
 
-    [['grade', '年級（全部）', grades], ['year', '年度（全部）', years],
-     ['category', '類別（全部）', cats]].forEach(function (spec) {
+    [['grade', '年級（全部）', grades, '年級篩選'],
+     ['year', '年度（全部）', years, '年度篩選'],
+     ['category', '類別（全部）', cats, '類別篩選']].forEach(function (spec) {
       var sel = el('select');
+      sel.setAttribute('aria-label', spec[3]);
       var blank = el('option', null, spec[1]);
       blank.value = '';
       sel.appendChild(blank);
@@ -621,11 +891,47 @@ var ZhuPractice = (function () {
       sel.value = state.filters[spec[0]] || '';
       sel.onchange = function () {
         state.filters[spec[0]] = sel.value;
-        dropDraft(container);
-        render(container);
+        refreshQuestionList(container);
+        scheduleSave();
       };
       bar.appendChild(sel);
     });
+
+    var searchLabel = el('label', 'pgen-search-field');
+    searchLabel.appendChild(el('span', 'pgen-search-label', '搜尋題目'));
+    var query = el('input', 'pgen-search-input');
+    query.type = 'search';
+    query.placeholder = '搜尋字或題目';
+    query.setAttribute('aria-label', '搜尋字或題目');
+    query.value = state.filters.query || '';
+    query.oninput = function () {
+      state.filters.query = query.value;
+      refreshQuestionList(container);
+      scheduleSave();
+    };
+    searchLabel.appendChild(query);
+    bar.appendChild(searchLabel);
+
+    var selectedOnly = el('button', 'pgen-selected-toggle',
+      state.filters.selectedOnly ? '顯示全部' : '只看已選');
+    selectedOnly.type = 'button';
+    selectedOnly.setAttribute(
+      'aria-pressed', state.filters.selectedOnly ? 'true' : 'false');
+    selectedOnly.onclick = function () {
+      state.filters.selectedOnly = !state.filters.selectedOnly;
+      selectedOnly.textContent = state.filters.selectedOnly ? '顯示全部' : '只看已選';
+      selectedOnly.setAttribute(
+        'aria-pressed', state.filters.selectedOnly ? 'true' : 'false');
+      refreshQuestionList(container);
+      scheduleSave();
+    };
+    bar.appendChild(selectedOnly);
+
+    var selectionStatus = el('span', 'pgen-selection-status');
+    selectionStatus.setAttribute('aria-live', 'polite');
+    chrome.selectionStatus = selectionStatus;
+    bar.appendChild(selectionStatus);
+    updateChrome();
     return bar;
   }
 
@@ -641,12 +947,38 @@ var ZhuPractice = (function () {
       if (f.grade && q['年級'] !== f.grade) { return false; }
       if (f.year && String(q['年度']) !== f.year) { return false; }
       if (f.category && q['類別'] !== f.category) { return false; }
+      if (f.selectedOnly && !state.picked[q.id]) { return false; }
+      var query = String(f.query || '').trim();
+      if (query) {
+        var haystack = [
+          q.id,
+          q['年級'],
+          q['年度'],
+          q['題號'],
+          q['類別'],
+          q['重點'],
+          JSON.stringify(q['字組'] || [])
+        ].join(' ');
+        if (haystack.indexOf(query) < 0) { return false; }
+      }
       return true;
     });
   }
 
+  function refreshQuestionList(container) {
+    if (!chrome.questionList || !chrome.questionList.parentNode) { return; }
+    var oldList = chrome.questionList;
+    var oldScroll = oldList.scrollTop;
+    var list = buildQuestionList(container);
+    oldList.parentNode.replaceChild(list, oldList);
+    chrome.questionList = list;
+    chrome.questionList.scrollTop = oldScroll;
+    updateChrome();
+  }
+
   function buildQuestionList(container) {
     var panel = el('div', 'panel pgen-list');
+    chrome.questionList = panel;
     var rows = filtered();
     var hint = el('div', 'prep-selection-heading');
     panel.appendChild(hint);
@@ -654,24 +986,48 @@ var ZhuPractice = (function () {
     chrome.total = rows.length;
 
     rows.forEach(function (q) {
-      var row = el('label', 'pgen-q');
+      var row = el('label', 'pgen-q pgen-qcard'
+        + (state.picked[q.id] ? ' is-selected' : ''));
+      row.setAttribute('data-question-id', String(q.id));
       var cb = el('input');
       cb.type = 'checkbox';
       cb.checked = !!state.picked[q.id];
+      cb.setAttribute('aria-label', '選取第 ' + q.id + ' 題');
       // 勾選不整頁重繪：重繪會換掉整份清單的 DOM，捲動位置會跳回頂端。
       // 短文面板獨立重繪（見 refreshPassagePanel）——卷型 A 時勾題就是為了
       // 湊對比字組，面板必須跟著每次勾選即時更新，否則老師會以為勾選沒反應。
       cb.onchange = function () {
-        state.picked[q.id] = cb.checked;
-        if (state.draft) { dropDraft(container); }
+        if (cb.checked) {
+          state.picked[q.id] = true;
+        } else {
+          delete state.picked[q.id];
+        }
+        applyState(ZhuPracticeWorkflow.invalidate(state, 'selection'));
+        rebuildSlots();
         updateChrome();
         refreshPassagePanel(container);
+        refreshWorkflowNavigation(container);
+        if (state.filters.selectedOnly) {
+          refreshQuestionList(container);
+        } else {
+          row.className = 'pgen-q pgen-qcard' + (cb.checked ? ' is-selected' : '');
+          status.textContent = cb.checked ? '已選' : '未選';
+        }
+        scheduleSave();
       };
       row.appendChild(cb);
 
       var body = el('span', 'pgen-q-body');
-      body.appendChild(el('span', 'pgen-q-title',
-        '#' + q.id + '　' + q['年級'] + q['年度'] + '年第' + q['題號'] + '題　' + q['重點']));
+      var meta = el('span', 'pgen-q-meta');
+      meta.appendChild(el('span', 'pgen-q-number', '#' + q.id));
+      meta.appendChild(el('span', 'pgen-q-context',
+        q['年級'] + ' · ' + q['年度'] + '年 · 第' + q['題號'] + '題'));
+      meta.appendChild(el('span', 'pgen-q-category', q['類別']));
+      var status = el('span', 'pgen-q-status',
+        state.picked[q.id] ? '已選' : '未選');
+      meta.appendChild(status);
+      body.appendChild(meta);
+      body.appendChild(el('span', 'pgen-q-title', q['重點']));
 
       var chips = el('span', 'pgen-q-chips');
       q['字組'].forEach(function (g) {
@@ -706,6 +1062,7 @@ var ZhuPractice = (function () {
         b.onclick = function () {
           state.type = spec[0];
           dropDraft(container);
+          scheduleSave();
           render(container);
         };
         actions.appendChild(b);
@@ -733,7 +1090,9 @@ var ZhuPractice = (function () {
     var clear = el('button', 'btn', '清除勾選');
     clear.onclick = function () {
       state.picked = {};
+      applyState(ZhuPracticeWorkflow.invalidate(state, 'selection'));
       dropDraft(container);
+      scheduleSave();
       render(container);
     };
     actions.appendChild(clear);
@@ -743,12 +1102,15 @@ var ZhuPractice = (function () {
     return bar;
   }
 
-  function buildPassagePanel(container) {
+  function buildPromptStep(container) {
     var p = state.passage;
-    var panel = el('div', 'panel pgen-passage');
-    panel.appendChild(el('div', 'prep-selection-heading')).innerHTML =
-      '<strong>第一大題：短文填國字</strong>'
-      + '<span>系統產提示詞 → 你貼去 ChatGPT／Gemini → 把回覆貼回來 → 自動檢查</span>';
+    var panel = el('div', 'panel pgen-passage pgen-prompt-card');
+    panel.appendChild(el('h2', 'pgen-workspace-title', '把提示詞交給 ChatGPT'));
+    panel.appendChild(el('p', 'pgen-note',
+      '系統會整理可直接複製的提示詞，不會在系統內直接生成短文。'));
+    panel.appendChild(el('p', 'pgen-prompt-stage',
+      '第一階段：確認年級與目標字；第二階段：複製提示詞交給外部 AI。'));
+    rebuildSlots();
 
     // 出卷年級（規格 §4.3：必選，不從考古題猜——老師可能跨年級勾題）
     var gradeRow = el('div', 'pgen-step');
@@ -764,10 +1126,12 @@ var ZhuPractice = (function () {
       sel.appendChild(o);
     });
     sel.onchange = function () {
-      p.grade = sel.value;
+      state.passage.grade = sel.value;
       try { localStorage.setItem('zhuPassageGrade', sel.value); } catch (e) {}
-      invalidatePassage();
-      refreshPassagePanel(container);
+      applyState(ZhuPracticeWorkflow.invalidate(state, 'grade'));
+      rebuildSlots();
+      scheduleSave();
+      render(container);
     };
     gradeRow.appendChild(sel);
     panel.appendChild(gradeRow);
@@ -825,8 +1189,11 @@ var ZhuPractice = (function () {
       // 題目清單不受影響。整頁重繪會把畫面彈回題目清單頂端，老師勾一次就要
       // 重捲一次，還看不出剛剛的操作有沒有生效。
       ss.onchange = function () {
-        p.overrides[s.groupKey] = ss.value;
-        refreshPassagePanel(container);
+        state.passage.overrides[s.groupKey] = ss.value;
+        applyState(ZhuPracticeWorkflow.invalidate(state, 'override'));
+        rebuildSlots();
+        scheduleSave();
+        render(container);
       };
       wrap.appendChild(ss);
       wrap.appendChild(el('span', 'pgen-note', s.groupKey
@@ -837,12 +1204,13 @@ var ZhuPractice = (function () {
 
     // 產提示詞
     var actions = el('div', 'prep-selection-actions');
-    var btn = el('button', 'btn', '① 產短文提示詞');
+    var btn = el('button', 'btn', '複製提示詞');
     btn.disabled = !p.grade;
     btn.onclick = function () {
       var text = ZhuPassagePrompt.build(p.slots, p.grade);
       copyToClipboard(text);
       p.promptText = text;
+      scheduleSave();
       refreshPassagePanel(container);
     };
     actions.appendChild(btn);
@@ -855,70 +1223,127 @@ var ZhuPractice = (function () {
       panel.appendChild(el('div', 'pgen-prompt-box', p.promptText));
     }
 
+    return panel;
+  }
+
+  function groupPassageProblems(problems) {
+    var groups = { blocking: [], confirm: [], overridable: [] };
+    (problems || []).forEach(function (problem) {
+      var severity = ZhuPracticeWorkflow.severityOf(problem);
+      if (severity) { groups[severity].push(problem); }
+    });
+    return groups;
+  }
+
+  function passageProblemMessage(problem) {
+    var where = [];
+    if (problem.paragraph) { where.push('第 ' + problem.paragraph + ' 段'); }
+    if (problem.sentence) { where.push('第 ' + problem.sentence + ' 句'); }
+    if (problem.blank) { where.push('第 ' + problem.blank + ' 空'); }
+    return (where.length ? where.join('') + '：' : '') + problem.message;
+  }
+
+  function buildIssueGroup(kind, title, problems) {
+    var section = el('section', 'pgen-issue-group pgen-issue-group--' + kind);
+    section.appendChild(el('h3', 'pgen-issue-group-title', title));
+    problems.forEach(function (problem) {
+      section.appendChild(el('div', 'pgen-issue pgen-issue-' + kind,
+        passageProblemMessage(problem)));
+    });
+    return section;
+  }
+
+  function buildCheckStep(container) {
+    var p = state.passage;
+    var panel = el('div', 'panel pgen-passage pgen-check-card');
+    panel.appendChild(el('h2', 'pgen-workspace-title', '貼回短文並檢查'));
+
     // 貼回
-    panel.appendChild(el('div', 'pgen-step', '② 把 AI 的回覆整段貼在這裡：'));
-    var ta = document.createElement('textarea');
+    panel.appendChild(el('div', 'pgen-step', '第二階段：把 AI 的回覆整段貼在這裡：'));
+    var ta = el('textarea', 'pgen-passage-input');
+    ta.setAttribute('aria-label', '貼上 AI 產生的短文');
     ta.value = p.raw;
-    ta.oninput = function () { p.raw = ta.value; invalidatePassage(); };
+    ta.oninput = function () {
+      state.passage.raw = ta.value;
+      applyState(ZhuPracticeWorkflow.invalidate(state, 'raw'));
+      refreshCheckResults(container);
+      scheduleSave();
+    };
     panel.appendChild(ta);
 
     var act2 = el('div', 'prep-selection-actions');
-    var chk = el('button', 'btn', '③ 檢查');
+    var chk = el('button', 'btn', '檢查短文');
     // 檢查後最需要就地看結果，整頁重繪會把老師彈離剛產生的問題清單
-    chk.onclick = function () { runPassageGates(); refreshPassagePanel(container); };
+    chk.onclick = function () {
+      runPassageGates();
+      scheduleSave();
+      refreshCheckResults(container);
+    };
     act2.appendChild(chk);
     panel.appendChild(act2);
 
     // 檢查結果
+    var results = el('div', 'pgen-check-results');
+    results.setAttribute(
+      'role', p.checked && passageBlockers().length ? 'alert' : 'status');
     if (p.checked) {
       if (!p.problems.length) {
-        panel.appendChild(el('div', 'pgen-ok', '✓ 四道門禁全過'));
+        results.appendChild(el('div', 'pgen-ok', '✓ 四道門禁全過'));
       } else {
         // 摘要放最上面：10～12 個空、好幾條軟性警告時面板很長，
         // 沒有摘要老師得整個捲完才知道自己卡在哪、能不能用。
-        var nBlock = 0, nConfirm = 0, nOver = 0;
-        p.problems.forEach(function (x) {
-          if (x.severity === 'blocking') { nBlock++; }
-          else if (x.severity === 'confirm') { nConfirm++; }
-          else { nOver++; }
-        });
+        var grouped = groupPassageProblems(p.problems);
+        var nBlock = grouped.blocking.length;
+        var nConfirm = grouped.confirm.length;
+        var nOver = grouped.overridable.length;
         var parts = [];
         if (nBlock) { parts.push(nBlock + ' 個必須修正'); }
         if (nConfirm) { parts.push(nConfirm + ' 個需確認'); }
         if (nOver) { parts.push(nOver + ' 個可放行'); }
-        panel.appendChild(el('div',
+        var problemSummary = el('div',
           nBlock ? 'pgen-summary pgen-summary-blocking' : 'pgen-summary',
-          '檢查結果：' + parts.join('、') + (nBlock ? '（還不能用）' : '')));
+          '檢查結果：' + parts.join('、') + (nBlock ? '（還不能用）' : ''));
+        results.appendChild(problemSummary);
 
-        p.problems.forEach(function (x) {
-          var where = [];
-          if (x.paragraph) { where.push('第 ' + x.paragraph + ' 段'); }
-          if (x.sentence) { where.push('第 ' + x.sentence + ' 句'); }
-          if (x.blank) { where.push('第 ' + x.blank + ' 空'); }
-          panel.appendChild(el('div', 'pgen-issue pgen-issue-' + x.severity,
-            (where.length ? where.join('') + '：' : '') + x.message));
-        });
+        if (grouped.blocking.length) {
+          results.appendChild(buildIssueGroup(
+            'blocking', '必須修正', grouped.blocking));
+        }
+        if (grouped.confirm.length) {
+          results.appendChild(buildIssueGroup(
+            'confirm', '需要教師確認', grouped.confirm));
+        }
+        if (grouped.overridable.length) {
+          results.appendChild(buildIssueGroup(
+            'overridable', '可確認後放行', grouped.overridable));
+        }
         var fix = el('button', 'btn', '複製修正提示詞');
         fix.onclick = function () {
           copyToClipboard(ZhuPassagePrompt.buildFix(p.problems, p.raw));
         };
-        panel.appendChild(fix);
+        results.appendChild(fix);
 
-        var soft = p.problems.filter(function (x) { return x.severity !== 'blocking'; });
+        var soft = p.problems.filter(function (problem) {
+          var severity = ZhuPracticeWorkflow.severityOf(problem);
+          return severity === 'confirm' || severity === 'overridable';
+        });
         if (!passageBlockers().length && soft.length) {
           // 各自獨立成行：這一項是「放棄門禁警告」，與下面「聲明自己讀過」
           // 是語意完全不同的兩個決定，並排會被當成同一個控制項的兩半一起掃過去勾掉。
           var ov = el('label', 'pgen-confirm');
           var cb = document.createElement('input');
           cb.type = 'checkbox'; cb.checked = p.overridden;
-          cb.onchange = function () { p.overridden = cb.checked; refreshPassagePanel(container); };
+          cb.onchange = function () {
+            p.overridden = cb.checked;
+            refreshCheckResults(container);
+          };
           ov.appendChild(cb);
           ov.appendChild(el('span', 'pgen-confirm-text',
             '我確認以上問題可以接受，仍要使用這篇短文'));
-          panel.appendChild(ov);
+          results.appendChild(ov);
         }
         if (passageBlockers().length) {
-          panel.appendChild(el('div', 'pgen-note',
+          results.appendChild(el('div', 'pgen-note',
             '※ 上面標紅的問題無法放行——答案錯位或洩題的卷子沒有發下去的價值，請修正後重貼。'));
         }
       }
@@ -933,16 +1358,38 @@ var ZhuPractice = (function () {
         var lb = el('label', 'pgen-confirm');
         var cb2 = document.createElement('input');
         cb2.type = 'checkbox'; cb2.checked = p.confirmed;
-        cb2.onchange = function () { p.confirmed = cb2.checked; refreshPassagePanel(container); };
+        cb2.onchange = function () {
+          p.confirmed = cb2.checked;
+          refreshCheckResults(container);
+        };
         lb.appendChild(cb2);
         lb.appendChild(el('span', 'pgen-confirm-text',
           '我已確認這篇短文是連貫的故事（有起因、經過、結果）'));
         human.appendChild(lb);
-        panel.appendChild(human);
+        results.appendChild(human);
       }
     }
+    panel.appendChild(results);
 
     return panel;
+  }
+
+  function refreshCheckResults(container) {
+    var current = container.querySelector('.pgen-check-results');
+    if (!current) { return; }
+    var nextCard = buildCheckStep(container);
+    var next = nextCard.querySelector('.pgen-check-results');
+    current.removeAttribute('role');
+    current.removeAttribute('aria-live');
+    current.innerHTML = '';
+    if (next.hasAttribute('role')) {
+      current.setAttribute('role', next.getAttribute('role'));
+    }
+    if (next.hasAttribute('aria-live')) {
+      current.setAttribute('aria-live', next.getAttribute('aria-live'));
+    }
+    while (next.firstChild) { current.appendChild(next.firstChild); }
+    refreshWorkflowNavigation(container);
   }
 
   function copyToClipboard(text) {
@@ -970,6 +1417,98 @@ var ZhuPractice = (function () {
     document.body.removeChild(t);
   }
 
+  function ensureDraft() {
+    if (state.draft) { return; }
+    var result = buildDraft(pickedIds(), state.type);
+    state.draft = result.sheet;
+    state.notes = result.notes;
+    if (!result.sheet['大題'].length) {
+      state.notes = state.notes.concat(['勾選的題目湊不出這個卷型的任何大題，'
+        + '請改選卷型或多勾幾題（尤其是有細目素材的題）。']);
+    }
+    state.draftValid = validate(state.draft).length === 0;
+    scheduleSave();
+  }
+
+  function buildDraftStep(container) {
+    return buildDraftPanel(container);
+  }
+
+  function countDraftItems(sheet) {
+    var count = 0;
+    (sheet['大題'] || []).forEach(function (section) {
+      count += (section['小題'] || []).length;
+      (section['題組'] || []).forEach(function (group) {
+        count += (group['小題'] || []).length;
+      });
+    });
+    return count;
+  }
+
+  function draftSummary(sheet) {
+    return {
+      sections: (sheet['大題'] || []).length,
+      items: countDraftItems(sheet),
+      title: sheet['卷名'] || '字音形練習卷'
+    };
+  }
+
+  function buildDownloadStep(container) {
+    ensureDraft();
+    var panel = el('div', 'panel pgen-download');
+    var summary = draftSummary(state.draft);
+    panel.appendChild(el('h2', 'pgen-workspace-title', '預覽下載'));
+    panel.appendChild(el('p',
+      state.draftValid ? 'pgen-ok' : 'pgen-warn',
+      state.draftValid
+        ? '✓ 草稿格式有效，可以預覽並下載。'
+        : '草稿尚有格式問題，請回到上一步修正後再下載。'));
+
+    var summaryCard = el('section', 'pgen-download-summary');
+    summaryCard.appendChild(el('h3', 'pgen-download-title', summary.title));
+    summaryCard.appendChild(el('p', 'pgen-download-meta',
+      (state.draft['卷型'] === 'A' ? '情境卷 A' : '操練卷 B')
+      + ' · ' + summary.sections + ' 個大題 · '
+      + summary.items + ' 個小題'));
+    panel.appendChild(summaryCard);
+
+    var warn = el('div', 'pgen-warn');
+    warn.setAttribute('aria-live', 'polite');
+    panel.appendChild(warn);
+    var versions = el('div', 'pgen-download-versions');
+
+    var student = el('section', 'pgen-download-version');
+    student.appendChild(el('h3', 'pgen-download-version-title', '填空版'));
+    student.appendChild(el('p', 'pgen-note', '發給學生作答，答案位置保留書寫空格。'));
+    var studentButton = el('button', 'btn btn-primary', '⬇ 下載 Word（填空版）');
+    studentButton.disabled = !state.draftValid;
+    studentButton.onclick = function () {
+      downloadVersion(false, '填空版', warn, studentButton);
+    };
+    student.appendChild(studentButton);
+    versions.appendChild(student);
+
+    var answer = el('section', 'pgen-download-version');
+    answer.appendChild(el('h3', 'pgen-download-version-title', '答案版'));
+    answer.appendChild(el('p', 'pgen-note', '保留完整答案，供教師核對與講解。'));
+    var answerButton = el('button', 'btn', '⬇ 下載 Word（答案版）');
+    answerButton.disabled = !state.draftValid;
+    answerButton.onclick = function () {
+      downloadVersion(true, '答案版', warn, answerButton);
+    };
+    answer.appendChild(answerButton);
+    versions.appendChild(answer);
+    panel.appendChild(versions);
+
+    var actions = el('div', 'prep-selection-actions pgen-download-actions');
+    var json = el('button', 'btn', '⬇ 下載卷稿 JSON');
+    json.disabled = !state.draftValid;
+    json.onclick = function () { downloadJson(); };
+    actions.appendChild(json);
+    panel.appendChild(actions);
+    return panel;
+  }
+
   function buildDraftPanel(container) {
     var panel = el('div', 'panel pgen-draft');
     var nBank = 0, nStub = 0;
@@ -990,81 +1529,103 @@ var ZhuPractice = (function () {
     });
 
     state.draft['大題'].forEach(function (sec, si) {
-      panel.appendChild(el('div', 'pgen-sec-title',
+      var section = el('details', 'pgen-draft-section');
+      section.open = si === 0;
+      section.appendChild(el('summary', 'pgen-draft-section-summary',
         CN_NUM.charAt(si) + '、' + sec['標題']));
-      if (sec['說明']) { panel.appendChild(el('div', 'pgen-note', sec['說明'])); }
+      var body = el('div', 'pgen-draft-section-body');
+      if (sec['說明']) { body.appendChild(el('div', 'pgen-note', sec['說明'])); }
       (sec['提示'] || []).forEach(function (h) {
-        panel.appendChild(el('div', 'pgen-note', h));
+        body.appendChild(el('div', 'pgen-note', h));
       });
 
       var lists = [];
-      (sec['題組'] || []).forEach(function (g) {
-        lists.push([g['標題'], g['小題']]);
+      (sec['題組'] || []).forEach(function (g, gi) {
+        lists.push([g['標題'], g['小題'], function (ii) {
+          return state.draft['大題'][si]['題組'][gi]['小題'][ii];
+        }]);
       });
-      if (sec['小題']) { lists.push([null, sec['小題']]); }
+      if (sec['小題']) {
+        lists.push([null, sec['小題'], function (ii) {
+          return state.draft['大題'][si]['小題'][ii];
+        }]);
+      }
 
       lists.forEach(function (pair) {
-        if (pair[0]) { panel.appendChild(el('div', 'pgen-group-title', pair[0])); }
-        pair[1].forEach(function (item) {
+        if (pair[0]) { body.appendChild(el('div', 'pgen-group-title', pair[0])); }
+        pair[1].forEach(function (item, ii) {
           var row = el('div', 'pgen-item');
           var ta = el('textarea', 'pgen-input');
           ta.value = item['句'];
           ta.rows = 1;
           ta.oninput = function () {
-            item['句'] = ta.value;
-            refreshWarn();
+            var currentItem = pair[2](ii);
+            currentItem['句'] = ta.value;
+            state.draftValid = validate(state.draft).length === 0;
+            applyState(ZhuPracticeWorkflow.invalidate(state, 'draft'));
+            state.draftValid = validate(state.draft).length === 0;
+            scheduleSave();
+            refreshDraftStatus();
           };
           row.appendChild(ta);
           row.appendChild(el('span', 'pgen-ans' + (item['_句庫'] ? ' pgen-ans-bank' : ''),
             (item['_句庫'] ? '✓ ' : '✎ ') + '答：' + asArray(item['答']).join('／')
             + (item['_來源'] ? '　' + item['_來源'] : '')));
-          panel.appendChild(row);
+          body.appendChild(row);
         });
       });
+      section.appendChild(body);
+      panel.appendChild(section);
     });
 
-    var warn = el('div', 'pgen-warn');
-    panel.appendChild(warn);
+    var status = el('div', 'pgen-draft-status');
+    status.setAttribute('aria-live', 'polite');
+    panel.appendChild(status);
 
-    var actions = el('div', 'prep-selection-actions');
-    var dl = el('button', 'btn btn-primary', '⬇ 下載 Word（填空版＋答案版）');
-    dl.onclick = function () { downloadBoth(warn, dl); };
-    actions.appendChild(dl);
-
-    var dj = el('button', 'btn', '⬇ 下載卷稿 JSON');
-    dj.onclick = function () { downloadJson(); };
-    actions.appendChild(dj);
-    panel.appendChild(actions);
-
-    function refreshWarn() {
+    function refreshDraftStatus() {
       var errs = validate(state.draft);
-      warn.textContent = errs.length
-        ? ('還不能下載：' + errs.slice(0, 3).join('；')
+      state.draftValid = !errs.length;
+      status.className = errs.length
+        ? 'pgen-draft-status pgen-warn'
+        : 'pgen-draft-status pgen-ok';
+      status.textContent = errs.length
+        ? ('還不能前往預覽：' + errs.slice(0, 3).join('；')
            + (errs.length > 3 ? ' …等 ' + errs.length + ' 項' : ''))
-        : '';
-      dl.disabled = !!errs.length;
+        : '✓ 草稿格式有效，可以前往預覽。';
+      refreshWorkflowNavigation(container);
     }
-    refreshWarn();
+    refreshDraftStatus();
     return panel;
   }
 
-  function downloadBoth(warn, btn) {
+  function downloadVersion(showAnswer, label, warn, btn) {
     var errs = validate(state.draft);
-    if (errs.length) { warn.textContent = '還不能下載：' + errs.join('；'); return; }
+    if (errs.length) {
+      warn.textContent = '還不能下載：' + errs.join('；');
+      return false;
+    }
     btn.disabled = true;
-    warn.textContent = '產生中…';
+    warn.textContent = '正在產生' + label + '…';
     try {
       var buf = loadTemplate();
       var base = '練習卷_' + state.draft['卷型'] + '卷_' + stamp();
-      [[false, '填空版'], [true, '答案版']].forEach(function (spec) {
-        var bytes = ZhuDocx.build(buf, paragraphs(state.draft, spec[0]));
-        ZhuDocx.download(bytes, base + '_' + spec[1] + '.docx');
-      });
-      warn.textContent = '已下載兩個檔案。';
+      var bytes = ZhuDocx.build(buf, paragraphs(state.draft, showAnswer));
+      ZhuDocx.download(bytes, base + '_' + label + '.docx');
+      warn.textContent = '已下載' + label + '。';
+      btn.disabled = false;
+      return true;
     } catch (e) {
       warn.textContent = '產生失敗：' + e.message;
+      btn.disabled = false;
+      return false;
     }
-    btn.disabled = false;
+  }
+
+  function downloadBoth(warn, btn) {
+    if (!downloadVersion(false, '填空版', warn, btn)) { return false; }
+    if (!downloadVersion(true, '答案版', warn, btn)) { return false; }
+    warn.textContent = '已下載兩個檔案。';
+    return true;
   }
 
   function downloadJson() {
