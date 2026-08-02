@@ -279,12 +279,12 @@ var ZhuPassageGates = (function () {
   // ------------------------------------------------------------------ 答案成詞
 
   // gateUnique 的鏡像：那道問「代入干擾字會不會**也**成詞」（防兩個答案都對），
-  // 這道問「代入目標字到底**成不成**詞」。兩件事對稱，過去只做了一半——
-  // AI 因此能造出避開所有陷阱、卻沒真的組成詞的空格：參考語詞給「發明」，
-  // 但它寫成「自己{}出好東西」，填回去是「自己明出」，「明」在那裡什麼都不是。
+  // 這道則核對目標字是否有詞典搭配。兩件事對稱，過去只做了一半——
+  // AI 因此能造出避開所有陷阱、但詞典查不到搭配的空格：參考語詞給「發明」，
+  // 卻寫成「自己{}出好東西」，填回去是「自己明出」。
   //
   // severity 用 confirm 而非 blocking：詞庫 21,905 詞不可能涵蓋所有合理搭配，
-  // 硬擋會誤殺；而這種問題老師一眼就看得出來，判斷權給老師比較合適。
+  // 查不到只代表尚未驗證，硬擋會誤殺；判斷權給老師比較合適。
   function gateAnswer(doc, ctx) {
     doc = doc || {};
     ctx = ctx || {};
@@ -302,8 +302,8 @@ var ZhuPassageGates = (function () {
       var before = cjkOnly(loc.before).slice(-2);
       var after = cjkOnly(loc.after).slice(0, 2);
 
-      // 前後都沒有中文字就湊不出任何候選詞。這時回報「不成詞」是誣賴，
-      // 不是判斷——無從判斷就不報。
+      // 前後都沒有中文字就湊不出任何候選詞。這時回報未驗證也沒有依據，
+      // 無從判斷就不報。
       if (!before && !after) { return; }
 
       for (var nb = 0; nb <= 2; nb++) {
@@ -314,12 +314,14 @@ var ZhuPassageGates = (function () {
         }
       }
 
-      problems.push(problem('answer.notAWord', {
+      problems.push(problem('answer.unverifiedWord', {
         paragraph: loc.paragraph,
         blank: s.blank,
         chars: [s.target],
-        message: '填入「' + s.target + '」後不成詞（' + before + s.target + after +
-          '）——這個位置可能不適合挖這個字'
+        referenceWords: (s.targetWords || []).slice(),
+        message: '詞典未找到可核對的詞語：這只代表尚未驗證，不代表搭配一定不合理。填入「' +
+          s.target + '」後的「' + before + s.target + after +
+          '」可能是合理搭配，也可能不適合挖空，請老師確認'
       }));
     });
 

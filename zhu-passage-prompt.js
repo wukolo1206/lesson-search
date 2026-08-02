@@ -76,6 +76,12 @@ var ZhuPassagePrompt = (function () {
       + '如果有超出的字，我會把它們列出來請你替換——');
     lines.push('　 所以先寫得淺白一點，可以省下來回修改的次數。');
     lines.push('');
+    lines.push('【自然度硬規則】以下每一條都要在輸出前自行確認：');
+    lines.push('5. 每個填入的目標字都要組成完整、自然的詞語或常見搭配，不能只把字塞在句子裡。');
+    lines.push('6. 有提供參考語詞時，優先使用提供的參考語詞，讓目標字在自然的語境中出現。');
+    lines.push('7. 不要為了塞入目標字而勉強語法或故事；若語境不自然，請改寫整句或調整情節。');
+    lines.push('8. 輸出前要逐句朗讀含空格的句子，確認填回目標字後句意通順、詞語完整。');
+    lines.push('');
     lines.push('【篇幅與結構】');
     lines.push('* ' + min + '～' + max + ' 個中文字（標點與 {} 不算）。');
     lines.push('* 至少 3 句，要有起因、經過、結果，是一個完整的小故事，'
@@ -108,8 +114,17 @@ var ZhuPassagePrompt = (function () {
       // 只複述 message 等於把判斷丟回給 AI。要給可執行的動作，
       // 而且動作依問題類型而不同：超綱字是「換字」，洩題是「改寫該處」。
       var cs = (p.chars && p.chars.length) ? p.chars.join('、') : '';
-      if (cs) {
-        var code = String(p.code || '');
+      var code = String(p.code || '');
+      var refs = wordList(p.referenceWords);
+      if (code === 'answer.unverifiedWord') {
+        if (refs) {
+          lines.push('   請優先使用提供的參考語詞：' + refs
+            + '，不要自行發明其他替代詞；並把該空改寫成包含完整、自然的詞語或常見搭配的通順句子。');
+        } else {
+          lines.push('   沒有可核對的參考語詞，請把該空改寫成自然、完整的常見搭配或通順句子，'
+            + '不要臆造或指定未核對的替代詞。');
+        }
+      } else if (cs) {
         if (code.indexOf('difficulty') === 0) {
           lines.push('   請把這些字換掉：' + cs + '（改用更常見、更好懂的說法）。');
         } else if (code.indexOf('leak') === 0) {

@@ -604,6 +604,9 @@ var ZhuPractice = (function () {
 
   function updateChrome() {
     var n = pickedIds().length;
+    var p = state.passage;
+    var target = ZhuPassageSlots.MIN_SLOTS;
+    var usable = p.slots.length;
     if (chrome.count) {
       chrome.count.innerHTML = '<strong>可出題的考古題</strong><span>'
         + chrome.total + ' 題（已勾 ' + n + ' 題）</span>';
@@ -616,7 +619,12 @@ var ZhuPractice = (function () {
         : '第一步：在上面勾要出題的考古題（可跨年級年度多勾）';
     }
     if (chrome.selectionStatus) {
-      chrome.selectionStatus.textContent = '已選 ' + n + ' 題';
+      var progress = p.conflicts && p.conflicts.length
+        ? ('可用對比字組 ' + usable + '／' + target + '，請先解決字組衝突')
+        : p.ok
+          ? ('可用對比字組 ' + usable + '／' + target + '，可以前往準備短文')
+          : ('可用對比字組 ' + usable + '／' + target + '，還差 ' + p.shortBy + ' 組');
+      chrome.selectionStatus.textContent = '已選 ' + n + ' 題｜' + progress;
     }
   }
 
@@ -671,6 +679,7 @@ var ZhuPractice = (function () {
       try { state.passage.grade = localStorage.getItem('zhuPassageGrade') || ''; } catch (e) {}
     }
 
+    rebuildSlots();
     chrome = {};
     container.appendChild(buildWorkflowShell(container));
     updateChrome();
@@ -1219,8 +1228,14 @@ var ZhuPractice = (function () {
       panel.appendChild(el('div', 'pgen-note', '※ 請先選出卷年級才能產提示詞。'));
     }
     if (p.promptText) {
-      panel.appendChild(el('div', 'pgen-note', '提示詞已複製到剪貼簿，貼給外部 AI：'));
-      panel.appendChild(el('div', 'pgen-prompt-box', p.promptText));
+      panel.appendChild(el('div', 'pgen-note',
+        '已嘗試複製；若貼上沒有內容，可直接選取下方全文複製。'));
+      var promptBox = document.createElement('textarea');
+      promptBox.className = 'pgen-prompt-box';
+      promptBox.readOnly = true;
+      promptBox.setAttribute('aria-label', 'AI 短文提示詞');
+      promptBox.value = p.promptText;
+      panel.appendChild(promptBox);
     }
 
     return panel;
@@ -1393,19 +1408,26 @@ var ZhuPractice = (function () {
   }
 
   function copyToClipboard(text) {
+    function fallback() {
+      try {
+        return legacyCopy(text);
+      } catch (e) {
+        return false;
+      }
+    }
+
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        var p = navigator.clipboard.writeText(text);
-        // writeText 失敗時是回傳 rejected Promise，不是 throw——try/catch 接不到。
-        // 少了這個 fallback，老師在 file:// 開檔或未授權剪貼簿時按「產提示詞」，
-        // 畫面寫著「已複製到剪貼簿」但其實什麼都沒複製到，貼過去是空的。
-        if (p && typeof p['catch'] === 'function') {
-          p['catch'](function () { legacyCopy(text); });
-        }
-        return;
+        var writeResult = navigator.clipboard.writeText(text);
+        return Promise.resolve(writeResult).then(
+          function () { return true; },
+          function () { return fallback(); }
+        );
       }
-    } catch (e) {}
-    legacyCopy(text);
+    } catch (e) {
+      return fallback();
+    }
+    return fallback();
   }
 
   function legacyCopy(text) {
@@ -1413,8 +1435,15 @@ var ZhuPractice = (function () {
     t.value = text;
     document.body.appendChild(t);
     t.select();
-    try { document.execCommand('copy'); } catch (e) {}
+    var copied = false;
+    try {
+      copied = typeof document.execCommand === 'function'
+        && document.execCommand('copy') === true;
+    } catch (e) {
+      copied = false;
+    }
     document.body.removeChild(t);
+    return copied;
   }
 
   function ensureDraft() {
@@ -1503,7 +1532,7 @@ var ZhuPractice = (function () {
     var actions = el('div', 'prep-selection-actions pgen-download-actions');
     var json = el('button', 'btn', '⬇ 下載卷稿 JSON');
     json.disabled = !state.draftValid;
-    json.onclick = function () { downloadJson(); };
+    json.onclick = function () { return downloadJson(warn, json); };
     actions.appendChild(json);
     panel.appendChild(actions);
     return panel;
@@ -1628,15 +1657,34 @@ var ZhuPractice = (function () {
     return true;
   }
 
-  function downloadJson() {
-    var clean = JSON.parse(JSON.stringify(state.draft));
-    var blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = '卷稿_' + state.draft['卷型'] + '卷_' + stamp() + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  function downloadJson(warn, btn) {
+    var objectUrl = null;
+    btn.disabled = true;
+    warn.textContent = '正在準備卷稿 JSON…';
+    try {
+      var clean = JSON.parse(JSON.stringify(state.draft));
+      var blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
+      objectUrl = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = '卷稿_' + state.draft['卷型'] + '卷_' + stamp() + '.json';
+      document.body.appendChild(a);
+      try {
+        a.click();
+      } finally {
+        document.body.removeChild(a);
+      }
+      warn.textContent = '已下載卷稿 JSON。';
+      return true;
+    } catch (e) {
+      warn.textContent = 'JSON 下載失敗：' + (e && e.message ? e.message : String(e));
+      return false;
+    } finally {
+      if (objectUrl) {
+        try { URL.revokeObjectURL(objectUrl); } catch (cleanupError) {}
+      }
+      btn.disabled = false;
+    }
   }
 
   function stamp() {
