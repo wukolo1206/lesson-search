@@ -1,0 +1,30 @@
+# === 隱私保護：以下路徑絕對不可進入這個公開 repo ===
+# 這個 repo 是 public，且啟用了 GitHub Pages（含 .nojekyll，檔案會被原樣送出）。
+# 任何放進來的檔案都等於公開到網際網路上，且會被搜尋引擎索引。
+個人資料整理/
+個人基本資料/
+研習公文/
+進修研習/
+輔導紀錄/
+行政服務/
+得獎榮譽/
+申請檔案/
+115介聘/
+PROFILE.md
+
+# 常見敏感檔
+*.key
+*.pem
+credentials.json
+token*.json
+.env
+.env.*
+
+# 暫存與相依
+node_modules/
+__pycache__/
+*.pyc
+.clasp-deploy-temp/
+deploy-current/
+Thumbs.db
+desktop.ini
