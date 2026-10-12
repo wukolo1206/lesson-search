@@ -386,6 +386,11 @@
     }
     .qq-top h2 { font-size: 1.02rem; font-weight: 800; }
     .qq-inner { max-width: 780px; margin: 0 auto; padding: 22px 18px 60px; }
+    /* 2026-10-12 老師回饋「字太小」：整個快速測驗區（設定、作答、類似題預覽）放大 */
+    #quickquiz .qq-inner, #quickquiz .qq-top { zoom: 1.25; }
+    #quickquiz .qq-fld label { font-size: .95rem; }
+    #quickquiz .qq-cats label { font-size: .95rem; }
+    #quickquiz .qq-fld select { font-size: 1rem; }
     .qq-card { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 20px; }
     .qq-card + .qq-card { margin-top: 14px; }
     .qq-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; }
@@ -842,7 +847,7 @@
         <input type="checkbox" id="qqSimilar">
         🆕 出類似題（校內 AI 改寫題目，印前可預覽；只用於產出測驗卷）
       </label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;margin:-8px 0 14px 22px;cursor:pointer;color:var(--gray-600)">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.9rem;margin:-8px 0 14px 22px;cursor:pointer;color:var(--gray-600)">
         <input type="checkbox" id="qqSimNewAns">
         錯別字、同音字填字也換掉正解（字典無法自動驗證，預覽會標示請你確認）
       </label>
