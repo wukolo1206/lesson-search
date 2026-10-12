@@ -840,7 +840,11 @@
       </label>
       <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;margin:-6px 0 14px;cursor:pointer">
         <input type="checkbox" id="qqSimilar">
-        🆕 出類似題（校內 AI 改寫題目、正解不變，印前可預覽；只用於產出測驗卷）
+        🆕 出類似題（校內 AI 改寫題目，印前可預覽；只用於產出測驗卷）
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;margin:-8px 0 14px 22px;cursor:pointer;color:var(--gray-600)">
+        <input type="checkbox" id="qqSimNewAns">
+        錯別字、同音字填字也換掉正解（字典無法自動驗證，預覽會標示請你確認）
       </label>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="qq-btn qq-primary" style="flex:2;min-width:180px" onclick="qqStart()">✏️ 線上作答（計分）</button>
@@ -897,6 +901,7 @@
 </div>
 
 <script src="class-concised-glosses.js"></script>
+<script src="similar-reading-check.js"></script>
 <script src="class-gloss-format.js"></script>
 <script>
 /* ═══ 設定 ═══════════════════════════════════════════════ */
@@ -1655,6 +1660,10 @@ function qqSimShuffle(p, origAnsKey) {
   return best;
 }
 
+function qqAllowNewAnswer() {
+  return !!($('qqSimNewAns') && $('qqSimNewAns').checked);
+}
+
 async function qqAskSimilar(rows) {
   const items = rows.map(r => ({
     id: String(r.idx), grade: r.orig.q['年級'] || '', category: r.orig.q['類別'] || '',
@@ -1662,25 +1671,64 @@ async function qqAskSimilar(rows) {
     stem: r.orig.stem, options: r.orig.opts.map(o => o.text), answer: qqAnsText(r.orig)
   }));
   try {
-    const out = await qqPostJson(QQ_CENTER_URL, { items }, QQ_CENTER_TIMEOUT_MS);
+    const out = await qqPostJson(QQ_CENTER_URL, { items, allowNewAnswer: qqAllowNewAnswer() }, QQ_CENTER_TIMEOUT_MS);
     if (QQV) QQV.engine = '校內 AI';
     return out;
   } catch (e) {
-    const out = await qqPostJson(QQ_GAS_URL, { action: 'similarQuestions', items }, 0);
+    const out = await qqPostJson(QQ_GAS_URL, { action: 'similarQuestions', items, allowNewAnswer: qqAllowNewAnswer() }, 0);
     if (QQV) QQV.engine = 'Gemini（校內 AI 無法使用時的備援）';
     return out;
   }
 }
 
-function qqApplySimilar(rows, results) {
+/* 字音題讀音驗證用的簡編本讀音表（scripts/build_concised_bopo.py 建置），用到才載入 */
+let QQ_READING_DICT = null;
+function qqLoadReadingDict() {
+  if (!QQ_READING_DICT) {
+    QQ_READING_DICT = fetch('data/concised-bopo.json').then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).catch(e => { QQ_READING_DICT = null; throw e; });
+  }
+  return QQ_READING_DICT;
+}
+
+/* 題型：reading／zhuyin／radical 用簡編本驗證；fill／spelling 無法可靠驗證 */
+function qqModeOf(r) {
+  return typeof SimilarReadingCheck === 'undefined' ? '' :
+    SimilarReadingCheck.verifyMode(r.orig.stem, r.orig.opts.map(o => o.text));
+}
+
+function qqIsReadingRow(r) {
+  return ['reading', 'zhuyin', 'radical'].indexOf(qqModeOf(r)) >= 0;
+}
+
+/* 可驗證題型的類似題檢查：回傳擋下原因，通過回空字串 */
+function qqReadingReason(r, g, dict) {
+  if (!dict) return '字典載入失敗，無法驗證';
+  const res = SimilarReadingCheck.verify(g.stem, g.options, g.options.indexOf(g.answer), dict);
+  if (res === null) return g.answer === qqAnsText(r.orig) ? '' : '題型無法自動驗證，改用原題';
+  return res;
+}
+
+async function qqReadingDictFor(rows) {
+  if (!rows.some(qqIsReadingRow)) return null;
+  try { return await qqLoadReadingDict(); } catch (e) { return null; }
+}
+
+function qqApplySimilar(rows, results, dict) {
   const byId = {};
   results.forEach(r => { byId[r.id] = r; });
   rows.forEach(r => {
     const g = byId[String(r.idx)];
-    if (g && g.ok) {
+    const readingReason = g && g.ok && qqIsReadingRow(r) ? qqReadingReason(r, g, dict) : '';
+    if (g && g.ok && readingReason) {
+      r.sim = null; r.use = 'orig'; r.reason = readingReason;
+    } else if (g && g.ok) {
       r.sim = qqSimShuffle({ q: r.orig.q, stem: g.stem, explanation: g.explanation,
         opts: g.options.map((t, i) => ({ key: String(i + 1), text: t })),
         ans: String(g.options.indexOf(g.answer) + 1) }, r.orig.ans);
+      r.sim.warn = g.newAnswer ? '⚠ 正解已換新，字典無法自動驗證，請確認正解與錯誤選項' : '';
       r.use = 'sim'; r.reason = '';
     } else {
       r.sim = null; r.use = 'orig';
@@ -1700,7 +1748,10 @@ async function qqSimilarPreview(origs, shuffle) {
   $('qqPvPrint').disabled = true;
   qqRenderPreview();
   try {
-    if (askable.length) qqApplySimilar(askable, await qqAskSimilar(askable));
+    if (askable.length) {
+      const [results, dict] = await Promise.all([qqAskSimilar(askable), qqReadingDictFor(askable)]);
+      qqApplySimilar(askable, results, dict);
+    }
     const n = QQV.rows.filter(r => r.use === 'sim').length;
     $('qqPvStatus').textContent = `已改寫 ${n} / ${QQV.rows.length} 題，其餘使用原題（${QQV.engine || 'AI'}）`;
   } catch (e) {
@@ -1716,7 +1767,8 @@ async function qqRetryOne(idx) {
   if (!r || r.busy || !r.orig.ans) return;
   r.busy = true; qqRenderPreview();
   try {
-    qqApplySimilar([r], await qqAskSimilar([r]));
+    const [results, dict] = await Promise.all([qqAskSimilar([r]), qqReadingDictFor([r])]);
+    qqApplySimilar([r], results, dict);
   } catch (e) {
     r.busy = false; r.reason = 'AI 改寫失敗：' + e.message;
   }
@@ -1741,6 +1793,7 @@ function qqPvQuestion(p, label, active) {
     `<div${o.key === p.ans ? ' style="color:#047857;font-weight:700"' : ''}>(${esc(o.key)}) ${esc(o.text)}${o.key === p.ans ? ' ✓' : ''}</div>`).join('');
   return `<div class="qq-pv-col" style="flex:1;min-width:240px;padding:10px;border-radius:8px;border:2px solid ${active ? '#7c3aed' : 'var(--gray-200,#e5e7eb)'}">
     <div style="font-size:.78rem;color:var(--gray-500);margin-bottom:4px">${label}${active ? '　✅ 採用中' : ''}</div>
+    ${p.warn ? `<div style="margin-bottom:6px;padding:4px 8px;border-radius:6px;background:#fef3c7;color:#92400e;font-size:.82rem">${esc(p.warn)}</div>` : ''}
     <div style="margin-bottom:6px">${esc(p.stem)}</div>${opts}
     ${p.explanation ? `<div style="margin-top:6px;font-size:.85rem;color:#1d4ed8">💡 ${esc(p.explanation)}</div>` : ''}
   </div>`;
