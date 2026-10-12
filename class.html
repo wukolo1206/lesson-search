@@ -1644,6 +1644,17 @@ async function qqPostJson(url, body, timeoutMs) {
   }
 }
 
+/* 類似題選項一律打亂，且正解位置與原題不同（學生背「選幾號」無效）；預覽即最終列印順序 */
+function qqSimShuffle(p, origAnsKey) {
+  let best = p;
+  for (let t = 0; t < 30; t++) {
+    const s = qqReorder(p, true);
+    best = s;
+    if (p.opts.length < 2 || s.ans !== origAnsKey) break;
+  }
+  return best;
+}
+
 async function qqAskSimilar(rows) {
   const items = rows.map(r => ({
     id: String(r.idx), grade: r.orig.q['年級'] || '', category: r.orig.q['類別'] || '',
@@ -1667,9 +1678,9 @@ function qqApplySimilar(rows, results) {
   rows.forEach(r => {
     const g = byId[String(r.idx)];
     if (g && g.ok) {
-      r.sim = { q: r.orig.q, stem: g.stem, explanation: g.explanation,
+      r.sim = qqSimShuffle({ q: r.orig.q, stem: g.stem, explanation: g.explanation,
         opts: g.options.map((t, i) => ({ key: String(i + 1), text: t })),
-        ans: String(g.options.indexOf(g.answer) + 1) };
+        ans: String(g.options.indexOf(g.answer) + 1) }, r.orig.ans);
       r.use = 'sim'; r.reason = '';
     } else {
       r.sim = null; r.use = 'orig';
@@ -1756,7 +1767,8 @@ function qqRenderPreview() {
 
 function qqPreviewPrint() {
   if (!QQV) return;
-  qqOpenPaper(QQV.rows.map(r => qqReorder(r.use === 'sim' && r.sim ? r.sim : r.orig, QQV.shuffle)));
+  // 類似題已在預覽時打亂（預覽＝列印）；原題依「打亂」勾選處理
+  qqOpenPaper(QQV.rows.map(r => r.use === 'sim' && r.sim ? r.sim : qqReorder(r.orig, QQV.shuffle)));
 }
 
 /* 依選定題目組出列印視窗（一般出卷與類似題共用） */
