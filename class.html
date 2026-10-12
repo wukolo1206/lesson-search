@@ -840,7 +840,7 @@
       </label>
       <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;margin:-6px 0 14px;cursor:pointer">
         <input type="checkbox" id="qqSimilar">
-        🆕 出類似題（AI 改寫題目、正解不變，印前可預覽；只用於產出測驗卷）
+        🆕 出類似題（校內 AI 改寫題目、正解不變，印前可預覽；只用於產出測驗卷）
       </label>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="qq-btn qq-primary" style="flex:2;min-width:180px" onclick="qqStart()">✏️ 線上作答（計分）</button>
@@ -1626,19 +1626,39 @@ function qqReorder(p, shuffle) {
   return Object.assign({}, p, { opts, ans: hit ? hit.key : p.ans });
 }
 
+/* 先問校內 AI（中心 VM gemma4:31b），失敗／忙碌／逾時改問字音形 GAS（Gemini） */
+const QQ_CENTER_URL = 'https://teacherwu.xdai.tw/ziyin-ai/api/similar';
+const QQ_CENTER_TIMEOUT_MS = 90000;
+
+async function qqPostJson(url, body, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = timeoutMs ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(body), signal: ctrl.signal });
+    const j = await res.json();
+    if (!j.ok) throw new Error((j.error && j.error.message) || '改寫失敗');
+    return j.data.items || [];
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function qqAskSimilar(rows) {
   const items = rows.map(r => ({
     id: String(r.idx), grade: r.orig.q['年級'] || '', category: r.orig.q['類別'] || '',
     focus: r.orig.q['題目重點'] || r.orig.q['考點類型'] || '',
     stem: r.orig.stem, options: r.orig.opts.map(o => o.text), answer: qqAnsText(r.orig)
   }));
-  const res = await fetch(QQ_GAS_URL, {
-    method: 'POST', headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'similarQuestions', items })
-  });
-  const j = await res.json();
-  if (!j.ok) throw new Error((j.error && j.error.message) || '改寫失敗');
-  return j.data.items || [];
+  try {
+    const out = await qqPostJson(QQ_CENTER_URL, { items }, QQ_CENTER_TIMEOUT_MS);
+    if (QQV) QQV.engine = '校內 AI';
+    return out;
+  } catch (e) {
+    const out = await qqPostJson(QQ_GAS_URL, { action: 'similarQuestions', items }, 0);
+    if (QQV) QQV.engine = 'Gemini（校內 AI 無法使用時的備援）';
+    return out;
+  }
 }
 
 function qqApplySimilar(rows, results) {
@@ -1665,13 +1685,13 @@ async function qqSimilarPreview(origs, shuffle) {
   $('qqPreview').style.display = 'block';
   const askable = QQV.rows.filter(r => r.orig.ans && r.orig.opts.length >= 2);
   QQV.rows.forEach(r => { if (askable.indexOf(r) < 0) { r.busy = false; r.reason = '原題無官方解答，不改寫'; } });
-  $('qqPvStatus').textContent = 'AI 改寫中…（約 10～30 秒）';
+  $('qqPvStatus').textContent = 'AI 改寫中…（校內 AI 約 30 秒）';
   $('qqPvPrint').disabled = true;
   qqRenderPreview();
   try {
     if (askable.length) qqApplySimilar(askable, await qqAskSimilar(askable));
     const n = QQV.rows.filter(r => r.use === 'sim').length;
-    $('qqPvStatus').textContent = `已改寫 ${n} / ${QQV.rows.length} 題，其餘使用原題`;
+    $('qqPvStatus').textContent = `已改寫 ${n} / ${QQV.rows.length} 題，其餘使用原題（${QQV.engine || 'AI'}）`;
   } catch (e) {
     askable.forEach(r => { r.busy = false; r.use = 'orig'; r.reason = 'AI 改寫失敗'; });
     $('qqPvStatus').textContent = `AI 改寫失敗（${e.message}），已全部改用原題，可按各題「換一題」重試`;
