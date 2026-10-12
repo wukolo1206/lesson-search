@@ -838,6 +838,10 @@
         <input type="checkbox" id="qqShuffle" checked>
         🔀 打亂題目與選項順序（防止背答案；取消勾選＝依原卷順序）
       </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;margin:-6px 0 14px;cursor:pointer">
+        <input type="checkbox" id="qqSimilar">
+        🆕 出類似題（AI 改寫題目、正解不變，印前可預覽；只用於產出測驗卷）
+      </label>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="qq-btn qq-primary" style="flex:2;min-width:180px" onclick="qqStart()">✏️ 線上作答（計分）</button>
         <button class="qq-btn qq-ghost" style="flex:1;min-width:140px" onclick="qqPrintPaper()">🖨️ 產出測驗卷</button>
@@ -874,6 +878,19 @@
         <button class="qq-btn qq-ghost" onclick="qqToggleReview()">查看詳解 📖</button>
       </div>
       <div id="qqReview" style="display:none;margin-top:18px"></div>
+    </div>
+
+    <!-- 類似題預覽 -->
+    <div class="qq-card" id="qqPreview" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <strong>🆕 類似題預覽</strong>
+        <span id="qqPvStatus" style="font-size:.85rem;color:var(--gray-600)"></span>
+      </div>
+      <div id="qqPvList"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px">
+        <button class="qq-btn qq-primary" id="qqPvPrint" onclick="qqPreviewPrint()">🖨️ 列印測驗卷</button>
+        <button class="qq-btn qq-ghost" onclick="qqReset()">← 回到設定</button>
+      </div>
     </div>
 
   </div>
@@ -1412,6 +1429,8 @@ function qqReset() {
   $('qqArea').style.display   = 'none';
   $('qqResult').style.display = 'none';
   $('qqReview').style.display = 'none';
+  $('qqPreview').style.display = 'none';
+  QQV = null;
   $('qqTopInfo').textContent  = '';
 }
 
@@ -1579,8 +1598,149 @@ function qqPrintPaper() {
   if (pool.length < 1) { alert('所選條件沒有可用題目，請放寬年級／年度／類別。'); return; }
 
   const shuffle = qqShuffleOn();
-  const sel = qqSelect(pool, want, shuffle);
+  if ($('qqSimilar') && $('qqSimilar').checked) {
+    // 類似題：先取原卷選項順序送 AI，預覽確認後列印時才依「打亂」勾選重排
+    const chosen = qqShuffleArr(pool).slice(0, Math.min(want, pool.length));
+    if (!shuffle) chosen.sort(qqOrigOrder);
+    qqSimilarPreview(chosen.map(q => qqPrepare(q, false)), shuffle);
+    return;
+  }
+  qqOpenPaper(qqSelect(pool, want, shuffle));
+}
 
+/* ── 出類似題：AI 改寫（字音形 GAS doPost action=similarQuestions）→ 預覽 → 列印 ── */
+const QQ_GAS_URL = 'https://script.google.com/macros/s/AKfycbwHoHUCmxwsZyMl7TZdFVOMAYZZixJIp_JaMfsQQOpRDzHklArqfmX2nAiFW2NQwVrN/exec';
+let QQV = null;
+
+function qqAnsText(p) {
+  return (p.opts.find(o => o.key === p.ans) || {}).text || '';
+}
+
+/* 依「打亂」勾選重排選項並重新編號，正解跟著換位 */
+function qqReorder(p, shuffle) {
+  const want = qqAnsText(p);
+  const texts = p.opts.map(o => o.text);
+  const order = shuffle ? qqShuffleArr(texts) : texts;
+  const opts = order.map((t, i) => ({ key: String(i + 1), text: t }));
+  const hit = opts.find(o => o.text === want);
+  return Object.assign({}, p, { opts, ans: hit ? hit.key : p.ans });
+}
+
+async function qqAskSimilar(rows) {
+  const items = rows.map(r => ({
+    id: String(r.idx), grade: r.orig.q['年級'] || '', category: r.orig.q['類別'] || '',
+    focus: r.orig.q['題目重點'] || r.orig.q['考點類型'] || '',
+    stem: r.orig.stem, options: r.orig.opts.map(o => o.text), answer: qqAnsText(r.orig)
+  }));
+  const res = await fetch(QQ_GAS_URL, {
+    method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'similarQuestions', items })
+  });
+  const j = await res.json();
+  if (!j.ok) throw new Error((j.error && j.error.message) || '改寫失敗');
+  return j.data.items || [];
+}
+
+function qqApplySimilar(rows, results) {
+  const byId = {};
+  results.forEach(r => { byId[r.id] = r; });
+  rows.forEach(r => {
+    const g = byId[String(r.idx)];
+    if (g && g.ok) {
+      r.sim = { q: r.orig.q, stem: g.stem, explanation: g.explanation,
+        opts: g.options.map((t, i) => ({ key: String(i + 1), text: t })),
+        ans: String(g.options.indexOf(g.answer) + 1) };
+      r.use = 'sim'; r.reason = '';
+    } else {
+      r.sim = null; r.use = 'orig';
+      r.reason = (g && g.reason) || 'AI 沒有回這一題';
+    }
+    r.busy = false;
+  });
+}
+
+async function qqSimilarPreview(origs, shuffle) {
+  QQV = { shuffle, rows: origs.map((p, i) => ({ idx: i, orig: p, sim: null, use: 'orig', reason: '', busy: true })) };
+  $('qqSetup').style.display = 'none';
+  $('qqPreview').style.display = 'block';
+  const askable = QQV.rows.filter(r => r.orig.ans && r.orig.opts.length >= 2);
+  QQV.rows.forEach(r => { if (askable.indexOf(r) < 0) { r.busy = false; r.reason = '原題無官方解答，不改寫'; } });
+  $('qqPvStatus').textContent = 'AI 改寫中…（約 10～30 秒）';
+  $('qqPvPrint').disabled = true;
+  qqRenderPreview();
+  try {
+    if (askable.length) qqApplySimilar(askable, await qqAskSimilar(askable));
+    const n = QQV.rows.filter(r => r.use === 'sim').length;
+    $('qqPvStatus').textContent = `已改寫 ${n} / ${QQV.rows.length} 題，其餘使用原題`;
+  } catch (e) {
+    askable.forEach(r => { r.busy = false; r.use = 'orig'; r.reason = 'AI 改寫失敗'; });
+    $('qqPvStatus').textContent = `AI 改寫失敗（${e.message}），已全部改用原題，可按各題「換一題」重試`;
+  }
+  $('qqPvPrint').disabled = false;
+  qqRenderPreview();
+}
+
+async function qqRetryOne(idx) {
+  const r = QQV.rows[idx];
+  if (!r || r.busy || !r.orig.ans) return;
+  r.busy = true; qqRenderPreview();
+  try {
+    qqApplySimilar([r], await qqAskSimilar([r]));
+  } catch (e) {
+    r.busy = false; r.reason = 'AI 改寫失敗：' + e.message;
+  }
+  qqRenderPreview();
+}
+
+function qqUseOrig(idx) {
+  const r = QQV.rows[idx];
+  if (!r) return;
+  r.use = 'orig'; r.reason = r.reason || '老師選擇原題';
+  qqRenderPreview();
+}
+
+function qqUseSim(idx) {
+  const r = QQV.rows[idx];
+  if (r && r.sim) { r.use = 'sim'; qqRenderPreview(); }
+}
+
+function qqPvQuestion(p, label, active) {
+  if (!p) return `<div class="qq-pv-col" style="opacity:.5"><div class="qq-pv-lbl">${label}</div><div>（無）</div></div>`;
+  const opts = p.opts.map(o =>
+    `<div${o.key === p.ans ? ' style="color:#047857;font-weight:700"' : ''}>(${esc(o.key)}) ${esc(o.text)}${o.key === p.ans ? ' ✓' : ''}</div>`).join('');
+  return `<div class="qq-pv-col" style="flex:1;min-width:240px;padding:10px;border-radius:8px;border:2px solid ${active ? '#7c3aed' : 'var(--gray-200,#e5e7eb)'}">
+    <div style="font-size:.78rem;color:var(--gray-500);margin-bottom:4px">${label}${active ? '　✅ 採用中' : ''}</div>
+    <div style="margin-bottom:6px">${esc(p.stem)}</div>${opts}
+    ${p.explanation ? `<div style="margin-top:6px;font-size:.85rem;color:#1d4ed8">💡 ${esc(p.explanation)}</div>` : ''}
+  </div>`;
+}
+
+function qqRenderPreview() {
+  if (!QQV) return;
+  $('qqPvList').innerHTML = QQV.rows.map((r, i) => `
+    <div class="qq-pv-row" data-idx="${i}" style="border-bottom:1px dashed #ddd;padding:12px 0">
+      <div style="font-weight:700;margin-bottom:6px">第 ${i + 1} 題　<span style="font-weight:400;font-size:.8rem;color:var(--gray-500)">${esc(r.orig.q['年級'] || '')} ‧ ${esc(r.orig.q['類別'] || '')}</span>
+        ${r.busy ? '<span style="color:#7c3aed;font-size:.85rem">　AI 改寫中…</span>' : ''}
+        ${!r.busy && r.reason && r.use === 'orig' ? `<span style="color:#b45309;font-size:.85rem">　⚠ ${esc(r.reason)}</span>` : ''}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${qqPvQuestion(r.orig, '原題', r.use === 'orig')}
+        ${qqPvQuestion(r.sim, '類似題', r.use === 'sim')}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        ${r.sim && r.use !== 'sim' ? `<button class="qq-btn qq-ghost qq-pv-sim" onclick="qqUseSim(${i})">採用類似題</button>` : ''}
+        ${r.orig.ans ? `<button class="qq-btn qq-ghost qq-pv-retry" onclick="qqRetryOne(${i})" ${r.busy ? 'disabled' : ''}>🔄 換一題</button>` : ''}
+        ${r.use !== 'orig' ? `<button class="qq-btn qq-ghost qq-pv-orig" onclick="qqUseOrig(${i})">改用原題</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function qqPreviewPrint() {
+  if (!QQV) return;
+  qqOpenPaper(QQV.rows.map(r => qqReorder(r.use === 'sim' && r.sim ? r.sim : r.orig, QQV.shuffle)));
+}
+
+/* 依選定題目組出列印視窗（一般出卷與類似題共用） */
+function qqOpenPaper(sel) {
   const gradeV = $('qqGrade').value === 'ALL' ? '三～六年級' : $('qqGrade').value;
   const yearV  = $('qqYear').value ? $('qqYear').value + ' 年' : '各年度';
   const catsV  = [...document.querySelectorAll('#qqCats input:checked')].map(x => x.value);
@@ -1599,6 +1759,7 @@ function qqPrintPaper() {
   const cards = sel.map((_, i) =>
     `<div class="cc"><div class="cn">${i + 1}</div><div class="cb"></div></div>`).join('');
   const keys = sel.map((p, i) => `${i + 1}.(${esc(p.ans || '－')})`).join('　');
+  const expls = sel.map((p, i) => p.explanation ? `<div>${i + 1}. ${esc(p.explanation)}</div>` : '').join('');
 
   const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">
 <title>字音形測驗卷</title><style>
@@ -1621,7 +1782,8 @@ h1{text-align:center;font-size:1.45em;margin-bottom:6px}
 <div class="info"><div>班級：<span></span></div><div>姓名：<span></span></div><div>得分：<span></span></div></div>
 ${body}
 <div class="card"><strong>答案卡</strong><div style="margin-top:9px">${cards}</div></div>
-<div class="ansk"><strong>教師用　參考答案</strong><div>${keys}</div></div>
+<div class="ansk"><strong>教師用　參考答案</strong><div>${keys}</div>
+${expls ? `<div style="margin-top:10px"><strong>詳解</strong>${expls}</div>` : ''}</div>
 <div class="np" style="text-align:center;margin-top:22px">
   <button onclick="window.print()" style="padding:10px 28px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:1em;cursor:pointer">🖨️ 列印測驗卷</button>
 </div></body></html>`;
