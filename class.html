@@ -834,6 +834,10 @@
         <label>選擇類別（可複選，不勾＝全部）</label>
         <div class="qq-cats" id="qqCats"></div>
       </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="qqShuffle" checked>
+        🔀 打亂題目與選項順序（防止背答案；取消勾選＝依原卷順序）
+      </label>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="qq-btn qq-primary" style="flex:2;min-width:180px" onclick="qqStart()">✏️ 線上作答（計分）</button>
         <button class="qq-btn qq-ghost" style="flex:1;min-width:140px" onclick="qqPrintPaper()">🖨️ 產出測驗卷</button>
@@ -1427,17 +1431,58 @@ function qqPool() {
   });
 }
 
+/* 防背答案：打亂選項（答案跟著換位）＋去掉原卷題號 */
+function qqShuffleOn() {
+  const el = $('qqShuffle');
+  return !el || el.checked;
+}
+
+function qqShuffleArr(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function qqStripNo(stem) {
+  return stem.replace(/^\s*[0-9０-９]+\s*[.．、]\s*/, '');
+}
+
+/* 回傳 { q, stem, opts:[{key,text,origKey}], ans }，ans 為重新編號後的正解 */
+function qqPrepare(q, shuffle) {
+  const full = q['完整題目與選項'] || '';
+  const cut = full.search(/[（(][1-4１-４][)）]/);
+  const stem = qqStripNo(cut > 0 ? full.substring(0, cut).trim() : full);
+  const orig = parseOptions(full) || [];
+  const opts = (shuffle ? qqShuffleArr(orig) : orig)
+    .map((o, i) => ({ key: String(i + 1), text: o.text, origKey: o.key }));
+  const oldAns = (q['答案'] || '').trim();
+  const hit = opts.find(o => o.origKey === oldAns);
+  return { q, stem, opts, ans: hit ? hit.key : (shuffle ? '' : oldAns) };
+}
+
+function qqOrigOrder(a, b) {
+  const g = '三四五六';
+  return (g.indexOf((a['年級'] || '').charAt(0)) - g.indexOf((b['年級'] || '').charAt(0)))
+    || ((+a['年度'] || 0) - (+b['年度'] || 0))
+    || ((+a['題號'] || 0) - (+b['題號'] || 0));
+}
+
+/* 隨機抽題；打亂模式下題目與選項皆隨機，否則依原卷順序 */
+function qqSelect(pool, want, shuffle) {
+  const chosen = qqShuffleArr(pool).slice(0, Math.min(want, pool.length));
+  if (!shuffle) chosen.sort(qqOrigOrder);
+  return chosen.map(q => qqPrepare(q, shuffle));
+}
+
 function qqStart() {
   const pool = qqPool();
   const want = parseInt($('qqCount').value, 10);
   if (pool.length < 1) { alert('所選條件沒有可用題目，請放寬年級／年度／類別。'); return; }
 
-  const shuffled = pool.slice();
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  QQ = { pool: shuffled.slice(0, Math.min(want, shuffled.length)), cur: 0, log: [], right: 0 };
+  QQ = { pool: qqSelect(pool, want, qqShuffleOn()), cur: 0, log: [], right: 0 };
 
   if (QQ.pool.length < want) {
     $('qqTopInfo').textContent = `符合條件只有 ${QQ.pool.length} 題`;
@@ -1449,7 +1494,7 @@ function qqStart() {
 }
 
 function qqShow() {
-  const q = QQ.pool[QQ.cur], total = QQ.pool.length;
+  const p = QQ.pool[QQ.cur], q = p.q, total = QQ.pool.length;
   $('qqBar').style.width  = `${(QQ.cur / total) * 100}%`;
   $('qqProg').textContent = `第 ${QQ.cur + 1} 題 / 共 ${total} 題`;
   $('qqRunScore').textContent = `目前答對 ${QQ.right} 題`;
@@ -1457,11 +1502,8 @@ function qqShow() {
   $('qqMeta').innerHTML = [q['年級'], q['年度'] ? q['年度'] + ' 年' : '', q['類別'], q['考點類型']]
     .filter(Boolean).map(t => `<span class="qq-tag">${esc(t)}</span>`).join('');
 
-  const opts = parseOptions(q['完整題目與選項']) || [];
-  const stem = q['完整題目與選項'].substring(0, q['完整題目與選項'].search(/[（(][1-4１-４][)）]/)).trim()
-               || q['完整題目與選項'];
-  $('qqText').textContent = stem;
-  $('qqOpts').innerHTML = opts.map(o =>
+  $('qqText').textContent = p.stem;
+  $('qqOpts').innerHTML = p.opts.map(o =>
     `<button class="qq-opt" data-key="${esc(o.key)}" onclick="qqPick('${esc(o.key)}',this)">(${esc(o.key)}) ${esc(o.text)}</button>`
   ).join('');
 
@@ -1470,8 +1512,8 @@ function qqShow() {
 }
 
 function qqPick(key, btn) {
-  const q = QQ.pool[QQ.cur];
-  const ans = (q['答案'] || '').trim();     // 官方解答
+  const p = QQ.pool[QQ.cur], q = p.q;
+  const ans = p.ans;     // 官方解答（已換算成打亂後的選項編號）
   const ok  = ans && key === ans;
 
   document.querySelectorAll('#qqOpts .qq-opt').forEach(b => {
@@ -1482,7 +1524,7 @@ function qqPick(key, btn) {
   if (ans && !ok) btn.classList.add('wrong');
 
   if (ok) QQ.right++;
-  QQ.log.push({ q, chosen: key, ok: !!ok, ans });
+  QQ.log.push({ q, p, chosen: key, ok: !!ok, ans });
 
   const fb = $('qqFb');
   fb.className = 'qq-fb ' + (ok ? 'ok' : 'ng');
@@ -1521,7 +1563,8 @@ function qqToggleReview() {
     <div class="qq-rev">
       <div><strong>第 ${i + 1} 題</strong>　${esc(a.q['年級'])} ‧ ${esc(a.q['年度'])}年 ‧ ${esc(a.q['類別'])}
         <span class="${a.ok ? 'hit' : 'mis'}">${a.ok ? '✅ 答對' : '❌ 答錯'}</span></div>
-      <div style="margin:4px 0;color:var(--gray-700)">${esc((a.q['完整題目與選項'] || '').slice(0, 120))}${(a.q['完整題目與選項'] || '').length > 120 ? '…' : ''}</div>
+      <div style="margin:4px 0;color:var(--gray-700)">${esc(a.p.stem.slice(0, 120))}${a.p.stem.length > 120 ? '…' : ''}</div>
+      <div style="margin:2px 0 4px;color:var(--gray-600);font-size:.9em">${a.p.opts.map(o => `(${esc(o.key)}) ${esc(o.text)}`).join('　')}</div>
       <div>你選 (${esc(a.chosen)})${a.ans ? `　正解 (${esc(a.ans)})` : ''}</div>
       ${a.q['學生迷思'] ? `<div style="color:#b91c1c;margin-top:3px">⚠ ${esc(a.q['學生迷思'])}</div>` : ''}
       ${a.q['教學策略'] ? `<div style="color:#1d4ed8;margin-top:2px">💡 ${esc(a.q['教學策略'])}</div>` : ''}
@@ -1535,12 +1578,8 @@ function qqPrintPaper() {
   const want = parseInt($('qqCount').value, 10);
   if (pool.length < 1) { alert('所選條件沒有可用題目，請放寬年級／年度／類別。'); return; }
 
-  const shuffled = pool.slice();
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  const sel = shuffled.slice(0, Math.min(want, shuffled.length));
+  const shuffle = qqShuffleOn();
+  const sel = qqSelect(pool, want, shuffle);
 
   const gradeV = $('qqGrade').value === 'ALL' ? '三～六年級' : $('qqGrade').value;
   const yearV  = $('qqYear').value ? $('qqYear').value + ' 年' : '各年度';
@@ -1549,20 +1588,17 @@ function qqPrintPaper() {
   const dateStr = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 
   let body = '';
-  sel.forEach((q, i) => {
-    const full = q['完整題目與選項'] || '';
-    const opts = parseOptions(full) || [];
-    const stem = full.substring(0, full.search(/[（(][1-4１-４][)）]/)).trim() || full;
-    body += `<div class="qb"><strong>${i + 1}.</strong>（　　）${esc(stem)}`;
-    if (opts.length >= 2) {
-      body += `<div class="op">` + opts.map(o => `<div>(${esc(o.key)}) ${esc(o.text)}</div>`).join('') + `</div>`;
+  sel.forEach((p, i) => {
+    body += `<div class="qb"><strong>${i + 1}.</strong>（　　）${esc(p.stem)}`;
+    if (p.opts.length >= 2) {
+      body += `<div class="op">` + p.opts.map(o => `<div>(${esc(o.key)}) ${esc(o.text)}</div>`).join('') + `</div>`;
     }
     body += `</div>`;
   });
 
   const cards = sel.map((_, i) =>
     `<div class="cc"><div class="cn">${i + 1}</div><div class="cb"></div></div>`).join('');
-  const keys = sel.map((q, i) => `${i + 1}.(${esc((q['答案'] || '－').trim())})`).join('　');
+  const keys = sel.map((p, i) => `${i + 1}.(${esc(p.ans || '－')})`).join('　');
 
   const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">
 <title>字音形測驗卷</title><style>
