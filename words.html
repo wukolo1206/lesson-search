@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>國語字音形 — 考古題語詞清單</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-soft: #eff6ff;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --ok: #059669;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; background: var(--gray-50); color: var(--gray-800); }
+
+    header {
+      background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+      color: white; padding: 18px 32px;
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header p  { opacity: .85; font-size: .85rem; margin-top: 3px; }
+    header a {
+      display: inline-block; padding: 7px 16px; background: rgba(255,255,255,.2); color: white;
+      border-radius: 8px; text-decoration: none; font-size: .85rem; font-weight: 600;
+      border: 1px solid rgba(255,255,255,.4); white-space: nowrap;
+    }
+
+    .filter-bar {
+      background: white; border-bottom: 1px solid var(--gray-200);
+      padding: 10px 32px; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .fg { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .fg > .lab { font-size: .78rem; color: var(--gray-600); font-weight: 600; white-space: nowrap; }
+    .chip { display: inline-flex; align-items: center; gap: 3px; font-size: .85rem; cursor: pointer;
+      padding: 3px 9px; border: 1px solid var(--gray-200); border-radius: 999px; background: var(--gray-50); user-select: none; }
+    .chip input { accent-color: var(--primary); }
+    .chip:has(input:checked) { background: var(--primary-soft); border-color: var(--primary); color: #1e40af; }
+    select, input[type=search], input[type=number] {
+      border: 1px solid var(--gray-200); border-radius: 8px; padding: 5px 9px; font-size: .85rem;
+      color: var(--gray-700); background: var(--gray-50); outline: none; font-family: inherit;
+    }
+    input[type=search] { width: 150px; }
+    input[type=number] { width: 60px; }
+
+    main { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; padding: 18px 32px 40px; align-items: start; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; font-size: .88rem; color: var(--gray-600); }
+    .toolbar b { color: var(--gray-800); }
+    button {
+      font-family: inherit; font-size: .85rem; cursor: pointer; border-radius: 8px;
+      padding: 6px 12px; border: 1px solid var(--gray-200); background: white; color: var(--gray-700);
+    }
+    button:hover { border-color: var(--primary); color: var(--primary); }
+    button.main { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
+    button.main:hover { background: #1d4ed8; color: white; }
+    button.done { background: var(--ok); border-color: var(--ok); color: white; }
+
+    .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+    .word {
+      background: white; border: 1px solid var(--gray-200); border-radius: 10px; padding: 9px 11px;
+      cursor: pointer; display: flex; gap: 8px; align-items: flex-start;
+    }
+    .word:hover { border-color: #93c5fd; }
+    .word.on { border-color: var(--primary); background: var(--primary-soft); }
+    .word input { margin-top: 5px; accent-color: var(--primary); flex: none; }
+    .word .w { font-size: 1.15rem; font-weight: 700; }
+    .word .p { font-size: .8rem; color: #7c3aed; margin-left: 4px; }
+    .word .m { font-size: .8rem; color: var(--gray-600); margin-top: 2px; line-height: 1.45; }
+    .word .tags { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .tag { font-size: .7rem; padding: 1px 6px; border-radius: 4px; background: var(--gray-100); color: var(--gray-600); }
+    .tag.hot { background: #fef3c7; color: #92400e; }
+    .tag.src { background: #dbeafe; color: #1e40af; }
+    .empty { padding: 40px; text-align: center; color: var(--gray-400); }
+
+    aside { position: sticky; top: 64px; max-height: calc(100vh - 80px); overflow-y: auto;
+      background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px; }
+    aside h2 { font-size: 1rem; margin-bottom: 10px; }
+    .set { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; font-size: .85rem; margin-bottom: 12px; }
+    .set label { color: var(--gray-600); }
+    .opt { font-size: .85rem; display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .hint { font-size: .8rem; color: var(--gray-400); line-height: 1.5; margin: 6px 0 12px; }
+    .group { border: 1px solid var(--gray-200); border-radius: 10px; padding: 10px; margin-top: 12px; }
+    .group-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .group-head span { font-size: .85rem; font-weight: 600; }
+    .group-words { font-size: .82rem; color: var(--gray-600); margin-bottom: 6px; line-height: 1.5; }
+    textarea { width: 100%; height: 150px; font-size: .78rem; font-family: inherit; line-height: 1.5;
+      border: 1px solid var(--gray-200); border-radius: 8px; padding: 8px; color: var(--gray-700); background: var(--gray-50); resize: vertical; }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; padding: 14px 16px 40px; }
+      aside { position: static; max-height: none; }
+      header, .filter-bar { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>📝 考古題語詞清單</h1>
+      <p>學扶考古題（108～114 年）每題要考的語詞 → 勾選後複製給 AI 寫文章</p>
+    </div>
+    <div><a href="index.html">← 回備課搜尋</a></div>
+  </header>
+
+  <div class="filter-bar">
+    <div class="fg"><span class="lab">年級</span><span id="f-grade"></span></div>
+    <div class="fg"><span class="lab">題型</span><span id="f-cat"></span></div>
+    <div class="fg"><span class="lab">年度</span>
+      <select id="f-year"><option value="">全部</option></select>
+    </div>
+    <div class="fg">
+      <label class="chip"><input type="checkbox" id="f-hot"> 只看考過 2 次以上</label>
+    </div>
+    <div class="fg"><input type="search" id="f-q" placeholder="找語詞…"></div>
+  </div>
+
+  <main>
+    <section>
+      <div class="toolbar">
+        <span>列出 <b id="n-shown">0</b> 個，已勾 <b id="n-picked">0</b> 個</span>
+        <button id="btn-all">全勾目前列出的</button>
+        <button id="btn-none">清除勾選</button>
+      </div>
+      <div class="list" id="list"></div>
+    </section>
+
+    <aside>
+      <h2>給 AI 的寫作指令</h2>
+      <div class="set">
+        <label for="s-grade">文章程度</label>
+        <select id="s-grade">
+          <option value="">自動（依勾的語詞）</option>
+          <option>三年級</option><option>四年級</option><option>五年級</option><option>六年級</option>
+        </select>
+        <label for="s-genre">文體</label>
+        <select id="s-genre">
+          <option>生活故事</option><option>日記</option><option>說明文</option>
+          <option>對話劇本</option><option>書信</option><option value="">不指定</option>
+        </select>
+        <label for="s-size">每篇幾個詞</label>
+        <span><input type="number" id="s-size" min="3" max="20" value="10"> 個（超過就分成好幾篇）</span>
+      </div>
+      <label class="opt"><input type="checkbox" id="s-easy" checked> 寫得淺白（學扶學生程度落後 2～3 年級）</label>
+      <label class="opt"><input type="checkbox" id="s-quiz" checked> 文末附 3 題語詞理解題</label>
+      <p class="hint">每篇建議 8～12 個詞：太多會寫成硬塞語詞的流水帳。複製後貼到 ChatGPT、Gemini 等 AI 即可。</p>
+      <div id="groups"><p class="hint">左邊勾選語詞後，這裡會出現可以複製的指令。</p></div>
+    </aside>
+  </main>
+
+  <script src="words-data.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var DATA = window.WORDS_DATA || [];
+    var GRADES = [3, 4, 5, 6];
+    var GNAME = { 3: '三年級', 4: '四年級', 5: '五年級', 6: '六年級' };
+    var CATS = ['多音字', '同音字辨析', '形近字辨析', '常見錯別字', '詞義理解', '成語'];
+    var POLY = '一個詞有好幾種意思（題目考分辨）';
+    var STORE = 'words-page-v1';
+    var $ = function (id) { return document.getElementById(id); };
+
+    var picked = {};          // 語詞 → 勾選順序
+    var pickSeq = 0;
+
+    function esc(s) {
+      return String(s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+
+    // ── 只存在這台電腦的瀏覽器：勾了哪些、設定 ──
+    function save() {
+      try {
+        localStorage.setItem(STORE, JSON.stringify({
+          picked: picked, seq: pickSeq,
+          grade: $('s-grade').value, genre: $('s-genre').value, size: $('s-size').value,
+          easy: $('s-easy').checked, quiz: $('s-quiz').checked
+        }));
+      } catch (e) { /* 無痕視窗等情況存不了，不影響使用 */ }
+    }
+    function load() {
+      try {
+        var s = JSON.parse(localStorage.getItem(STORE) || 'null');
+        if (!s) return;
+        var known = {};
+        DATA.forEach(function (d) { known[d.w] = 1; });
+        Object.keys(s.picked || {}).forEach(function (w) { if (known[w]) picked[w] = s.picked[w]; });
+        pickSeq = s.seq || 0;
+        if (s.grade != null) $('s-grade').value = s.grade;
+        if (s.genre != null) $('s-genre').value = s.genre;
+        if (s.size) $('s-size').value = s.size;
+        $('s-easy').checked = s.easy !== false;
+        $('s-quiz').checked = s.quiz !== false;
+      } catch (e) { /* 讀不到就從空白開始 */ }
+    }
+
+    // ── 篩選列 ──
+    function chips(boxId, items, label, checked) {
+      $(boxId).innerHTML = items.map(function (v) {
+        return '<label class="chip"><input type="checkbox" value="' + esc(v) + '"' + (checked ? ' checked' : '') + '> ' + esc(label(v)) + '</label>';
+      }).join(' ');
+    }
+    function checkedVals(boxId) {
+      return Array.prototype.map.call($(boxId).querySelectorAll('input:checked'), function (i) { return i.value; });
+    }
+    function buildFilters() {
+      chips('f-grade', GRADES, function (g) { return GNAME[g]; }, true);
+      chips('f-cat', CATS, function (c) { return c; }, true);
+      var years = {};
+      DATA.forEach(function (d) { d.y.forEach(function (y) { years[y] = 1; }); });
+      Object.keys(years).sort().forEach(function (y) {
+        var o = document.createElement('option'); o.value = y; o.textContent = y + ' 年'; $('f-year').appendChild(o);
+      });
+    }
+
+    function filtered() {
+      var gs = checkedVals('f-grade').map(Number);
+      var cs = checkedVals('f-cat');
+      var y = $('f-year').value;
+      var hot = $('f-hot').checked;
+      var q = $('f-q').value.trim();
+      return DATA.filter(function (d) {
+        if (!d.g.some(function (g) { return gs.indexOf(g) >= 0; })) return false;
+        if (!d.cats.some(function (c) { return cs.indexOf(c) >= 0; })) return false;
+        if (y && d.y.indexOf(y) < 0) return false;
+        if (hot && d.q.length < 2) return false;
+        if (q && d.w.indexOf(q) < 0 && (d.c || '').indexOf(q) < 0) return false;
+        return true;
+      });
+    }
+
+    // ── 語詞卡 ──
+    function renderList() {
+      var rows = filtered();
+      $('n-shown').textContent = rows.length;
+      if (!rows.length) { $('list').innerHTML = '<div class="empty">沒有符合的語詞，放寬上面的篩選試試。</div>'; return; }
+      $('list').innerHTML = rows.map(function (d) {
+        var on = picked[d.w] != null;
+        var info = d.m || (d.e ? '例：' + d.e : '');
+        var tags = d.cats.map(function (c) { return '<span class="tag">' + esc(c) + '</span>'; }).join('');
+        if (d.s === '簡編本') tags += '<span class="tag src">簡編本</span>';
+        tags += '<span class="tag' + (d.q.length > 1 ? ' hot' : '') + '" title="' + esc(d.q.join('、')) + '">考過 ' + d.q.length + ' 次</span>';
+        tags += '<span class="tag">' + d.g.map(function (g) { return GNAME[g].charAt(0); }).join('、') + '年級</span>';
+        return '<label class="word' + (on ? ' on' : '') + '" data-w="' + esc(d.w) + '">'
+          + '<input type="checkbox"' + (on ? ' checked' : '') + '>'
+          + '<div><div><span class="w">' + esc(d.w) + '</span>'
+          + (d.p ? '<span class="p">' + esc(d.c ? '「' + d.c + '」' : '') + esc(d.p) + '</span>' : '') + '</div>'
+          + (info ? '<div class="m">' + esc(info) + '</div>' : '')
+          + '<div class="tags">' + tags + '</div></div></label>';
+      }).join('');
+    }
+
+    function toggle(w, on) {
+      if (on) { if (picked[w] == null) picked[w] = ++pickSeq; }
+      else delete picked[w];
+    }
+
+    // ── 產生給 AI 的指令 ──
+    function pickedWords() {
+      var byW = {};
+      DATA.forEach(function (d) { byW[d.w] = d; });
+      return Object.keys(picked).filter(function (w) { return byW[w]; })
+        .sort(function (a, b) { return picked[a] - picked[b]; })
+        .map(function (w) { return byW[w]; });
+    }
+
+    function autoGrade(words) {
+      // 每個詞取它最早出現的年級，整篇取其中最高的，避免文章程度低於語詞
+      var g = 3;
+      words.forEach(function (d) { g = Math.max(g, d.g[0]); });
+      return GNAME[g];
+    }
+
+    function wordLine(d, i) {
+      var notes = [];
+      if (d.p && d.c) notes.push('「' + d.c + '」唸' + d.p);
+      if (d.m === POLY) notes.push('這個詞有好幾種意思，請在文章裡用兩種不同的意思各出現一次');
+      else if (d.m) notes.push('意思：' + d.m.replace(/^意思：/, '').replace(/[。\s]+$/, ''));
+      if (d.e) notes.push('參考例句：' + d.e);
+      return (i + 1) + '. ' + d.w + (notes.length ? '（' + notes.join('；') + '）' : '');
+    }
+
+    function buildPrompt(words, grade) {
+      var n = words.length;
+      var genre = $('s-genre').value;
+      var min = Math.max(200, n * 35), max = Math.max(300, n * 45);
+      var L = [];
+      L.push('請幫我寫一篇國小' + grade + '程度的短文，讓學生從文章裡學會下面這些語詞。');
+      L.push('');
+      if ($('s-easy').checked) {
+        L.push('讀者是學習扶助的學生，閱讀能力比同年級落後約 2～3 個年級，請寫得淺白、句子短，內容貼近小學生的生活，要有一點趣味。');
+        L.push('');
+      }
+      L.push('【目標語詞】共 ' + n + ' 個');
+      words.forEach(function (d, i) { L.push(wordLine(d, i)); });
+      L.push('');
+      L.push('【寫作規則】');
+      L.push('1. 每個目標語詞都要在文章裡自然出現至少一次，意思要和括號裡寫的一樣；有標讀音的，要用那個讀音的意思。');
+      L.push('2. 文章裡的目標語詞用【】框起來，例如【' + words[0].w + '】。');
+      L.push('3. 語詞一個字都不能寫錯。不要為了塞進語詞而寫出不通順的句子，寧可調整情節。');
+      L.push('4. 參考例句只是幫你了解意思，不要照抄。');
+      L.push('5. 除了目標語詞，其他用詞不要超過' + grade + '程度。');
+      L.push('6. ' + (genre ? '文體：' + genre + '；' : '') + '全文約 ' + min + '～' + max + ' 字，要有標題。');
+      L.push('');
+      L.push('【寫完請附上】');
+      L.push('1. 對照表：目標語詞｜在文章中的哪一句｜這一句裡的意思（讓老師檢查有沒有漏掉或用錯）。');
+      if ($('s-quiz').checked) L.push('2. 3 題簡單的選擇題，每題考一個目標語詞在文中的意思，附答案。');
+      return L.join('\n');
+    }
+
+    function renderGroups() {
+      var words = pickedWords();
+      $('n-picked').textContent = words.length;
+      if (!words.length) { $('groups').innerHTML = '<p class="hint">左邊勾選語詞後，這裡會出現可以複製的指令。</p>'; return; }
+      var size = Math.min(20, Math.max(3, parseInt($('s-size').value, 10) || 10));
+      // 平均分組：23 個、每篇 10 → 8/8/7，不要出現 10/10/3
+      var k = Math.ceil(words.length / size);
+      var per = Math.ceil(words.length / k);
+      var html = '';
+      for (var i = 0; i < k; i++) {
+        var part = words.slice(i * per, (i + 1) * per);
+        if (!part.length) continue;
+        var grade = $('s-grade').value || autoGrade(part);
+        html += '<div class="group">'
+          + '<div class="group-head"><span>' + (k > 1 ? '第 ' + (i + 1) + ' 篇・' : '') + part.length + ' 個詞・' + esc(grade) + '</span>'
+          + '<button class="main" data-copy="' + i + '">複製這篇指令</button></div>'
+          + '<div class="group-words">' + part.map(function (d) { return esc(d.w); }).join('、') + '</div>'
+          + '<textarea id="ta-' + i + '" readonly>' + esc(buildPrompt(part, grade)) + '</textarea></div>';
+      }
+      $('groups').innerHTML = html;
+    }
+
+    function copyText(ta, btn) {
+      var done = function () {
+        var old = btn.textContent; btn.textContent = '已複製 ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = old; btn.classList.remove('done'); }, 1600);
+      };
+      var fallback = function () { ta.focus(); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { alert('請手動選取文字複製'); } };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(ta.value).then(done, fallback);
+      else fallback();
+    }
+
+    function refresh() { renderList(); renderGroups(); save(); }
+
+    // ── 事件 ──
+    buildFilters();
+    load();
+    ['f-grade', 'f-cat'].forEach(function (id) { $(id).addEventListener('change', renderList); });
+    ['f-year', 'f-hot'].forEach(function (id) { $(id).addEventListener('change', renderList); });
+    $('f-q').addEventListener('input', renderList);
+    ['s-grade', 's-genre', 's-size', 's-easy', 's-quiz'].forEach(function (id) {
+      $(id).addEventListener('change', function () { renderGroups(); save(); });
+    });
+    $('list').addEventListener('change', function (e) {
+      var card = e.target.closest('.word'); if (!card) return;
+      toggle(card.getAttribute('data-w'), e.target.checked);
+      card.classList.toggle('on', e.target.checked);
+      renderGroups(); save();
+    });
+    $('btn-all').addEventListener('click', function () {
+      filtered().forEach(function (d) { toggle(d.w, true); }); refresh();
+    });
+    $('btn-none').addEventListener('click', function () { picked = {}; pickSeq = 0; refresh(); });
+    $('groups').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-copy]'); if (!b) return;
+      copyText($('ta-' + b.getAttribute('data-copy')), b);
+    });
+    refresh();
+  })();
+  </script>
+</body>
+</html>
