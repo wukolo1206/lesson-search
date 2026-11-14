@@ -58,6 +58,21 @@
       background: var(--gray-50); outline: none; cursor: pointer;
     }
     select:focus { border-color: var(--primary); background: white; }
+    .search-input {
+      border: 1px solid var(--gray-200); border-radius: 8px;
+      padding: 5px 9px; font-size: .85rem; color: var(--gray-700);
+      background: var(--gray-50); outline: none; width: 170px; font-family: inherit;
+    }
+    .search-input:focus { border-color: var(--primary); background: white; }
+    /* 教材出處（併自原搜尋頁） */
+    .mat-card {
+      background: white; border: 1px solid var(--gray-200);
+      border-radius: 8px; padding: 10px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .mat-title { font-weight: 700; color: var(--primary); font-size: .88rem; }
+    .mat-row   { font-size: .8rem; color: var(--gray-700); }
+    .mat-row strong { color: var(--gray-600); }
 
     /* ── 操作列 ── */
     .action-bar {
@@ -694,13 +709,13 @@
          onmouseout="this.style.background='rgba(255,255,255,.2)'">
         📚 教材館
       </a>
-      <a href="index.html"
+      <a href="words.html"
          style="display:inline-block;padding:8px 18px;background:rgba(255,255,255,.2);
                 color:white;border-radius:8px;text-decoration:none;font-size:.88rem;
                 font-weight:600;border:1px solid rgba(255,255,255,.4);white-space:nowrap"
          onmouseover="this.style.background='rgba(255,255,255,.35)'"
          onmouseout="this.style.background='rgba(255,255,255,.2)'">
-        📚 切換到備課搜尋引擎 →
+        📝 考古題語詞清單
       </a>
       <a href="zhu.html" style="display:inline-block;padding:8px 18px;background:rgba(255,255,255,.2);color:white;border-radius:8px;text-decoration:none;font-size:.88rem;font-weight:600;border:1px solid rgba(255,255,255,.4);white-space:nowrap">🔤 字主板</a>
     </div>
@@ -744,6 +759,10 @@
              style="width:16px;height:16px;accent-color:#2563eb;cursor:pointer">
       只顯示考古題
     </label>
+  </div>
+  <div class="fg">
+    <label>🔍</label>
+    <input class="search-input" id="fKw" type="search" placeholder="輸入關鍵字…">
   </div>
   <button class="btn btn-reset" onclick="reset()">清除條件</button>
 </div>
@@ -1135,6 +1154,7 @@ function applyFilter() {
   const cat     = $('fCat').value,    diff   = $('fDiff').value;
   const tFilter  = $('fTaught').value;        // '' | '0' | '1'
   const kaogutiOnly = $('fKaoguti').checked; // 只顯示有完整題目的考古題
+  const kw = $('fKw').value.trim().toLowerCase();
 
   SHOWN = ALL.filter(q => {
     if (grade && q['年級']       !== grade) return false;
@@ -1142,6 +1162,13 @@ function applyFilter() {
     if (cat   && q['類別']       !== cat)   return false;
     if (diff  && q['難易度分級'] !== diff)  return false;
     if (kaogutiOnly && !q['完整題目與選項']) return false;
+    if (kw) {
+      const haystack = ['題目重點','學生迷思','教學策略','完整題目與選項',
+                        '記憶訣竅','讀音區分摘要','教材名稱']
+        .map(f => q[f] || '').join(' ')
+        + ' ' + (q._mat ? (q._mat['教材名稱'] || '') : '');
+      if (!haystack.toLowerCase().includes(kw)) return false;
+    }
     const uid = q['題目ID'] || q['題號'];
     if (tFilter === '0' &&  TAUGHT.has(uid)) return false;
     if (tFilter === '1' && !TAUGHT.has(uid)) return false;
@@ -1156,6 +1183,7 @@ function applyFilter() {
 function reset() {
   ['fGrade','fYear','fCat','fDiff','fTaught'].forEach(id => $(id).value = '');
   $('fKaoguti').checked = false;
+  $('fKw').value = '';
   applyFilter();
 }
 
@@ -1370,20 +1398,42 @@ function buildRefSection(q, uid) {
     ['🔤 讀音區分',     q['讀音區分摘要'], 'box-b'],
   ].filter(([, v]) => v && v.trim());
 
-  if (!items.length) return '';
+  const matHtml = q._mat ? buildMatCard(q._mat) : '';
+  if (!items.length && !matHtml) return '';
 
   const inner = items.map(([lbl, val, cls]) => `
     <div class="ref-item">
       <div class="ref-lbl">${lbl}</div>
       <div class="${cls}">${esc(val)}</div>
-    </div>`).join('');
+    </div>`).join('') + (matHtml ? `
+    <div class="ref-item">
+      <div class="ref-lbl">📚 對應教材</div>
+      ${matHtml}
+    </div>` : '');
 
   return `
   <button class="ref-toggle" onclick="toggleRef('ref-${esc(uid)}', this)">
-    <span>📖 備課參考（迷思・策略・訣竅）</span>
+    <span>📖 備課參考（迷思・策略・訣竅${matHtml ? '・教材' : ''}）</span>
     <span class="arrow">▼</span>
   </button>
   <div class="ref-body" id="ref-${esc(uid)}">${inner}</div>`;
+}
+
+/* 教材出處卡（併自原搜尋頁 index.html 的 matSection） */
+function buildMatCard(m) {
+  const rows = [
+    ['核心學習領域', m['核心學習領域']],
+    ['教學重點摘要', m['教學重點摘要']],
+    ['教學活動設計', m['主要教學活動設計']],
+    ['備課重點提醒', m['備課重點提醒']],
+  ].filter(([, v]) => v);
+  return `
+  <div class="mat-card">
+    <div class="mat-title">${esc(m['教材名稱'] || '')}
+      ${m['教材編號'] ? `<span style="font-weight:400;font-size:.78rem;color:var(--gray-600)">（${esc(m['教材編號'])}）</span>` : ''}
+    </div>
+    ${rows.map(([k, v]) => `<div class="mat-row"><strong>${k}：</strong>${esc(v)}</div>`).join('')}
+  </div>`;
 }
 
 function toggleRef(id, btn) {
@@ -2228,6 +2278,7 @@ function prevSlide() {
 
 /* ═══ 事件 & 啟動 ════════════════════════════════════════ */
 ['fGrade','fYear','fCat','fDiff','fTaught'].forEach(id => $(id).addEventListener('change', applyFilter));
+$('fKw').addEventListener('input', applyFilter);
 loadData();
 </script>
 <style>
