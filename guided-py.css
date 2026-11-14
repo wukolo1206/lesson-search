@@ -115,3 +115,26 @@ body.gp-open { overflow: hidden; }
 .gp-tbl th, .gp-tbl td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; vertical-align: top; }
 .gp-tbl th { background: #f9fafb; }
 .gp-card:disabled { color: #065f46; opacity: 1; }
+
+/* 詞義、成語 */
+.gp-sent { font-size: 1.1em; line-height: 2; }
+.gp-say { width: 100%; box-sizing: border-box; font: inherit; font-size: .95em; padding: 8px 12px; border: 2px solid #d1d5db; border-radius: 10px; resize: vertical; }
+.gp-say:focus { outline: none; border-color: #f59e0b; }
+.gp-taps { line-height: 2.3; }
+.gp-ch { border: none; background: transparent; font: inherit; padding: 2px 1px; margin: 0; border-radius: 4px; cursor: pointer; color: inherit; border-bottom: 2px dotted #d1d5db; }
+.gp-ch:hover:not(:disabled) { background: #fef3c7; }
+.gp-ch.is-picked { background: #fde68a; border-bottom-color: #b45309; font-weight: 700; }
+.gp-ch.is-clue { background: #bbf7d0; border-bottom: 2px solid #059669; color: #065f46; }
+.gp-ch.is-picked.is-clue { background: #6ee7b7; font-weight: 800; }
+.gp-ch:disabled { cursor: default; }
+.gp-lock { padding: 0; border-radius: 0; }
+.gp-swap { background: #dbeafe; color: #1e40af; }
+.gp-scard { font-weight: 500; font-size: .95em; text-align: left; line-height: 1.6; }
+.gp-scard.is-in { font-size: .9em; padding: 6px 10px; }
+.gp-dict { border: 1px solid #e5e7eb; border-left: 5px solid #6366f1; background: #fff; border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; }
+.gp-dict-head { font-weight: 800; font-size: 1.1em; color: #3730a3; margin-bottom: 4px; }
+.gp-dict-text { line-height: 1.8; }
+.gp-dict-src { font-size: .7em; color: #6b7280; margin-top: 6px; }
+.gp-eg { display: inline-block; font-size: .7em; background: #e0e7ff; color: #3730a3; border-radius: 4px; padding: 0 5px; margin: 0 4px; vertical-align: middle; }
+/* 一起動腦開著時，藏起右下角查字按鈕（手機上會蓋住「下一步」） */
+body.gp-open #lkLauncher { display: none !important; }

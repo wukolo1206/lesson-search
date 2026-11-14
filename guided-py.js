@@ -215,6 +215,7 @@
     var model = q && buildModel(q);
     if (!model) return;
     if (root.GuidedCZ && root.GuidedCZ.close) root.GuidedCZ.close();
+    if (root.GuidedCY && root.GuidedCY.close) root.GuidedCY.close();
     S = {
       q: q, m: model, step: 0,
       guess: null,
