@@ -27,11 +27,43 @@
 
   /* 題目能不能用：同一個字、至少兩種讀音、至少 3 個語詞 */
   /* 卡片上不可出現讀音或說明（如「得（必須義ㄉㄟˇ）」會洩漏答案） */
+  function goodWord(w, ch) {
+    return !!w && !HAS_BOPO.test(w) && !/[（(]/.test(w) && w.indexOf(ch) >= 0;
+  }
+
+  /* 從原題取出某個選項的文字：(1)…(2)… */
+  function optionText(qText, n) {
+    var re = new RegExp('[（(]' + n + '[)）]\s*([^(（]+)');
+    var m = String(qText || '').match(re);
+    return m ? m[1].trim() : '';
+  }
+
+  /* 從選項句子取出含「字」的那一小句，去掉「」 */
+  function clauseWith(text, ch) {
+    var parts = String(text || '').split(/[！!？?。，,；;]/);
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].indexOf('「' + ch + '」') >= 0) return parts[i].replace(/[「」]/g, '').trim();
+    }
+    return '';
+  }
+
+  /* 卡片用的語詞：細目語詞能用就用；不能用（含讀音、括號、或不含目標字，
+     如「得（必須義ㄉㄟˇ）」「二月份」）就改用原題該選項的句子；都不行才排除 */
   function usableRows(q) {
-    return ((q && q._py) || []).filter(function (r) {
-      var w = String(r['詞語'] || '');
-      return w && !HAS_BOPO.test(w) && !/[（(]/.test(w) && w.indexOf(r['破音字']) >= 0; // 語詞要含目標字
+    var qText = (q && q['完整題目與選項']) || '';
+    var out = [];
+    ((q && q._py) || []).forEach(function (r) {
+      var ch = r['破音字'], w = String(r['詞語'] || '');
+      if (goodWord(w, ch)) { out.push(r); return; }
+      var m = String(r['來源'] || '').match(/選項\((\d)\)/);
+      var alt = m ? clauseWith(optionText(qText, m[1]), ch) : '';
+      if (goodWord(alt, ch)) {
+        var copy = {}; for (var k in r) copy[k] = r[k];
+        copy['詞語'] = alt;
+        out.push(copy);
+      }
     });
+    return out;
   }
 
   function joinMeanings(list) {
@@ -53,6 +85,10 @@
     if (rows.length < 3) return false;
     var chars = {}, reads = {};
     rows.forEach(function (r) { chars[r['破音字']] = 1; reads[r['注音']] = 1; });
+    var ch = Object.keys(chars)[0];
+    // 原題要真的在考這個字（第 210 題細目誤放「得」的資料，原題考「喝」）
+    var qText = String((q && q['完整題目與選項']) || '');
+    if (qText && qText.indexOf('「' + ch + '」') < 0) return false;
     return Object.keys(chars).length === 1 && Object.keys(reads).length >= 2;
   }
 
@@ -117,6 +153,16 @@
 
   /* ═══ 畫面 ═══════════════════════════════════════════ */
   var STEPS = ['先念念看', '分成兩堆', '說說意思', '找到規則', '想法改了嗎', '原題挑戰'];
+  /* 給老師看的教材依據（學扶國語三年級教師手冊 3-1-3《語詞一家人（一）》） */
+  var SOURCE = '學扶國語教材 三年級《語詞一家人（一）》（3-1-3）';
+  var STEP_SRC = [
+    '準備活動「念一念」：先讓學生試讀，手冊提醒「無須立即糾正讀錯的學生」',
+    '發展活動（一）「來玩字音的遊戲」：念出語詞，把語詞卡放到對的字音卡上',
+    '發展活動（二）「發現字音的祕密」：觀察兩堆牌卡，說說念不同音時是什麼意思',
+    '發展活動（二）羊博士的話：字音會改變，是因為意思不同（音隨義轉）',
+    '準備活動手冊提示「先讓學生提出自己的想法」，加上「抽語詞說句子」',
+    '發展活動（三）（五）換一個字再玩一次、自己找多音字（漸進式釋放責任）'
+  ];
   var S = null;          // 目前狀態
   var audio = null;
   var cfg = { getAll: function () { return []; }, parseOptions: null, getAnswer: null };
@@ -341,6 +387,7 @@
         '<div class="gp-top"><div class="gp-title">✏️ 一起動腦：破音字「<b>' + h(S.m.char) + '</b>」</div>' +
           '<button class="gp-close" data-act="close" aria-label="離開">✕ 離開</button></div>' +
         '<div class="gp-steps">' + bar + '</div>' +
+        '<div class="gp-src"><b>📘 教學依據</b>' + h(SOURCE) + '<span class="gp-src-step">這一步：' + h(STEP_SRC[S.step]) + '</span></div>' +
         '<div class="gp-body">' + body + '</div>' +
         '<div class="gp-foot">' +
           (S.step > 0 && S.step < 5 ? '<button class="gp-back" data-act="back">← 上一步</button>' : '<span></span>') +

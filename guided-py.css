@@ -30,6 +30,9 @@ body.gp-open { overflow: hidden; }
 .gp-step.is-now { background: #b45309; color: #fff; border-color: #b45309; font-weight: 700; }
 .gp-step.is-done { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
 
+.gp-src { padding: 6px 20px; background: #fffbeb; border-bottom: 1px solid #fde68a; font-size: .68em; color: #78350f; line-height: 1.6; }
+.gp-src b { margin-right: 6px; }
+.gp-src-step { display: block; color: #92400e; }
 .gp-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
 .gp-ask { font-weight: 700; margin-bottom: 14px; line-height: 1.6; }
 .gp-ask b { color: #b45309; font-size: 1.2em; }
