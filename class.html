@@ -1219,7 +1219,8 @@ function unitHtml(q) {
             onclick="toggleTaught('${esc(uid)}')" title="點擊切換教學狀態">
       ${isTaught ? '✅ 已教過' : '○ 未教過'}
     </button>
-    ${window.GuidedPY && GuidedPY.qualifies(q) ? `<button class="btn-guided" onclick="GuidedPY.open('${esc(uid)}')" title="依學扶教材《語詞一家人》的步驟，帶學生一步一步發現讀音規則">✏️ 一起動腦</button>` : ''}
+    ${window.GuidedPY && GuidedPY.qualifies(q) ? `<button class="btn-guided" onclick="GuidedPY.open('${esc(uid)}')" title="依學扶教材《語詞一家人》的步驟，帶學生一步一步發現讀音規則">✏️ 一起動腦</button>`
+      : window.GuidedCZ && GuidedCZ.qualifies(q) ? `<button class="btn-guided" onclick="GuidedCZ.open('${esc(uid)}')" title="依學扶教材《國字會分工》的步驟，帶學生從意思和部首判斷用字">✏️ 一起動腦</button>` : ''}
     <div class="unit-title">${esc(q['題目重點'])}</div>
   </div>
   <div class="table-section">
@@ -2287,8 +2288,10 @@ loadData();
   td.lk-w { cursor: pointer; text-decoration: underline dotted #999; text-underline-offset: 3px; }
 </style>
 <script src="guided-py.js"></script>
+<script src="guided-cz.js"></script>
 <script>
 if (window.GuidedPY) GuidedPY.configure({ getAll: function () { return ALL; }, parseOptions: parseOptions, getAnswer: getAnswer });
+if (window.GuidedCZ) GuidedCZ.configure({ getAll: function () { return ALL; } });
 if (typeof renderList === 'function' && ALL.length) renderList();
 </script>
 <script src="lookup-core.js"></script>

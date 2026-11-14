@@ -104,3 +104,14 @@ body.gp-open { overflow: hidden; }
   .gp-panel { border-radius: 0; height: 100%; }
   .gp-body { padding: 14px 16px; }
 }
+
+/* 錯別字 */
+.gp-mark { color: #b91c1c; font-weight: 800; background: #fee2e2; border-radius: 4px; padding: 0 3px; }
+.gp-srow { border: 1px solid #e5e7eb; background: #fff; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+.gp-stext { margin-bottom: 8px; line-height: 1.7; }
+.gp-big { font-size: 1.35em; font-weight: 800; min-width: 64px; text-align: center; }
+.gp-rad { display: block; font-size: .6em; font-weight: 600; color: #065f46; }
+.gp-tbl { width: 100%; border-collapse: collapse; font-size: .85em; margin-bottom: 10px; }
+.gp-tbl th, .gp-tbl td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; vertical-align: top; }
+.gp-tbl th { background: #f9fafb; }
+.gp-card:disabled { color: #065f46; opacity: 1; }

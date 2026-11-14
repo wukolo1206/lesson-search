@@ -197,8 +197,8 @@
       el.setAttribute('role', 'dialog');
       el.setAttribute('aria-modal', 'true');
       document.body.appendChild(el);
-      el.addEventListener('click', onClick);
     }
+    if (!el._pyBound) { el.addEventListener('click', onClick); el._pyBound = true; }  // 錯別字模組可能先建立視窗
     return el;
   }
 
@@ -214,6 +214,7 @@
     var q = findQ(uid);
     var model = q && buildModel(q);
     if (!model) return;
+    if (root.GuidedCZ && root.GuidedCZ.close) root.GuidedCZ.close();
     S = {
       q: q, m: model, step: 0,
       guess: null,
@@ -237,7 +238,7 @@
 
   function close() {
     var el = document.getElementById('gp-overlay');
-    if (el) el.innerHTML = '';
+    if (el && S) el.innerHTML = '';
     document.body.classList.remove('gp-open');
     S = null;
   }
