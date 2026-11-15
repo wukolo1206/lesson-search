@@ -41,6 +41,9 @@
            border-radius:4px; margin-bottom:6px; font-size:.85rem; cursor:pointer; }
   .qcard.active { background:#dbeafe; border-left-color:#1d4ed8; }
   .qcard .qmeta { color:var(--muted); font-size:.72rem; }
+  .qcard .qlink { display:inline-block; margin-top:6px; font-size:.8rem; font-weight:700; color:#b45309; text-decoration:none; border:1px solid #fcd34d; background:#fffbeb; border-radius:999px; padding:2px 10px; }
+  .qcard .qlink:hover { background:#fef3c7; }
+  .taught-note { font-size:.75rem; color:#065f46; margin-top:6px; line-height:1.5; }
   #basket { position:sticky; bottom:0; background:#fff; border-top:2px solid var(--blue);
             padding:10px 16px; }
   #status { padding:40px; text-align:center; color:var(--muted); }
@@ -77,6 +80,8 @@
   .wa-dictionary-row { padding:10px 0; border-top:1px solid var(--line); }
   .wa-dictionary-row:first-child { border-top:0; }
   .wa-dictionary-row h3,.wa-dictionary-row p { margin:4px 0; }
+  .wa-dictionary-row .wa-reading { color:#7c3aed; font-weight:700; font-size:1.15em; letter-spacing:1px; }
+  .wa-dict-source { font-size:.8em; color:var(--muted, #6b7280); margin-top:8px; }
   .wa-print-sheet { display:none; }
   @media (max-width:700px) {
     .wa-overlay { padding:0; }
@@ -294,7 +299,6 @@
   </select>
   <span style="flex:1"></span>
   <a href="class.html" class="btn" style="text-decoration:none">← 課堂講義</a>
-  <a href="class.html" class="btn" style="text-decoration:none">課堂講義</a>
 </header>
 
 <nav id="modeTabs" aria-label="字主板模式">

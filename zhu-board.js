@@ -26,7 +26,7 @@
         renderPrep();
       },
       onToggleTaught: function (char) {
-        if (!ZhuCore.setTaughtChar(char, !ZhuCore.isTaughtChar(char))) {
+        if (!ZhuCore.setTaughtChar(char, !ZhuCore.isTaughtChar(char), null)) {
           alert('已教紀錄無法儲存，請確認瀏覽器儲存空間。');
           return;
         }
@@ -34,7 +34,7 @@
         renderTaughtButton();
       },
       onResetTaught: function () {
-        if (!confirm('確定要清除所有已教標記嗎？')) return;
+        if (!confirm('確定要清除字主板手動標記的已教字嗎？\n（講義上標記「已教過」的題目不受影響，要取消請到講義。）')) return;
         if (!ZhuCore.resetTaughtChars()) {
           alert('已教紀錄無法清除，請確認瀏覽器儲存空間。');
           return;
@@ -115,7 +115,7 @@
       $('app').classList.remove('hidden');
       $('basket').classList.remove('hidden');
       renderBasket();
-      render();
+      if (!openFromUrl()) render();
     }, function (err) {
       $('status').innerHTML = '';
       var msg = document.createElement('p');
@@ -128,6 +128,30 @@
       $('status').appendChild(retry);
     });
   }
+
+  /* 從講義「✍️ 寫寫看」進來：zhu.html?q=題目ID（帶題目情境、考點字加入佇列）或 ?char=字 */
+  function openFromUrl() {
+    var params;
+    try { params = new URLSearchParams(window.location.search); } catch (e) { return false; }
+    var qid = params.get('q'), ch = params.get('char');
+    if (qid && window.ZhuPrep && window.ZhuPrep.charsOfQuestion) {
+      var chars = window.ZhuPrep.charsOfQuestion(index, qid);
+      if (chars.length) {
+        chars.forEach(function (c) { ZhuCore.addSelectedChar(c, qid); });
+        showChar(chars[0], qid);
+        return true;
+      }
+    }
+    if (ch && /^[\u3400-\u9fff]$/.test(ch)) { showChar(ch, null); return true; }
+    return false;
+  }
+
+  // 講義在另一個分頁改了「已教過」→ 這裡馬上更新
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'taught_questions_v1' || !index) return;
+    renderTaughtButton();
+    if (!$('view-prep').classList.contains('hidden')) renderPrep();
+  });
 
   // ── 字主板渲染 ──────────────────────────────────────────
   function showChar(char, contextQuestionId) {
@@ -236,6 +260,17 @@
     button.textContent = taught ? '✓ 已教｜取消' : '標記已教';
     button.setAttribute('aria-label', (taught ? '取消已教：' : '標記已教：') + char);
     button.setAttribute('aria-pressed', taught ? 'true' : 'false');
+    var note = $('taughtNote');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'taughtNote';
+      note.className = 'taught-note';
+      button.parentNode.insertBefore(note, button.nextSibling);
+    }
+    var qs = ZhuCore.taughtQuestionsOf(char);
+    note.textContent = qs.length
+      ? '講義已教過：' + qs.map(function (q) { return q['年度'] + '年' + q['年級'] + '第' + q['題號'] + '題'; }).join('、')
+      : (boardState.contextQuestionId && !taught ? '標記後，講義上這一題也會變成已教過' : '');
   }
 
   function renderBigChar() {
@@ -294,8 +329,15 @@
       meta.textContent = q['年級'] + '　' + q['年度'] + ' 年　第 ' + q['題號'] + ' 題　' + q['類別'];
       var body = document.createElement('div');
       body.textContent = q['完整題目與選項'] || '';
+      var link = document.createElement('a');
+      link.className = 'qlink';
+      link.href = 'class.html?guided=' + encodeURIComponent(q['題目ID']);
+      link.textContent = '↗ 到講義這一題（一起動腦）';
+      link.title = '回到課堂講義的這一題；有一起動腦的題目會直接打開';
+      link.onclick = function (e) { e.stopPropagation(); };
       d.appendChild(meta);
       d.appendChild(body);
+      d.appendChild(link);
       d.onclick = function () {
         // 再點一次同一題＝取消教學情境
         var same = String(q['題目ID']) === String(boardState.contextQuestionId);
@@ -441,11 +483,15 @@
   };
   $('btnTaught').onclick = function () {
     if (!boardState.char) return;
-    if (!ZhuCore.setTaughtChar(boardState.char, !ZhuCore.isTaughtChar(boardState.char))) {
+    var wasTaught = ZhuCore.isTaughtChar(boardState.char);
+    if (!ZhuCore.setTaughtChar(boardState.char, !wasTaught, boardState.contextQuestionId)) {
       alert('已教紀錄無法儲存，請確認瀏覽器儲存空間。');
       return;
     }
     renderTaughtButton();
+    if (wasTaught && ZhuCore.isTaughtChar(boardState.char)) {
+      alert('這個字所屬的題目在講義標了「已教過」，所以仍顯示已教。\n要取消，請到課堂講義把那一題改回「未教過」。');
+    }
   };
   $('btnClear').onclick = function () {
     if (!confirm('詞籃、筆跡、偏好與語詞應用結果都會清掉；已教紀錄會保留。確定嗎？')) return;

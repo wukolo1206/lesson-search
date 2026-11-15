@@ -8,8 +8,11 @@ var ZhuCore = (function () {
   var tables = null;
   var basket = [];
   var selectedChars = [];
-  var taughtChars = [];
+  var taughtChars = [];          // 字主板手動標記的已教字（zhu.taught.v1）
   var activeSelectedIndex = 0;
+  var lsImpl = null;
+  // 講義「已教過」（以題記）。全站共用這一份：字主板讀它推算已教字，標記時有題目情境也寫回它。
+  var CLASS_TAUGHT_KEY = 'taught_questions_v1';
 
   var state = {
     char: null,
@@ -19,6 +22,7 @@ var ZhuCore = (function () {
   };
 
   function init(localStorageImpl) {
+    lsImpl = localStorageImpl || (typeof window !== 'undefined' ? window.localStorage : null);
     store = ZhuStore.create(localStorageImpl);
     state.grade = (store.get('prefs', {}).grade) || '三年級';
     basket = store.get('basket', []);
@@ -70,10 +74,39 @@ var ZhuCore = (function () {
   function getStore() { return store; }
   function getSelectedChars() { return selectedChars.map(function (entry) { return { char: entry.char, contextQuestionId: entry.contextQuestionId }; }); }
   function getActiveSelectedIndex() { return activeSelectedIndex; }
-  function getTaughtChars() { return taughtChars.slice(); }
-  function isTaughtChar(char) { return taughtChars.indexOf(char) !== -1; }
+  function readClassTaught() {
+    try {
+      var v = JSON.parse((lsImpl && lsImpl.getItem(CLASS_TAUGHT_KEY)) || '[]');
+      return Array.isArray(v) ? v.map(String) : [];
+    } catch (e) { return []; }
+  }
+  function writeClassTaught(ids) {
+    try { lsImpl.setItem(CLASS_TAUGHT_KEY, JSON.stringify(ids)); return true; } catch (e) { return false; }
+  }
+  function setQuestionTaught(questionId, taught) {
+    if (questionId === null || questionId === undefined || questionId === '') return true;
+    var id = String(questionId), ids = readClassTaught(), at = ids.indexOf(id);
+    if (taught && at === -1) ids.push(id);
+    if (!taught && at !== -1) ids.splice(at, 1);
+    return writeClassTaught(ids);
+  }
+  /* 這個字考過的題目裡，講義標了已教過的 */
+  function taughtQuestionsOf(char) {
+    if (!index) return [];
+    var set = readClassTaught();
+    return index.questionsOf(char).filter(function (q) { return set.indexOf(String(q['題目ID'])) !== -1; });
+  }
+  function isManualTaughtChar(char) { return taughtChars.indexOf(char) !== -1; }
+  function isTaughtChar(char) { return isManualTaughtChar(char) || taughtQuestionsOf(char).length > 0; }
+  function getTaughtChars() {
+    var out = taughtChars.slice();
+    if (index) index.allChars().forEach(function (c) { if (out.indexOf(c) === -1 && taughtQuestionsOf(c).length) out.push(c); });
+    return out;
+  }
 
-  function setTaughtChar(char, taught) {
+  /* 標記／取消已教：字主板手動標記；有題目情境時同一題也寫回講義。
+     取消時若這個字還有其他題在講義標了已教過，仍會顯示已教（要到講義取消）。 */
+  function setTaughtChar(char, taught, contextQuestionId) {
     char = String(char || '').trim();
     if (!/^[\u3400-\u9fff]$/.test(char)) return false;
     var next = taughtChars.slice();
@@ -82,7 +115,7 @@ var ZhuCore = (function () {
     if (!taught && indexValue !== -1) next.splice(indexValue, 1);
     if (!store.set('taught', next)) return false;
     taughtChars = next;
-    return true;
+    return setQuestionTaught(contextQuestionId, taught);
   }
 
   function resetTaughtChars() {
@@ -168,6 +201,9 @@ var ZhuCore = (function () {
     getSelectedChars: getSelectedChars,
     getTaughtChars: getTaughtChars,
     isTaughtChar: isTaughtChar,
+    isManualTaughtChar: isManualTaughtChar,
+    taughtQuestionsOf: taughtQuestionsOf,
+    setQuestionTaught: setQuestionTaught,
     setTaughtChar: setTaughtChar,
     resetTaughtChars: resetTaughtChars,
     setSelectedChars: setSelectedChars,

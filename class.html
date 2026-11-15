@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>國語字音形 — 課堂講義</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <link rel="stylesheet" href="guided-py.css?v=20261115d">
-  <link rel="stylesheet" href="class-themes.css?v=20261115d">
-  <script src="class-themes.js?v=20261115d"></script>
+  <link rel="stylesheet" href="guided-py.css?v=20261115e">
+  <link rel="stylesheet" href="class-themes.css?v=20261115e">
+  <script src="class-themes.js?v=20261115e"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -946,6 +946,22 @@ const csvUrl = name =>
 let ALL = [], SHOWN = [];
 let projData = [], projIdx = 0, projRevealed = false;
 
+/* ═══ 從字主板「↗ 到講義這一題」進來：class.html?guided=題目ID ═══ */
+function openFromUrl() {
+  let p; try { p = new URLSearchParams(location.search); } catch (e) { return; }
+  const id = p.get('guided') || p.get('q');
+  if (!id) return;
+  const el = document.getElementById('unit-' + id);
+  if (el) { el.scrollIntoView({ block: 'start' }); el.classList.add('deep-hit'); }
+  if (!p.get('guided')) return;
+  const q = ALL.find(x => String(x['題目ID']) === String(id));
+  if (!q) return;
+  for (const name of ['GuidedPY', 'GuidedCZ', 'GuidedCY', 'GuidedXJ']) {
+    const m = window[name];
+    if (m && m.qualifies(q)) { m.open(id); return; }
+  }
+}
+
 /* ═══ 教學記憶（localStorage）════════════════════════════ */
 const STORAGE_KEY = 'taught_questions_v1';
 let TAUGHT = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
@@ -953,6 +969,13 @@ let TAUGHT = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
 function saveTaught() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...TAUGHT]));
 }
+
+// 字主板在另一個分頁標了已教 → 講義馬上更新（兩邊共用這一份紀錄）
+window.addEventListener('storage', e => {
+  if (e.key !== STORAGE_KEY) return;
+  try { TAUGHT = new Set(JSON.parse(e.newValue || '[]')); } catch (x) { return; }
+  if (ALL.length) renderList();
+});
 
 function toggleTaught(uid) {
   if (TAUGHT.has(uid)) TAUGHT.delete(uid); else TAUGHT.add(uid);
@@ -1129,6 +1152,7 @@ async function loadData() {
 
     fillSelects();
     applyFilter();
+    openFromUrl();
     $('loading').style.display = 'none';
   } catch(e) {
     $('loading').innerHTML = `
@@ -1226,6 +1250,7 @@ function unitHtml(q) {
       : window.GuidedCZ && GuidedCZ.qualifies(q) ? `<button class="btn-guided" onclick="GuidedCZ.open('${esc(uid)}')" title="依學扶教材《國字會分工》的步驟，帶學生從意思和部首判斷用字">✏️ 一起動腦</button>`
       : window.GuidedCY && GuidedCY.qualifies(q) ? `<button class="btn-guided" onclick="GuidedCY.open('${esc(uid)}')" title="依學扶教材《語詞一家人（二）》的步驟，帶學生找前後文線索、換詞讀一讀">✏️ 一起動腦</button>`
       : window.GuidedXJ && GuidedXJ.qualifies(q) ? `<button class="btn-guided" onclick="GuidedXJ.open('${esc(uid)}')" title="依學扶教材《國字會分工》的步驟，帶學生發現「一邊是意思，一邊是聲音」">✏️ 一起動腦</button>` : ''}
+    ${(q._py.length || q._cz.length || q._xj.length) ? `<a class="btn-zhu" href="zhu.html?q=${encodeURIComponent(uid)}" title="用這一題的考點字打開字主板：擴展語詞、寫寫看">✍️ 寫寫看</a>` : ''}
     <div class="unit-title">${esc(q['題目重點'])}</div>
   </div>
   <div class="table-section">
@@ -2292,14 +2317,14 @@ loadData();
 <style>
   td.lk-w { cursor: pointer; text-decoration: underline dotted #999; text-underline-offset: 3px; }
 </style>
-<script src="guided-py.js?v=20261115d"></script>
-<script src="guided-cz.js?v=20261115d"></script>
-<script src="guided-cy-data.js?v=20261115d"></script>
-<script src="guided-cy.js?v=20261115d"></script>
-<script src="guided-xj-data.js?v=20261115d"></script>
-<script src="guided-xj.js?v=20261115d"></script>
-<script src="guided-apply-data.js?v=20261115d"></script>
-<script src="guided-apply.js?v=20261115d"></script>
+<script src="guided-py.js?v=20261115e"></script>
+<script src="guided-cz.js?v=20261115e"></script>
+<script src="guided-cy-data.js?v=20261115e"></script>
+<script src="guided-cy.js?v=20261115e"></script>
+<script src="guided-xj-data.js?v=20261115e"></script>
+<script src="guided-xj.js?v=20261115e"></script>
+<script src="guided-apply-data.js?v=20261115e"></script>
+<script src="guided-apply.js?v=20261115e"></script>
 <script>
 if (window.GuidedPY) GuidedPY.configure({ getAll: function () { return ALL; }, parseOptions: parseOptions, getAnswer: getAnswer });
 if (window.GuidedCZ) GuidedCZ.configure({ getAll: function () { return ALL; } });

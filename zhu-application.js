@@ -89,23 +89,54 @@ var ZhuApplication = (function () {
     }
   }
 
-  function renderDictionaryRow(data, term) {
+  /* 讀音與詞義：教育部《國語辭典簡編本》（zhu-concised-words.js，展開時才載入；不再查萌典） */
+  var CONCISED_SRC = 'zhu-concised-words.js';
+  var REVISED_SEARCH = 'https:/' + '/dict.revised.moe.edu.tw/search.jsp?md=1&word=';
+
+  function renderDictionaryRow(entries, term) {
     var row = document.createElement('section');
     row.className = 'wa-dictionary-row';
     var heading = document.createElement('h3');
     heading.textContent = term;
     row.appendChild(heading);
-    if (!data) {
-      row.appendChild(document.createTextNode('萌典找不到這個詞'));
+    if (!entries || !entries.length) {
+      var miss = document.createElement('p');
+      miss.appendChild(document.createTextNode('簡編本沒有這個詞條，可到 '));
+      var a = document.createElement('a');
+      a.href = REVISED_SEARCH + encodeURIComponent(term);
+      a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = '教育部《重編國語辭典修訂本》查詢';
+      miss.appendChild(a);
+      row.appendChild(miss);
       return row;
     }
-    var reading = document.createElement('p');
-    reading.textContent = data.zhuyin || '未提供注音';
-    var explanation = document.createElement('p');
-    explanation.textContent = data.explanation || '未提供詞義';
-    row.appendChild(reading);
-    row.appendChild(explanation);
+    entries.forEach(function (entry) {
+      var reading = document.createElement('p');
+      reading.className = 'wa-reading';
+      reading.textContent = entry[0] || '未提供注音';
+      row.appendChild(reading);
+      String(entry[1] || '').split(/\r?\n/).forEach(function (line) {
+        if (!line.trim()) return;
+        var p = document.createElement('p');
+        p.textContent = line.replace(/\[例\]/g, '（例）');
+        row.appendChild(p);
+      });
+    });
     return row;
+  }
+
+  var concisedPromise = null;
+  function loadConcised() {
+    if (window.ZhuConcisedWords) return Promise.resolve(window.ZhuConcisedWords);
+    if (concisedPromise) return concisedPromise;
+    concisedPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = CONCISED_SRC;
+      script.onload = function () { window.ZhuConcisedWords ? resolve(window.ZhuConcisedWords) : reject(new Error('EMPTY')); };
+      script.onerror = function () { concisedPromise = null; reject(new Error('LOAD')); };
+      document.head.appendChild(script);
+    });
+    return concisedPromise;
   }
 
   function loadDictionary() {
@@ -113,17 +144,17 @@ var ZhuApplication = (function () {
     dictionaryLoaded = true;
     var terms = selectedTerms();
     var body = $('waDictionaryBody');
-    body.textContent = '查詢萌典中…';
-    Promise.all(terms.map(function (term) {
-      return fetch('https:/' + '/www.moedict.tw/uni/' + encodeURIComponent(term))
-        .then(function (response) { return response.ok ? response.json() : null; })
-        .then(function (raw) { return { term: term, data: LookupCore.normalizeMoedict(raw, term) }; })
-        .catch(function () { return { term: term, data: null }; });
-    })).then(function (rows) {
+    body.textContent = '載入教育部《國語辭典簡編本》…';
+    loadConcised().then(function (dict) {
       body.textContent = '';
-      rows.forEach(function (item) {
-        body.appendChild(renderDictionaryRow(item.data, item.term));
-      });
+      terms.forEach(function (term) { body.appendChild(renderDictionaryRow(dict[term], term)); });
+      var src = document.createElement('p');
+      src.className = 'wa-dict-source';
+      src.textContent = '讀音與詞義：教育部《國語辭典簡編本》（2014 版，2026-06-26 下載）';
+      body.appendChild(src);
+    }).catch(function () {
+      dictionaryLoaded = false;
+      body.textContent = '辭典資料載入失敗，請重新整理後再試。';
     });
   }
 
