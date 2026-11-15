@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>國語字音形 — 課堂講義</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <link rel="stylesheet" href="guided-py.css?v=20261115g">
-  <link rel="stylesheet" href="class-themes.css?v=20261115g">
-  <script src="class-themes.js?v=20261115g"></script>
+  <link rel="stylesheet" href="guided-py.css?v=20261115h">
+  <link rel="stylesheet" href="class-themes.css?v=20261115h">
+  <link rel="stylesheet" href="class-topics.css?v=20261115h">
+  <script src="class-themes.js?v=20261115h"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -800,7 +801,10 @@
 </div>
 
 <!-- 主列表 -->
-<main><div id="grid"></div></main>
+<div id="topicLayout">
+  <aside id="topicNav" aria-label="主題與單元"></aside>
+  <main><div id="grid"></div></main>
+</div>
 
 <!-- 投影模式（全螢幕覆蓋） -->
 <div id="projector">
@@ -1004,6 +1008,7 @@ window.addEventListener('storage', e => {
 function toggleTaught(uid) {
   if (TAUGHT.has(uid)) TAUGHT.delete(uid); else TAUGHT.add(uid);
   saveTaught();
+  if (window.ClassTopics && ClassTopics.state().mode !== 'all') { ClassTopics.refreshNav(); if (ClassTopics.state().mode === 'unit') { ClassTopics.render(); return; } }
   // 直接更新卡片，不重新渲染整個列表
   const unit = document.getElementById('unit-' + uid);
   if (!unit) return;
@@ -1175,7 +1180,8 @@ async function loadData() {
     }));
 
     fillSelects();
-    applyFilter();
+    // 主題闖關：依網址進闖關地圖／單元／全部題目（init 會自己套用篩選並畫面）
+    if (!(window.ClassTopics && ClassTopics.init())) applyFilter();
     openFromUrl();
     $('loading').style.display = 'none';
   } catch(e) {
@@ -1241,6 +1247,7 @@ function reset() {
 
 /* ═══ 列表渲染 ════════════════════════════════════════════ */
 function renderList() {
+  if (window.ClassTopics && ClassTopics.render()) return;   // 闖關地圖或單元畫面
   const grid = $('grid');
   if (!SHOWN.length) {
     grid.innerHTML = '<div class="empty">🔍 找不到符合條件的題目，請調整篩選條件</div>';
@@ -2163,6 +2170,7 @@ function selectNone() {
 }
 
 function printHandout() {
+  if (window.ClassTopics && ClassTopics.state().mode === 'unit') { ClassTopics.printUnit(); return; }
   const checked = document.querySelectorAll('.unit-cb:checked');
   document.body.classList.toggle('print-selected-only', checked.length > 0);
   window.addEventListener('afterprint', () => {
@@ -2343,15 +2351,17 @@ loadData();
 <style>
   td.lk-w { cursor: pointer; text-decoration: underline dotted #999; text-underline-offset: 3px; }
 </style>
-<script src="class-results.js?v=20261115g"></script>
-<script src="guided-py.js?v=20261115g"></script>
-<script src="guided-cz.js?v=20261115g"></script>
-<script src="guided-cy-data.js?v=20261115g"></script>
-<script src="guided-cy.js?v=20261115g"></script>
-<script src="guided-xj-data.js?v=20261115g"></script>
-<script src="guided-xj.js?v=20261115g"></script>
-<script src="guided-apply-data.js?v=20261115g"></script>
-<script src="guided-apply.js?v=20261115g"></script>
+<script src="class-results.js?v=20261115h"></script>
+<script src="class-topics.js?v=20261115h"></script>
+<script src="class-topics-ui.js?v=20261115h"></script>
+<script src="guided-py.js?v=20261115h"></script>
+<script src="guided-cz.js?v=20261115h"></script>
+<script src="guided-cy-data.js?v=20261115h"></script>
+<script src="guided-cy.js?v=20261115h"></script>
+<script src="guided-xj-data.js?v=20261115h"></script>
+<script src="guided-xj.js?v=20261115h"></script>
+<script src="guided-apply-data.js?v=20261115h"></script>
+<script src="guided-apply.js?v=20261115h"></script>
 <script>
 if (window.GuidedPY) GuidedPY.configure({ getAll: function () { return ALL; }, parseOptions: parseOptions, getAnswer: getAnswer });
 if (window.GuidedCZ) GuidedCZ.configure({ getAll: function () { return ALL; } });
