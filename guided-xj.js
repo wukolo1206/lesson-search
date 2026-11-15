@@ -128,7 +128,7 @@
   function open(uid) {
     var q = findQ(uid), m = q && buildModel(q);
     if (!m) return;
-    ['GuidedPY', 'GuidedCZ', 'GuidedCY'].forEach(function (k) { if (root[k] && root[k].close) root[k].close(); });
+    ['GuidedPY', 'GuidedCZ', 'GuidedCY', 'GuidedApply'].forEach(function (k) { if (root[k] && root[k].close) root[k].close(); });
     var mi = meaningItems(m);
     S = {
       q: q, m: m, step: 0, mi: mi,
@@ -271,7 +271,13 @@
       '<div>相同的地方一次就找對：' + count(S.sFirst, n) + ' / ' + n + ' 組</div>' +
       '<div>管意思的一邊一次就選對：' + count(S.mFirst, S.mi.length) + ' / ' + S.mi.length + ' 個字</div>' +
       '<div>原題：' + (S.finalFirst ? '第一次就答對' : '試了不只一次才答對') + '</div></div>' +
-      (next ? '<button class="gp-next glow" data-act="another" data-id="' + h(next['題目ID'] || next['題號']) + '">換一題再試試 →</button>' : '');
+      applyBtn(next) +
+      (next ? '<button class="' + (hasApply() ? 'gp-back' : 'gp-next glow') + '" data-act="another" data-id="' + h(next['題目ID'] || next['題號']) + '">換一題再試試 →</button>' : '');
+  }
+
+  function hasApply() { return !!(root.GuidedApply && root.GuidedApply.has(S.m.uid)); }
+  function applyBtn(next) {
+    return hasApply() ? '<button class="gp-next glow" data-act="apply" data-next="' + h(next ? (next['題目ID'] || next['題號']) : '') + '">換個句子用用看 →</button> ' : '';
   }
 
   function render() {
@@ -318,6 +324,7 @@
     if (act === 'next' && stepDone()) { S.step++; return render(); }
     if (act === 'back') { S.step--; return render(); }
     if (act === 'another') { var nid = b.getAttribute('data-id'); close(); return open(nid); }
+    if (act === 'apply') { var au = S.m.uid, an = b.getAttribute('data-next'); close(); return root.GuidedApply.open(au, { mod: 'GuidedXJ', next: an }); }
     if (act === 'guess') { S.guess[i] = v; return render(); }
     if (act === 'shared') {
       var p = S.m.pairs[i];

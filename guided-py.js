@@ -217,6 +217,7 @@
     if (root.GuidedCZ && root.GuidedCZ.close) root.GuidedCZ.close();
     if (root.GuidedCY && root.GuidedCY.close) root.GuidedCY.close();
     if (root.GuidedXJ && root.GuidedXJ.close) root.GuidedXJ.close();
+    if (root.GuidedApply && root.GuidedApply.close) root.GuidedApply.close();
     S = {
       q: q, m: model, step: 0,
       guess: null,
@@ -371,7 +372,13 @@
       '<div>一開始的猜測：' + h({ same: '都一樣', diff: '有的不一樣', unsure: '還不確定' }[S.guess]) + '</div>' +
       '<div>分堆一次就放對：' + first + ' / ' + n + ' 張</div>' +
       '<div>原題：' + (S.finalFirst ? '第一次就答對' : '試了不只一次才答對') + '</div></div>' +
-      (next ? '<button class="gp-next glow" data-act="another" data-id="' + h(next['題目ID'] || next['題號']) + '">換一個字再試試：「' + h(next._py[0]['破音字']) + '」 →</button>' : '');
+      applyBtn(next) +
+      (next ? '<button class="' + (hasApply() ? 'gp-back' : 'gp-next glow') + '" data-act="another" data-id="' + h(next['題目ID'] || next['題號']) + '">換一個字再試試：「' + h(next._py[0]['破音字']) + '」 →</button>' : '');
+  }
+
+  function hasApply() { return !!(root.GuidedApply && root.GuidedApply.has(S.m.uid)); }
+  function applyBtn(next) {
+    return hasApply() ? '<button class="gp-next glow" data-act="apply" data-next="' + h(next ? (next['題目ID'] || next['題號']) : '') + '">換個句子用用看 →</button> ' : '';
   }
 
   function render() {
@@ -408,6 +415,7 @@
     if (act === 'next' && stepDone()) { S.step++; S.hint = ''; return render(); }
     if (act === 'back') { S.step--; S.hint = ''; return render(); }
     if (act === 'another') { var id = b.getAttribute('data-id'); close(); return open(id); }
+    if (act === 'apply') { var au = S.m.uid, an = b.getAttribute('data-next'); close(); return root.GuidedApply.open(au, { mod: 'GuidedPY', next: an }); }
 
     if (act === 'guess') { S.guess = v; return render(); }
 

@@ -180,6 +180,7 @@
     if (root.GuidedPY && root.GuidedPY.close) root.GuidedPY.close();
     if (root.GuidedCY && root.GuidedCY.close) root.GuidedCY.close();
     if (root.GuidedXJ && root.GuidedXJ.close) root.GuidedXJ.close();
+    if (root.GuidedApply && root.GuidedApply.close) root.GuidedApply.close();
     S = {
       q: q, m: m, step: 0,
       guess: {},                 // item.id -> 'ok' | 'odd'
@@ -319,7 +320,13 @@
       '<div>一開始就判斷對：' + guessRight + ' / ' + S.m.items.length + ' 句</div>' +
       '<div>選字一次就選對：' + first + ' / ' + n + ' 句</div>' +
       '<div>原題：' + (S.finalFirst ? '第一次就答對' : '試了不只一次才答對') + '</div></div>' +
-      (next ? '<button class="gp-next glow" data-act="another" data-id="' + h(next['題目ID'] || next['題號']) + '">換一題再試試 →</button>' : '');
+      applyBtn(next) +
+      (next ? '<button class="' + (hasApply() ? 'gp-back' : 'gp-next glow') + '" data-act="another" data-id="' + h(next['題目ID'] || next['題號']) + '">換一題再試試 →</button>' : '');
+  }
+
+  function hasApply() { return !!(root.GuidedApply && root.GuidedApply.has(S.m.uid)); }
+  function applyBtn(next) {
+    return hasApply() ? '<button class="gp-next glow" data-act="apply" data-next="' + h(next ? (next['題目ID'] || next['題號']) : '') + '">換個句子用用看 →</button> ' : '';
   }
 
   function render() {
@@ -355,6 +362,7 @@
     if (act === 'next' && stepDone()) { S.step++; return render(); }
     if (act === 'back') { S.step--; return render(); }
     if (act === 'another') { var nid = b.getAttribute('data-id'); close(); return open(nid); }
+    if (act === 'apply') { var au = S.m.uid, an = b.getAttribute('data-next'); close(); return root.GuidedApply.open(au, { mod: 'GuidedCZ', next: an }); }
     if (act === 'guess') { S.guess[id] = v; return render(); }
 
     if (act === 'char') {
