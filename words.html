@@ -95,6 +95,43 @@
     textarea { width: 100%; height: 150px; font-size: .78rem; font-family: inherit; line-height: 1.5;
       border: 1px solid var(--gray-200); border-radius: 8px; padding: 8px; color: var(--gray-700); background: var(--gray-50); resize: vertical; }
 
+    .chip.taught:has(input:checked) { background: #ecfdf5; border-color: var(--ok); color: #065f46; }
+    button[disabled] { opacity: .5; cursor: not-allowed; }
+    .gen-note { font-size: .75rem; color: #b45309; margin-top: 4px; }
+
+    /* 複習短文視窗 */
+    #rv-overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(17,24,39,.55); display: none; align-items: center; justify-content: center; padding: 16px; }
+    #rv-overlay.open { display: flex; }
+    .rv-panel { background: #fffdf7; width: min(920px, 100%); max-height: 100%; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+    .rv-top { display: flex; align-items: center; gap: 10px; padding: 12px 18px; background: #1e40af; color: #fff; }
+    .rv-top h2 { flex: 1; font-size: 1.05rem; }
+    .rv-top button { background: transparent; color: #fff; border-color: rgba(255,255,255,.6); }
+    .rv-tabs { display: flex; gap: 6px; padding: 10px 18px 0; }
+    .rv-tabs button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .rv-body { padding: 14px 22px 18px; overflow-y: auto; font-size: 1.12rem; line-height: 2.1; }
+    .rv-status { font-size: .9rem; color: var(--gray-600); }
+    .rv-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 6px; }
+    .rv-meta { font-size: .8rem; color: var(--gray-600); margin-bottom: 10px; line-height: 1.6; }
+    .rv-text { white-space: pre-wrap; }
+    .rv-t { font-weight: 800; border-bottom: 3px solid; padding: 0 1px; }
+    .rv-t.k-read { color: #6d28d9; } .rv-t.k-char { color: #047857; } .rv-t.k-word { color: #b45309; }
+    .rv-mark { color: #b91c1c; text-decoration: underline; text-underline-offset: 4px; }
+    .rv-paren { color: #6b7280; letter-spacing: .3em; }
+    .rv-n { font-size: .7em; vertical-align: super; color: #2563eb; font-weight: 700; margin-left: 1px; }
+    .rv-gap { display: inline-block; border-bottom: 2px solid #374151; min-width: 2.2em; text-align: center; }
+    .rv-bank { margin: 12px 0; padding: 8px 12px; border: 2px dashed #f59e0b; border-radius: 10px; font-size: 1rem; }
+    .rv-key { margin-top: 14px; padding-top: 10px; border-top: 2px dashed var(--gray-200); font-size: .95rem; line-height: 1.8; }
+    .rv-foot { display: flex; gap: 8px; justify-content: flex-end; padding: 10px 18px; border-top: 1px solid var(--gray-200); background: #fff; }
+    .rv-how { font-size: .8rem; color: var(--gray-600); line-height: 1.6; margin-bottom: 8px; }
+    @media print {
+      body.rv-printing > *:not(#rv-overlay) { display: none !important; }
+      body.rv-printing #rv-overlay { position: static; background: none; padding: 0; display: block; }
+      body.rv-printing .rv-panel { box-shadow: none; width: 100%; max-height: none; }
+      body.rv-printing .rv-top, body.rv-printing .rv-tabs, body.rv-printing .rv-foot, body.rv-printing .rv-status, body.rv-printing .rv-how { display: none !important; }
+      body.rv-printing .rv-body { overflow: visible; font-size: 14pt; }
+      body.rv-printing .rv-key { page-break-before: always; }
+    }
+
     @media (max-width: 900px) {
       main { grid-template-columns: 1fr; padding: 14px 16px 40px; }
       aside { position: static; max-height: none; }
@@ -106,7 +143,7 @@
   <header>
     <div>
       <h1>📝 考古題語詞清單</h1>
-      <p>學扶考古題（108～114 年）每題要考的語詞 → 勾選後複製給 AI 寫文章</p>
+      <p>學扶考古題（108～114 年）每題要考的語詞 → 勾選後直接產生複習短文，或複製給 AI 寫文章</p>
     </div>
     <div><a href="class.html">← 回課堂講義</a></div>
   </header>
@@ -119,6 +156,7 @@
     </div>
     <div class="fg">
       <label class="chip"><input type="checkbox" id="f-hot"> 只看考過 2 次以上</label>
+      <label class="chip taught" title="講義上按「已教過」的題目（這台電腦的紀錄）"><input type="checkbox" id="f-taught"> 只看講義標記已教過的題目（<span id="n-taught">0</span> 題）</label>
     </div>
     <div class="fg"><input type="search" id="f-q" placeholder="找語詞…"></div>
   </div>
@@ -134,7 +172,8 @@
     </section>
 
     <aside>
-      <h2>給 AI 的寫作指令</h2>
+      <h2>複習短文</h2>
+      <p class="hint" style="margin-top:0">「直接產生短文」由系統的 AI 寫一篇短文，並自動做成學生練習版（多音字標注音、字形題填字、詞義成語填詞）。也可以「複製指令」貼給其他 AI。</p>
       <div class="set">
         <label for="s-grade">文章程度</label>
         <select id="s-grade">
@@ -156,7 +195,17 @@
     </aside>
   </main>
 
+  <div id="rv-overlay" role="dialog" aria-modal="true" aria-labelledby="rv-h">
+    <div class="rv-panel">
+      <div class="rv-top"><h2 id="rv-h">複習短文</h2><button id="rv-close" type="button">✕ 關閉</button></div>
+      <div class="rv-tabs"><button id="rv-tab-t" class="on" type="button">教師版</button><button id="rv-tab-s" type="button">學生版</button></div>
+      <div class="rv-body" id="rv-body"></div>
+      <div class="rv-foot"><button id="rv-regen" type="button">重新產生</button><button id="rv-print" class="main" type="button">列印這一版</button></div>
+    </div>
+  </div>
+
   <script src="words-data.js"></script>
+  <script src="words-review-core.js"></script>
   <script>
   (function () {
     'use strict';
@@ -167,6 +216,12 @@
     var POLY = '一個詞有好幾種意思（題目考分辨）';
     var STORE = 'words-page-v1';
     var $ = function (id) { return document.getElementById(id); };
+
+    var GAS_URL = 'https:/' + '/script.google.com/macros/s/AKfycbwHoHUCmxwsZyMl7TZdFVOMAYZZixJIp_JaMfsQQOpRDzHklArqfmX2nAiFW2NQwVrN/exec';
+    var TAUGHT = [];          // 講義「已教過」的題目ID（class.html 存在同一個網站、這台電腦）
+    try { TAUGHT = JSON.parse(localStorage.getItem('taught_questions_v1') || '[]') || []; } catch (e) { TAUGHT = []; }
+    var RV = { part: null, data: null, view: 't', seq: 0 };
+    var parts = [];           // 目前分好的每一篇語詞
 
     var picked = {};          // 語詞 → 勾選順序
     var pickSeq = 0;
@@ -228,7 +283,10 @@
       var y = $('f-year').value;
       var hot = $('f-hot').checked;
       var q = $('f-q').value.trim();
+      var onlyTaught = $('f-taught').checked, tset = {};
+      if (onlyTaught) TAUGHT.forEach(function (id) { tset[String(id)] = 1; });
       return DATA.filter(function (d) {
+        if (onlyTaught && !(d.id || []).some(function (id) { return tset[String(id)]; })) return false;
         if (!d.g.some(function (g) { return gs.indexOf(g) >= 0; })) return false;
         if (!d.cats.some(function (c) { return cs.indexOf(c) >= 0; })) return false;
         if (y && d.y.indexOf(y) < 0) return false;
@@ -242,7 +300,12 @@
     function renderList() {
       var rows = filtered();
       $('n-shown').textContent = rows.length;
-      if (!rows.length) { $('list').innerHTML = '<div class="empty">沒有符合的語詞，放寬上面的篩選試試。</div>'; return; }
+      if (!rows.length) {
+        $('list').innerHTML = '<div class="empty">' + ($('f-taught').checked && !TAUGHT.length
+          ? '講義上還沒有標記「已教過」的題目。到課堂講義按題目上的「○ 未教過」，就會變成已教過。'
+          : '沒有符合的語詞，放寬上面的篩選試試。') + '</div>';
+        return;
+      }
       $('list').innerHTML = rows.map(function (d) {
         var on = picked[d.w] != null;
         var info = d.m || (d.e ? '例：' + d.e : '');
@@ -326,13 +389,17 @@
       var k = Math.ceil(words.length / size);
       var per = Math.ceil(words.length / k);
       var html = '';
+      parts = [];
       for (var i = 0; i < k; i++) {
         var part = words.slice(i * per, (i + 1) * per);
         if (!part.length) continue;
+        parts[i] = part;
+        var tooMany = part.length > WordsReview.MAX_TERMS;
         var grade = $('s-grade').value || autoGrade(part);
         html += '<div class="group">'
           + '<div class="group-head"><span>' + (k > 1 ? '第 ' + (i + 1) + ' 篇・' : '') + part.length + ' 個詞・' + esc(grade) + '</span>'
-          + '<button class="main" data-copy="' + i + '">複製這篇指令</button></div>'
+          + '<span><button class="main" data-gen="' + i + '"' + (tooMany ? ' disabled' : '') + '>直接產生短文</button> <button data-copy="' + i + '">複製指令</button></span></div>'
+          + (tooMany ? '<div class="gen-note">直接產生一次最多 ' + WordsReview.MAX_TERMS + ' 個詞，請把「每篇幾個詞」改成 ' + WordsReview.MAX_TERMS + ' 以下。</div>' : '')
           + '<div class="group-words">' + part.map(function (d) { return esc(d.w); }).join('、') + '</div>'
           + '<textarea id="ta-' + i + '" readonly>' + esc(buildPrompt(part, grade)) + '</textarea></div>';
       }
@@ -371,10 +438,94 @@
     });
     $('btn-none').addEventListener('click', function () { picked = {}; pickSeq = 0; refresh(); });
     $('groups').addEventListener('click', function (e) {
+      var g = e.target.closest('[data-gen]');
+      if (g && !g.disabled) return generate(parts[Number(g.getAttribute('data-gen'))]);
       var b = e.target.closest('[data-copy]'); if (!b) return;
       copyText($('ta-' + b.getAttribute('data-copy')), b);
     });
+
+    // ── 直接產生複習短文（沿用字主板「語詞應用」的 GAS，不另外收資料） ──
+    var LV = { low: '低年級', middle: '中年級', high: '高年級' };
+    function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+    function openRv() { $('rv-overlay').classList.add('open'); }
+    function closeRv() { $('rv-overlay').classList.remove('open'); RV.seq++; }
+    function generate(part) {
+      if (!part || !part.length) return;
+      RV.part = part; RV.data = null; RV.view = 't';
+      var my = ++RV.seq;
+      var level = WordsReview.levelFor(part, $('s-easy').checked);
+      openRv();
+      renderRv('正在請 AI 寫一篇用到 ' + part.length + ' 個語詞的短文（' + LV[level] + '程度），大約 10～30 秒…');
+      fetch(GAS_URL, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'generateWordApplication', v: 1, terms: part.map(function (d) { return d.w; }), level: level, mode: 'passage' })
+      })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP_' + r.status); return r.json(); })
+        .then(function (res) {
+          if (my !== RV.seq) return;
+          if (!res || !res.ok || !res.data || typeof res.data.passage !== 'string') {
+            renderRv('產生失敗：' + ((res && res.error && res.error.message) || '請再試一次'));
+            return;
+          }
+          var miss = part.filter(function (d) { return res.data.passage.indexOf(d.w) < 0; });
+          if (miss.length) { renderRv('AI 寫的短文漏了：' + miss.map(function (d) { return d.w; }).join('、') + '，請按「重新產生」。'); return; }
+          var sheet = WordsReview.studentSheet(res.data.passage, part, shuffle);
+          var pb = WordsReview.padBank(sheet.bank, DATA, part.map(function (d) { return d.w; }));
+          sheet.bank = shuffle(pb.bank); sheet.padded = pb.padded;
+          RV.data = { passage: res.data.passage, level: level, sheet: sheet };
+          renderRv();
+        })
+        .catch(function () { if (my === RV.seq) renderRv('目前無法連線，請檢查網路後再試。'); });
+    }
+    function renderRv(status) {
+      $('rv-tab-t').classList.toggle('on', RV.view === 't');
+      $('rv-tab-s').classList.toggle('on', RV.view === 's');
+      $('rv-print').disabled = !RV.data;
+      $('rv-regen').disabled = !RV.part;
+      if (!RV.data) { $('rv-body').innerHTML = '<p class="rv-status">' + esc(status || '') + '</p>'; return; }
+      var sh = RV.data.sheet, html;
+      var meta = '<div class="rv-meta">' + LV[RV.data.level] + '程度・' + RV.part.length + ' 個語詞：' + RV.part.map(function (d) { return esc(d.w); }).join('、') +
+        '<br>短文由 AI 撰寫，請老師先讀過再給學生；語詞的讀音與意思以講義（教育部《國語辭典簡編本》）為準。</div>';
+      if (RV.view === 't') {
+        html = '<div class="rv-title">複習短文（教師版）</div>' + meta +
+          '<div class="rv-how">顏色：<span class="rv-t k-read">紫＝標注音</span>　<span class="rv-t k-char">綠＝填字</span>　<span class="rv-t k-word">橘＝填詞</span></div>' +
+          '<div class="rv-text">' + sh.parts.map(function (p) {
+            return p.t === 'text' ? esc(p.s) : '<span class="rv-t k-' + p.kind + '">' + esc(p.d.w) + '</span>';
+          }).join('') + '</div>';
+      } else {
+        html = '<div class="rv-title">複習短文</div><div class="rv-meta">姓名：＿＿＿＿＿＿　座號：＿＿＿</div>' +
+          '<div class="rv-how">畫線的字，把注音寫在（　）裡；□ 填上正確的字；＿＿ 從詞語盒選詞填入。</div>' +
+          (sh.bank.length ? '<div class="rv-bank">詞語盒：' + sh.bank.map(esc).join('　') + (sh.padded ? '<span style="font-size:.8em;color:#92400e">（有些詞用不到）</span>' : '') + '</div>' : '') +
+          '<div class="rv-text">' + sh.parts.map(function (p) {
+            if (p.t === 'text') return esc(p.s);
+            var d = p.d, n = '<span class="rv-n">' + p.n + '</span>';
+            if (p.kind === 'read') return esc(d.w).replace(esc(d.c), '<span class="rv-mark">' + esc(d.c) + '</span>') + '<span class="rv-paren">（　　）</span>' + n;
+            if (p.kind === 'char') return esc(d.w).replace(esc(d.c), '□') + n;
+            return '<span class="rv-gap">' + new Array(d.w.length + 1).join('　') + '</span>' + n;
+          }).join('') + '</div>' +
+          '<div class="rv-key"><b>參考答案</b>　' + sh.answers.map(function (a) {
+            return a.n + '. ' + (a.kind === 'read' ? esc(a.word) + '（' + esc(a.ans) + '）' : a.kind === 'char' ? esc(a.ans) + '（' + esc(a.word) + '）' : esc(a.ans));
+          }).join('　') + '</div>';
+      }
+      $('rv-body').innerHTML = html;
+    }
+    $('rv-close').addEventListener('click', closeRv);
+    $('rv-tab-t').addEventListener('click', function () { RV.view = 't'; renderRv(); });
+    $('rv-tab-s').addEventListener('click', function () { RV.view = 's'; renderRv(); });
+    $('rv-regen').addEventListener('click', function () { generate(RV.part); });
+    $('rv-print').addEventListener('click', function () {
+      document.body.classList.add('rv-printing');
+      window.print();
+      setTimeout(function () { document.body.classList.remove('rv-printing'); }, 500);
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('rv-overlay').classList.contains('open')) closeRv(); });
+
+    // ── 講義「已教過」 ──
+    $('n-taught').textContent = TAUGHT.length;
+    $('f-taught').addEventListener('change', renderList);
+    if (/[?&]taught=1/.test(location.search)) $('f-taught').checked = true;
     refresh();
+
   })();
   </script>
 </body>
