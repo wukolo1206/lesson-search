@@ -179,6 +179,7 @@
     if (!m) return;
     if (root.GuidedPY && root.GuidedPY.close) root.GuidedPY.close();
     if (root.GuidedCY && root.GuidedCY.close) root.GuidedCY.close();
+    if (root.GuidedXJ && root.GuidedXJ.close) root.GuidedXJ.close();
     S = {
       q: q, m: m, step: 0,
       guess: {},                 // item.id -> 'ok' | 'odd'

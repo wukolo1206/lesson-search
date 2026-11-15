@@ -138,3 +138,12 @@ body.gp-open { overflow: hidden; }
 .gp-eg { display: inline-block; font-size: .7em; background: #e0e7ff; color: #3730a3; border-radius: 4px; padding: 0 5px; margin: 0 4px; vertical-align: middle; }
 /* 一起動腦開著時，藏起右下角查字按鈕（手機上會蓋住「下一步」） */
 body.gp-open #lkLauncher { display: none !important; }
+
+/* 形近字 */
+.gp-xj-pair { font-size: 1.25em; margin-bottom: 8px; }
+.gp-xj-w { font-weight: 700; }
+.gp-xj-sep { color: #9ca3af; margin: 0 10px; }
+.gp-xj-big { display: inline-flex; flex-direction: column; align-items: center; font-size: 2.6em; font-weight: 800; line-height: 1.1; margin: 0 14px 10px 0; color: #1f2937; }
+.gp-xj-big small { font-size: .3em; font-weight: 600; color: #6b7280; margin-top: 2px; }
+.gp-xj-big.sm { font-size: 1.8em; display: inline-block; margin: 0; vertical-align: middle; }
+.gp-xj-read { display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 1.15em; margin-bottom: 4px; }

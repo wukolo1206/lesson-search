@@ -197,6 +197,7 @@
     if (!m) return;
     if (root.GuidedPY && root.GuidedPY.close) root.GuidedPY.close();
     if (root.GuidedCZ && root.GuidedCZ.close) root.GuidedCZ.close();
+    if (root.GuidedXJ && root.GuidedXJ.close) root.GuidedXJ.close();
     S = {
       q: q, m: m, step: 0,
       rate: null, guessText: '', guessPick: null, guessUse: {},
