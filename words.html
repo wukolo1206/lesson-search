@@ -310,7 +310,7 @@
         var on = picked[d.w] != null;
         var info = d.m || (d.e ? '例：' + d.e : '');
         var tags = d.cats.map(function (c) { return '<span class="tag">' + esc(c) + '</span>'; }).join('');
-        if (d.s === '簡編本') tags += '<span class="tag src">簡編本</span>';
+        if (d.s === '簡編本' || d.s === '重編本') tags += '<span class="tag src">' + d.s + '</span>';
         tags += '<span class="tag' + (d.q.length > 1 ? ' hot' : '') + '" title="' + esc(d.q.join('、')) + '">考過 ' + d.q.length + ' 次</span>';
         tags += '<span class="tag">' + d.g.map(function (g) { return GNAME[g].charAt(0); }).join('、') + '年級</span>';
         return '<label class="word' + (on ? ' on' : '') + '" data-w="' + esc(d.w) + '">'
