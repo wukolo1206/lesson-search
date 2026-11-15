@@ -58,6 +58,8 @@
     $('view-board').classList.toggle('hidden', mode !== 'board');
     $('view-practice').classList.toggle('hidden', mode !== 'practice');
     $('view-projector').classList.toggle('hidden', mode !== 'projector');
+    // 投影時模式列固定在畫面最上方（手機頁首較高，sticky 會卡在投影畫面中間）
+    document.body.classList.toggle('proj-mode', mode === 'projector');
     // 詞籃屬於字主板，跟產練習卷無關；留著會跟釘在底部的動作列疊在一起
     var basket = $('basket');
     if (basket) basket.classList.toggle('hidden', mode === 'practice');
