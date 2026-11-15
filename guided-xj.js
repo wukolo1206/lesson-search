@@ -93,7 +93,7 @@
     });
   }
   function inWord(word, ch) { return h(word).replace(h(ch), '<span class="gp-mark">' + h(ch) + '</span>'); }
-  function mark(s) { return h(s).replace(/「(.+?)」/g, '<span class="gp-mark">$1</span>').replace(/(□+)/g, '<span class="gp-mark">$1</span>'); }
+  function mark(s) { return h(s).replace(/「([^「」]+)」/g, '<span class="gp-mark">$1</span>').replace(/(□+)/g, '<span class="gp-mark">$1</span>'); }
   function dictText(t) { return h(t).replace(/\n/g, '<br>').replace(/\[例\]/g, '<span class="gp-eg">例</span>'); }
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
@@ -128,7 +128,7 @@
   function open(uid) {
     var q = findQ(uid), m = q && buildModel(q);
     if (!m) return;
-    ['GuidedPY', 'GuidedCZ', 'GuidedCY', 'GuidedApply'].forEach(function (k) { if (root[k] && root[k].close) root[k].close(); });
+    ['GuidedPY', 'GuidedCZ', 'GuidedCY', 'GuidedApply', 'GuidedSD'].forEach(function (k) { if (root[k] && root[k].close) root[k].close(); });
     var mi = meaningItems(m);
     S = {
       q: q, m: m, step: 0, mi: mi,

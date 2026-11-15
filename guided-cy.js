@@ -150,7 +150,7 @@
   }
   /* 「X」、□ 改成醒目樣式 */
   function mark(s) {
-    return h(s).replace(/「(.+?)」/g, '<span class="gp-mark">$1</span>').replace(/(□+)/g, '<span class="gp-mark">$1</span>');
+    return h(s).replace(/「([^「」]+)」/g, '<span class="gp-mark">$1</span>').replace(/(□+)/g, '<span class="gp-mark">$1</span>');
   }
   function swapped(i) {
     var p = swapIn(S.m, S.m.options[i]);
@@ -199,6 +199,7 @@
     if (root.GuidedCZ && root.GuidedCZ.close) root.GuidedCZ.close();
     if (root.GuidedXJ && root.GuidedXJ.close) root.GuidedXJ.close();
     if (root.GuidedApply && root.GuidedApply.close) root.GuidedApply.close();
+    if (root.GuidedSD && root.GuidedSD.close) root.GuidedSD.close();
     S = {
       q: q, m: m, step: 0,
       rate: null, guessText: '', guessPick: null, guessUse: {},

@@ -73,7 +73,7 @@
   function open(uid, opts) {
     var list = items(uid);
     if (!list.length) return;
-    ['GuidedPY', 'GuidedCZ', 'GuidedCY', 'GuidedXJ'].forEach(function (k) { if (root[k] && root[k].close) root[k].close(); });
+    ['GuidedPY', 'GuidedCZ', 'GuidedCY', 'GuidedXJ', 'GuidedSD'].forEach(function (k) { if (root[k] && root[k].close) root[k].close(); });
     S = { uid: String(uid), list: list, opts: opts || {}, pick: {}, tries: {}, done: {}, first: {}, hint: {},
           order: list.map(function (it) { return shuffleIdx(it.c.length); }) };
     document.body.classList.add('gp-open');

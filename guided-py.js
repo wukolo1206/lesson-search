@@ -80,8 +80,28 @@
       .concat(plain).join('／');
   }
 
-  function qualifies(q) {
+  /* 細目可用就用細目；不行（缺資料、放錯題）就用 guided-sound-data.js 從題目解析、簡編本查證過的語詞 */
+  function okRows(rows, q) {
+    if (rows.length < 3) return false;
+    var chars = {}, reads = {};
+    rows.forEach(function (r) { chars[r['破音字']] = 1; reads[r['注音']] = 1; });
+    var ch = Object.keys(chars)[0];
+    var qText = String((q && q['完整題目與選項']) || '');
+    if (qText && qText.indexOf('「' + ch + '」') < 0) return false;
+    return Object.keys(chars).length === 1 && Object.keys(reads).length >= 2;
+  }
+  function rowsFor(q) {
     var rows = usableRows(q);
+    if (okRows(rows, q)) return rows;
+    var SD = root.GUIDED_SOUND_DATA || SOUND;
+    var id = String((q && (q['題目ID'] || q['題號'])) || '');
+    return (SD && SD.py && SD.py[id]) ? SD.py[id].slice() : rows;
+  }
+  var SOUND = null;
+  function setSoundData(d) { SOUND = d; }
+
+  function qualifies(q) {
+    var rows = rowsFor(q);
     if (rows.length < 3) return false;
     var chars = {}, reads = {};
     rows.forEach(function (r) { chars[r['破音字']] = 1; reads[r['注音']] = 1; });
@@ -94,7 +114,7 @@
 
   function buildModel(q) {
     if (!qualifies(q)) return null;
-    var rows = usableRows(q);
+    var rows = rowsFor(q);
     var readings = [];
     var byReading = {};
     var cards = [];
@@ -131,7 +151,7 @@
   /* 換一個字：優先同年級、不同字 */
   function pickNext(all, current) {
     var pool = (all || []).filter(function (q) {
-      return qualifies(q) && usableRows(q)[0]['破音字'] !== current.char;
+      return qualifies(q) && rowsFor(q)[0]['破音字'] !== current.char;
     });
     if (!pool.length) return null;
     var same = pool.filter(function (q) { return (q['年級'] || '') === current.grade; });
@@ -148,7 +168,7 @@
     return a;
   }
 
-  var core = { cleanMeaning: cleanMeaning, qualifies: qualifies, buildModel: buildModel, pickNext: pickNext };
+  var core = { cleanMeaning: cleanMeaning, qualifies: qualifies, buildModel: buildModel, pickNext: pickNext, setSoundData: setSoundData };
   if (typeof module !== 'undefined' && module.exports) { module.exports = core; return; }
 
   /* ═══ 畫面 ═══════════════════════════════════════════ */
@@ -218,6 +238,7 @@
     if (root.GuidedCY && root.GuidedCY.close) root.GuidedCY.close();
     if (root.GuidedXJ && root.GuidedXJ.close) root.GuidedXJ.close();
     if (root.GuidedApply && root.GuidedApply.close) root.GuidedApply.close();
+    if (root.GuidedSD && root.GuidedSD.close) root.GuidedSD.close();
     S = {
       q: q, m: model, step: 0,
       guess: null,
@@ -373,7 +394,7 @@
       '<div>分堆一次就放對：' + first + ' / ' + n + ' 張</div>' +
       '<div>原題：' + (S.finalFirst ? '第一次就答對' : '試了不只一次才答對') + '</div></div>' +
       applyBtn(next) +
-      (next ? '<button class="' + (hasApply() ? 'gp-back' : 'gp-next glow') + '" data-act="another" data-id="' + h(next['題目ID'] || next['題號']) + '">換一個字再試試：「' + h(next._py[0]['破音字']) + '」 →</button>' : '');
+      (next ? '<button class="' + (hasApply() ? 'gp-back' : 'gp-next glow') + '" data-act="another" data-id="' + h(next['題目ID'] || next['題號']) + '">換一個字再試試：「' + h(rowsFor(next)[0]['破音字']) + '」 →</button>' : '');
   }
 
   function hasApply() { return !!(root.GuidedApply && root.GuidedApply.has(S.m.uid)); }

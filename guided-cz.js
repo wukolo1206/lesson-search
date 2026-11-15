@@ -181,6 +181,7 @@
     if (root.GuidedCY && root.GuidedCY.close) root.GuidedCY.close();
     if (root.GuidedXJ && root.GuidedXJ.close) root.GuidedXJ.close();
     if (root.GuidedApply && root.GuidedApply.close) root.GuidedApply.close();
+    if (root.GuidedSD && root.GuidedSD.close) root.GuidedSD.close();
     S = {
       q: q, m: m, step: 0,
       guess: {},                 // item.id -> 'ok' | 'odd'
