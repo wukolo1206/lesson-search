@@ -44,6 +44,11 @@
   .qcard .qlink { display:inline-block; margin-top:6px; font-size:.8rem; font-weight:700; color:#b45309; text-decoration:none; border:1px solid #fcd34d; background:#fffbeb; border-radius:999px; padding:2px 10px; }
   .qcard .qlink:hover { background:#fef3c7; }
   .taught-note { font-size:.75rem; color:#065f46; margin-top:6px; line-height:1.5; }
+  .projpick-hint { margin:0 0 12px; font-size:1.1rem; }
+  .projpick { display:block; width:min(560px, 90%); margin:8px auto; padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.5); background:rgba(255,255,255,.12); color:#fff; font:inherit; font-size:1.05rem; cursor:pointer; }
+  .projpick:hover { background:rgba(255,255,255,.25); }
+  .prep-pager { display:flex; align-items:center; justify-content:center; gap:12px; margin:8px 0; font-size:.85rem; color:var(--muted, #6b7280); }
+  .prep-pager:empty { display:none; }
   .sup-reading-group { border:1px dashed #e5e7eb; border-radius:10px; padding:6px 8px 4px; margin:0 0 8px; }
   .sup-reading-head { font-size:.8rem; font-weight:800; color:#7c3aed; margin-bottom:4px; letter-spacing:1px; }
   .write-empty p { margin:0 0 10px; }
@@ -273,6 +278,8 @@
 
   @media print {
     header, main, #basket, #status, #modeTabs, #view-prep, #view-practice, #view-projector, #printPreview { display:none !important; }
+    /* 練習紙列印時只留 #printSheet：頁首導覽列、查字鈕等若印出來會把剛好 A4 高的練習紙推出一截，多一張空白頁（2026-11-15 修） */
+    body:not(.wa-print-mode) > *:not(#printSheet):not(#waOverlay) { display:none !important; }
     body { background:#fff; }
     #printSheet { display:block; }
     @page { size:A4; margin:0; }

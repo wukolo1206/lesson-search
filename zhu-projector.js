@@ -79,7 +79,29 @@ var ZhuProjector = (function () {
 
     var body = document.createElement('div');
     body.className = 'projbody';
-    if (step.type === 'question') {
+    if (step.type === 'question' && !question) {
+      // 從搜尋進來、沒有選題目：列出這個字考過的題，點一題就投影那一題
+      var qs = index.questionsOf(boardState.char);
+      if (!qs.length) {
+        body.textContent = '這個字沒有考過的題目。按「下一步 →」直接看補充詞與手寫格。';
+      } else {
+        var hint = document.createElement('p');
+        hint.className = 'projpick-hint';
+        hint.textContent = '這個字考過 ' + qs.length + ' 題，點一題開始投影：';
+        body.appendChild(hint);
+        qs.forEach(function (q) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'projpick';
+          b.textContent = q['年度'] + ' 年　' + q['年級'] + '　第 ' + q['題號'] + ' 題　' + (q['類別'] || '');
+          b.onclick = function () {
+            boardState.contextQuestionId = String(q['題目ID']);
+            render(container, boardState, index, store, onQuotaFull);
+          };
+          body.appendChild(b);
+        });
+      }
+    } else if (step.type === 'question') {
       body.textContent = step.text || '（沒有內容）';
     } else if (step.type === 'explain') {
       body.classList.add('projexplain');

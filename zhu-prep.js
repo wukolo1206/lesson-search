@@ -46,6 +46,16 @@ var ZhuPrep = (function () {
   var currentFilters = { grade: '', year: '', category: '' };
   var expandedId = null;
   var viewMode = 'questions';
+  var PAGE_SIZE = 20;        // 按考題一次列 20 題（原本 240 題全列，整頁太長）
+  var currentPage = 0;
+
+  /* 分頁：回傳這一頁的題目與頁碼資訊（頁碼超出時自動拉回最後一頁） */
+  function pageOf(list, page, size) {
+    size = size || PAGE_SIZE;
+    var pages = Math.max(1, Math.ceil((list || []).length / size));
+    var p = Math.max(0, Math.min(page || 0, pages - 1));
+    return { items: (list || []).slice(p * size, (p + 1) * size), page: p, pages: pages, from: p * size + 1, to: Math.min((p + 1) * size, (list || []).length) };
+  }
 
   function render(container, opts) {
     opts = opts || {};
@@ -72,9 +82,9 @@ var ZhuPrep = (function () {
 
     var filterBar = document.createElement('div');
     filterBar.className = 'panel prep-filters';
-    filterBar.appendChild(makeSelect('年級（全部）', GRADES, currentFilters.grade, function (v) { currentFilters.grade = v; render(container, opts); }));
-    filterBar.appendChild(makeSelect('年度（全部）', years, currentFilters.year, function (v) { currentFilters.year = v; render(container, opts); }));
-    filterBar.appendChild(makeSelect('類別（全部）', CATEGORIES, currentFilters.category, function (v) { currentFilters.category = v; render(container, opts); }));
+    filterBar.appendChild(makeSelect('年級（全部）', GRADES, currentFilters.grade, function (v) { currentFilters.grade = v; currentPage = 0; render(container, opts); }));
+    filterBar.appendChild(makeSelect('年度（全部）', years, currentFilters.year, function (v) { currentFilters.year = v; currentPage = 0; render(container, opts); }));
+    filterBar.appendChild(makeSelect('類別（全部）', CATEGORIES, currentFilters.category, function (v) { currentFilters.category = v; currentPage = 0; render(container, opts); }));
     container.appendChild(filterBar);
 
     var listPanel = document.createElement('div');
@@ -126,7 +136,25 @@ var ZhuPrep = (function () {
         return;
       }
 
-      filtered.forEach(function (q) {
+      var pg = pageOf(filtered, currentPage);
+      currentPage = pg.page;
+      function pager(where) {
+        var bar = document.createElement('div');
+        bar.className = 'prep-pager prep-pager-' + where;
+        if (pg.pages <= 1) return bar;
+        var prev = document.createElement('button');
+        prev.type = 'button'; prev.className = 'btn'; prev.textContent = '← 上一頁'; prev.disabled = pg.page === 0;
+        prev.onclick = function () { currentPage = pg.page - 1; renderList(); listPanel.scrollIntoView({ block: 'start' }); };
+        var info = document.createElement('span');
+        info.textContent = '第 ' + (pg.page + 1) + ' / ' + pg.pages + ' 頁（第 ' + pg.from + '–' + pg.to + ' 題）';
+        var next = document.createElement('button');
+        next.type = 'button'; next.className = 'btn'; next.textContent = '下一頁 →'; next.disabled = pg.page >= pg.pages - 1;
+        next.onclick = function () { currentPage = pg.page + 1; renderList(); listPanel.scrollIntoView({ block: 'start' }); };
+        bar.appendChild(prev); bar.appendChild(info); bar.appendChild(next);
+        return bar;
+      }
+      listPanel.appendChild(pager('top'));
+      pg.items.forEach(function (q) {
         var id = String(q['題目ID']);
         var row = document.createElement('div');
         row.className = 'qcard' + (expandedId === id ? ' active' : '');
@@ -174,6 +202,7 @@ var ZhuPrep = (function () {
         };
         listPanel.appendChild(row);
       });
+      listPanel.appendChild(pager('bottom'));
     }
 
     renderList();
@@ -290,6 +319,7 @@ var ZhuPrep = (function () {
   var api = {
     filterQuestions: filterQuestions,
     charsOfQuestion: charsOfQuestion,
+    pageOf: pageOf,
     charsFromQuestions: charsFromQuestions,
     addSelectedChar: addSelectedChar,
     removeSelectedChar: removeSelectedChar,

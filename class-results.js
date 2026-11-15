@@ -70,6 +70,11 @@
     },
     list: function (qid) { return store.read()[String(qid)] || []; },
     line: function (qid) { return line(store.read()[String(qid)] || []); },
-    clear: function () { return store.write({}); }
+    count: function () { return Object.keys(store.read()).length; },
+    clear: function () {
+      var ok = store.write({});
+      try { root.dispatchEvent(new CustomEvent('class-results-change', { detail: {} })); } catch (e) { /* 舊瀏覽器 */ }
+      return ok;
+    }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

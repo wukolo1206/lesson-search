@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>國語字音形 — 課堂講義</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <link rel="stylesheet" href="guided-py.css?v=20261115f">
-  <link rel="stylesheet" href="class-themes.css?v=20261115f">
-  <script src="class-themes.js?v=20261115f"></script>
+  <link rel="stylesheet" href="guided-py.css?v=20261115g">
+  <link rel="stylesheet" href="class-themes.css?v=20261115g">
+  <script src="class-themes.js?v=20261115g"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -789,6 +789,7 @@
   <button class="btn btn-reset"  onclick="selectAll()">全選</button>
   <button class="btn btn-reset"  onclick="selectNone()">取消全選</button>
   <button class="btn btn-reset"  onclick="clearTaught()" title="清除所有已教過的記錄">🗑️ 清除教學記錄</button>
+  <button class="btn btn-reset"  onclick="clearResults()" title="清除題目卡上的 📊 全班成效紀錄（這台電腦）">🗑️ 清除成效紀錄</button>
   <span class="cnt-info" id="selInfo" style="display:none">
     已勾選 <strong id="selCnt" style="color:#2563eb">0</strong> 題（投影／列印只使用勾選題目）
   </span>
@@ -963,6 +964,17 @@ function openFromUrl() {
 }
 
 /* ═══ 全班成效紀錄（class-results.js）：題目卡上顯示第一次上課 → 最近一次 ═══ */
+function clearResults() {
+  if (!window.ClassResults) return;
+  const n = ClassResults.count();
+  if (!n) { alert('目前沒有成效紀錄。'); return; }
+  if (!confirm(`確定清除全班成效紀錄（📊）？
+目前有 ${n} 題有紀錄，清除後無法復原。
+（「已教過」不受影響）`)) return;
+  ClassResults.clear();
+  renderResults();
+}
+
 function renderResults(qid) {
   if (!window.ClassResults) return;
   document.querySelectorAll(qid ? '.res-line[data-res="' + qid + '"]' : '.res-line').forEach(el => {
@@ -2331,15 +2343,15 @@ loadData();
 <style>
   td.lk-w { cursor: pointer; text-decoration: underline dotted #999; text-underline-offset: 3px; }
 </style>
-<script src="class-results.js?v=20261115f"></script>
-<script src="guided-py.js?v=20261115f"></script>
-<script src="guided-cz.js?v=20261115f"></script>
-<script src="guided-cy-data.js?v=20261115f"></script>
-<script src="guided-cy.js?v=20261115f"></script>
-<script src="guided-xj-data.js?v=20261115f"></script>
-<script src="guided-xj.js?v=20261115f"></script>
-<script src="guided-apply-data.js?v=20261115f"></script>
-<script src="guided-apply.js?v=20261115f"></script>
+<script src="class-results.js?v=20261115g"></script>
+<script src="guided-py.js?v=20261115g"></script>
+<script src="guided-cz.js?v=20261115g"></script>
+<script src="guided-cy-data.js?v=20261115g"></script>
+<script src="guided-cy.js?v=20261115g"></script>
+<script src="guided-xj-data.js?v=20261115g"></script>
+<script src="guided-xj.js?v=20261115g"></script>
+<script src="guided-apply-data.js?v=20261115g"></script>
+<script src="guided-apply.js?v=20261115g"></script>
 <script>
 if (window.GuidedPY) GuidedPY.configure({ getAll: function () { return ALL; }, parseOptions: parseOptions, getAnswer: getAnswer });
 if (window.GuidedCZ) GuidedCZ.configure({ getAll: function () { return ALL; } });
