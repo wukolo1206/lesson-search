@@ -1,0 +1,91 @@
+/* 課堂講義版面切換（2026-11-15）：<html data-theme="a|b|c">，沒有設定＝原本。
+ * a 闖關風（比照學扶國語句段系統）／b 大字投影風／c 闖關風＋類別色標籤列
+ * 只影響螢幕畫面，列印講義維持原樣。由 class-themes.js 切換。 */
+
+/* ── 版面切換鈕（四種版面都有） ── */
+.th-switch { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.4); border-radius: 999px; padding: 3px; }
+.th-switch .th-lbl { font-size: .78rem; font-weight: 700; padding: 0 6px 0 8px; opacity: .9; white-space: nowrap; }
+.th-switch button { border: none; background: transparent; color: inherit; font: inherit; font-size: .8rem; font-weight: 700; padding: 5px 11px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.th-switch button:hover { background: rgba(255,255,255,.25); }
+.th-switch button.on { background: #fff; color: #1e3a8a; }
+.th-ico { display: none; }
+#chipbar { display: none; }
+@media print { .th-switch, #chipbar, .th-ico { display: none !important; } }
+
+/* ── 手機工具列：按鈕不再擠成直排字（四種版面都套用） ── */
+@media screen and (max-width: 700px) {
+  .action-bar { flex-wrap: wrap; gap: 8px; }
+  .action-bar .btn { white-space: nowrap; flex: 0 0 auto; }
+  .action-bar .cnt-info { flex-basis: 100%; margin-left: 0; }
+}
+
+@media screen {
+  /* ═══ A、C：闖關風 ═══ */
+  html[data-theme="a"], html[data-theme="c"] { font-size: 18px; }
+  html[data-theme="a"] body, html[data-theme="c"] body { background: #fdf8f1; color: #2b2f3a; }
+  html[data-theme="a"] header, html[data-theme="c"] header { background: linear-gradient(135deg, #fbbf24, #fb7185); color: #3b1d0b; border-radius: 0 0 28px 28px; }
+  html[data-theme="a"] header h1, html[data-theme="c"] header h1 { font-size: 1.6rem; font-weight: 900; }
+  html[data-theme="a"] .header-links a, html[data-theme="c"] .header-links a { background: rgba(255,255,255,.8) !important; color: #7c2d12 !important; border: none !important; border-radius: 999px !important; }
+  html[data-theme="a"] .th-switch, html[data-theme="c"] .th-switch { background: rgba(255,255,255,.55); border-color: rgba(255,255,255,.8); color: #7c2d12; }
+  html[data-theme="a"] .th-switch button.on, html[data-theme="c"] .th-switch button.on { background: #b45309; color: #fff; }
+  html[data-theme="a"] .filter-bar, html[data-theme="c"] .filter-bar,
+  html[data-theme="a"] .action-bar, html[data-theme="c"] .action-bar { background: #fffdf8; border-color: #f0e6d6; }
+  html[data-theme="a"] select, html[data-theme="c"] select,
+  html[data-theme="a"] .search-input, html[data-theme="c"] .search-input { border-radius: 999px; background: #fff; border: 1px solid #ecdfcb; }
+  html[data-theme="a"] .btn, html[data-theme="c"] .btn { border-radius: 999px; }
+  html[data-theme="a"] main, html[data-theme="c"] main { max-width: 1100px; }
+  html[data-theme="a"] .lesson-unit, html[data-theme="c"] .lesson-unit { border-radius: 26px; border: 1px solid #f1e7d8; box-shadow: 0 8px 28px rgba(120,90,40,.08); overflow: hidden; background: #fff; }
+  html[data-theme="a"] .unit-head, html[data-theme="c"] .unit-head { background: linear-gradient(135deg, color-mix(in srgb, var(--cat, #94a3b8) 22%, #fff), color-mix(in srgb, var(--cat, #94a3b8) 40%, #fff)); padding: 18px 22px; }
+  html[data-theme="a"] .unit-title, html[data-theme="c"] .unit-title { font-size: 1.5rem; font-weight: 900; display: flex; align-items: center; gap: 12px; }
+  html[data-theme="a"] .th-ico, html[data-theme="c"] .th-ico { width: 52px; height: 52px; flex-shrink: 0; border-radius: 16px; background: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 1.6rem; box-shadow: 0 4px 12px rgba(0,0,0,.08); transform: rotate(-4deg); }
+  html[data-theme="a"] .unit-head .badge, html[data-theme="c"] .unit-head .badge { font-size: .8rem; padding: 3px 12px; border-radius: 999px; background: rgba(255,255,255,.85); color: #374151; }
+  html[data-theme="a"] .unit-head .b-ct, html[data-theme="c"] .unit-head .b-ct { background: var(--cat, #64748b); color: #fff; font-weight: 800; }
+  html[data-theme="a"] .sec-label, html[data-theme="c"] .sec-label { font-size: 1rem; border-left: 6px solid var(--cat, #94a3b8); padding-left: 10px; }
+  html[data-theme="a"] .sec-label::before, html[data-theme="c"] .sec-label::before { display: none; }
+  html[data-theme="a"] .teach-tbl, html[data-theme="c"] .teach-tbl { font-size: 1rem; }
+  html[data-theme="a"] .teach-tbl th, html[data-theme="c"] .teach-tbl th { background: color-mix(in srgb, var(--cat, #64748b) 65%, #374151); }
+  html[data-theme="a"] .char-big, html[data-theme="c"] .char-big { font-size: 1.5rem; color: color-mix(in srgb, var(--cat, #1e40af) 70%, #111); }
+  html[data-theme="a"] .reading, html[data-theme="c"] .reading { font-size: 1.15rem; }
+  html[data-theme="a"] .question-section, html[data-theme="c"] .question-section { background: color-mix(in srgb, var(--cat, #fbbf24) 8%, #fff); border-left-color: var(--cat, #f59e0b); }
+  html[data-theme="a"] .q-text, html[data-theme="c"] .q-text { font-size: 1.15rem; }
+  html[data-theme="a"] .btn-guided, html[data-theme="c"] .btn-guided { font-size: .95rem; padding: 6px 16px; box-shadow: 0 3px 0 #d97706; }
+
+  /* ═══ C：類別色標籤列 ═══ */
+  html[data-theme="c"] #chipbar { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 32px 6px; background: #fffdf8; }
+  html[data-theme="c"] .chip { border: 2px solid color-mix(in srgb, var(--cat) 60%, #fff); background: color-mix(in srgb, var(--cat) 12%, #fff); color: #1f2937; font: inherit; font-weight: 800; font-size: .95rem; padding: 8px 18px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  html[data-theme="c"] .chip.on { background: var(--cat); color: #fff; border-color: var(--cat); box-shadow: 0 4px 12px color-mix(in srgb, var(--cat) 45%, transparent); }
+  html[data-theme="c"] .filter-bar .fg-cat { display: none; }
+  @media (max-width: 700px) {
+    html[data-theme="c"] #chipbar { flex-wrap: nowrap; overflow-x: auto; padding: 10px 16px 4px; -webkit-overflow-scrolling: touch; }
+    html[data-theme="c"] .chip { font-size: .85rem; padding: 6px 14px; }
+  }
+
+  /* ═══ B：大字投影風 ═══ */
+  html[data-theme="b"] { font-size: 19px; }
+  html[data-theme="b"] body { background: #fff; }
+  html[data-theme="b"] header { background: #111827; padding: 10px 28px; }
+  html[data-theme="b"] header h1 { font-size: 1.25rem; }
+  html[data-theme="b"] header p { display: none; }
+  html[data-theme="b"] .filter-bar { padding: 8px 28px; background: #f8fafc; }
+  html[data-theme="b"] .filter-bar .fg label { display: none; }
+  html[data-theme="b"] .action-bar { padding: 8px 28px; }
+  html[data-theme="b"] .action-bar .btn { padding: 6px 14px; font-size: .85rem; }
+  html[data-theme="b"] main { max-width: 1240px; padding-top: 12px; }
+  html[data-theme="b"] .lesson-unit { border: none; border-top: 6px solid #111827; border-radius: 0; box-shadow: none; margin-bottom: 40px; }
+  html[data-theme="b"] .unit-head { background: #fff; padding: 14px 4px; border-bottom: 2px solid #e5e7eb; }
+  html[data-theme="b"] .unit-title { font-size: 2rem; font-weight: 900; color: #111827; }
+  html[data-theme="b"] .badge { font-size: .85rem; }
+  html[data-theme="b"] .table-section { padding: 18px 4px; }
+  html[data-theme="b"] .teach-tbl { font-size: 1.1rem; }
+  html[data-theme="b"] .teach-tbl th { background: #1f2937; }
+  html[data-theme="b"] .teach-tbl td { padding: 14px 12px; }
+  html[data-theme="b"] .char-big { font-size: 2rem; color: #b91c1c; }
+  html[data-theme="b"] .reading { font-size: 1.35rem; color: #1d4ed8; }
+  html[data-theme="b"] .question-section { background: #fffbeb; }
+  html[data-theme="b"] .q-text { font-size: 1.3rem; line-height: 2; }
+  html[data-theme="b"] .btn-guided { font-size: 1rem; padding: 8px 18px; }
+  @media (max-width: 700px) {
+    html[data-theme="b"] header, html[data-theme="b"] .filter-bar, html[data-theme="b"] .action-bar { padding-left: 16px; padding-right: 16px; }
+    html[data-theme="b"] .unit-title { font-size: 1.5rem; }
+  }
+}
