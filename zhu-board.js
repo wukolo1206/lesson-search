@@ -236,11 +236,47 @@
     nav.appendChild(controls);
   }
 
+  /* 詞籃空的時候，告訴老師下一步，並提供一鍵加入 */
+  function renderWriteHint() {
+    var box = $('writeBoard');
+    if (ZhuCore.getBasket().length || !boardState.char || !index) return;
+    var words = ZhuData.optionWords(index, boardState);
+    var label = '＋ 把這一題的選項詞都加入（' + words.length + ' 個）';
+    if (!words.length) {
+      var pub = typeof ZhuPublisherWords !== 'undefined' ? ZhuPublisherWords.wordsOf(boardState.char) : [];
+      words = ZhuData.mergeSupplementWords(index, boardState, pub).slice(0, 4);
+      label = '＋ 先加入前 ' + words.length + ' 個補充詞';
+    }
+    box.innerHTML = '';
+    box.className = 'write-empty';
+    var p = document.createElement('p');
+    p.textContent = '詞籃是空的。點上面語詞旁的「＋」加入詞籃，就能在這裡一格一格寫。';
+    box.appendChild(p);
+    if (!words.length) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-primary';
+    btn.id = 'btnQuickBasket';
+    btn.textContent = label;
+    btn.onclick = function () {
+      for (var i = 0; i < words.length; i++) {
+        if (!ZhuCore.isInBasket(words[i].word, words[i].char) && !ZhuCore.addToBasket(words[i])) {
+          alert('儲存空間已滿，詞籃沒存進去。請按「清除全部資料」後再試。');
+          break;
+        }
+      }
+      render();
+      renderBasket();
+    };
+    box.appendChild(btn);
+  }
+
   function render() {
     renderQueueNav();
     ZhuWrite.renderWriteBoard($('writeBoard'), ZhuCore.getBasket(), ZhuCore.getStore(), function () {
       alert('筆跡空間已滿，請先清除全部資料。');
     });
+    renderWriteHint();
     renderTaughtButton();
     if (!boardState.char) return;
     renderBigChar();
@@ -280,8 +316,8 @@
     var rad = radicals.radicalOf(boardState.char);
     if (rad) bits.push(rad + '部');   // 衝突或抓不到 → 不顯示，不硬掰
 
-    var bpmf = firstBopomofo(boardState.char);
-    if (bpmf) bits.push(bpmf);
+    var readings = charReadings(boardState.char);
+    if (readings.length) bits.push(readings.join('／') + (readings.length > 1 ? '（多音字）' : ''));
 
     $('charMeta').innerHTML = '';
     if (bits.length) {
@@ -297,6 +333,30 @@
       $('charMeta').appendChild(document.createElement('br'));
       $('charMeta').appendChild(b);
     }
+  }
+
+  /* 這個字的所有讀音：教育部《國語辭典簡編本》（zhu-concised-chars.js）；沒有資料才退回題庫語詞的第一個讀音 */
+  function charReadings(char) {
+    var rs = (typeof ZhuConcisedChars !== 'undefined' && ZhuConcisedChars[char]) || [];
+    if (rs.length) return rs.slice();
+    var one = firstBopomofo(char);
+    return one ? [one] : [];
+  }
+
+  /* 統一輕聲寫法：˙ 放前面（簡編本寫法） */
+  function normReading(r) {
+    r = String(r || '').replace(/\s+/g, '');
+    if (r.length > 1 && r.charAt(r.length - 1) === '˙') r = '˙' + r.slice(0, -1);
+    return r;
+  }
+
+  /* 語詞裡這個字讀什麼：題庫破音字細目的注音優先，其次共用詞庫逐字注音 */
+  function readingInWord(entry, char) {
+    if (entry.bopomofo && !/\s/.test(entry.bopomofo.trim())) return normReading(entry.bopomofo);
+    if (typeof ZhuBopo === 'undefined' || !ZhuBopo.lookup) return '';
+    var syl = ZhuBopo.lookup(entry.word);
+    var at = entry.word.indexOf(char);
+    return syl.length === entry.word.length && at >= 0 ? normReading(syl[at]) : '';
   }
 
   function firstBopomofo(char) {
@@ -365,7 +425,30 @@
     var box = $('supWords');
     box.innerHTML = '';
     if (!shown.length) box.textContent = '（沒有補充詞）';
-    shown.forEach(function (w) { box.appendChild(chipFor(w, true)); });
+    var readings = charReadings(boardState.char).map(normReading);
+    if (readings.length > 1 && shown.length) {
+      // 多音字：同一個讀音的語詞排在一起，方便比較「意思不同，讀音就不同」
+      var groups = {}, other = [];
+      readings.forEach(function (r) { groups[r] = []; });
+      shown.forEach(function (w) {
+        var r = readingInWord(w, boardState.char);
+        if (groups[r]) groups[r].push(w); else other.push(w);
+      });
+      readings.concat(['']).forEach(function (r) {
+        var list = r ? groups[r] : other;
+        if (!list.length) return;
+        var col = document.createElement('div');
+        col.className = 'sup-reading-group';
+        var head = document.createElement('div');
+        head.className = 'sup-reading-head';
+        head.textContent = r ? '讀 ' + r : '讀音未標';
+        col.appendChild(head);
+        list.forEach(function (w) { col.appendChild(chipFor(w, true)); });
+        box.appendChild(col);
+      });
+    } else {
+      shown.forEach(function (w) { box.appendChild(chipFor(w, true)); });
+    }
 
     var btn = $('btnMore');
     var rest = all.length - limit;

@@ -1,4 +1,4 @@
-// 解釋卡 UI 元件：萌典優先、手動 AI、手動圖片、stale-while-revalidate 與輪詢
+// 解釋卡 UI 元件：教育部《國語辭典簡編本》優先（離線資料）、查不到給官方辭典連結、手動 AI（標明不是辭典）、手動圖片、輪詢
 // 依賴 lookup-core.js（LookupCore）。模型內容只走節點 API。
 var LookupCard = (function () {
   'use strict';
@@ -114,23 +114,33 @@ var LookupCard = (function () {
 
   function renderLoading(message) { clearBody(); els.status.textContent = message || '查詢中…'; }
 
+  var REVISED_SEARCH = 'https:/' + '/dict.revised.moe.edu.tw/search.jsp?md=1&word=';
+  function linkButton(label, url) {
+    var btn = actionButton(label);
+    btn.onclick = function () { window.open(url, '_blank', 'noopener'); };
+    return btn;
+  }
+
+  /* 簡編本查不到：先給官方辭典連結（簡編本官網 → 重編本），AI 只是最後選項並標明不是辭典 */
   function renderMoedictUnavailable(term, message) {
     clearBody();
     els.title.textContent = term;
     els.status.textContent = message;
-    var ai = actionButton(message === '萌典查詢失敗' ? '改用 AI 查詢' : 'AI 查詢');
+    els.actions.appendChild(linkButton('到簡編本官網查', LookupCore.CONCISED_SEARCH + encodeURIComponent(term)));
+    els.actions.appendChild(linkButton('到重編本查', REVISED_SEARCH + encodeURIComponent(term)));
+    var ai = actionButton('AI 說明（不是辭典，僅供參考）');
     ai.onclick = function () { fetchAiText(term, seq, 0); };
     els.actions.appendChild(ai);
   }
 
   function renderActions(term, data) {
     if ((data.source || 'ai') !== 'ai') {
-      var ai = actionButton('AI 查詢');
+      var ai = actionButton('AI 說明（不是辭典，僅供參考）');
       ai.onclick = function () { fetchAiText(term, seq, 0); };
       els.actions.appendChild(ai);
     }
     if ((data.source || 'ai') === 'ai' && currentMoedictData) {
-      var moedict = actionButton('查看萌典');
+      var moedict = actionButton('回到簡編本');
       moedict.onclick = function () {
         if (!isStale(term, seq)) renderData(term, currentMoedictData);
       };
@@ -144,7 +154,7 @@ var LookupCard = (function () {
     clearBody();
     els.title.textContent = term;
     els.zhuyin.textContent = data.zhuyin || '';
-    els.source.textContent = data.source === 'moedict' ? '來源：萌典' : '來源：AI';
+    els.source.textContent = data.source === 'concised' ? '來源：教育部《國語辭典簡編本》' : data.source === 'moedict' ? '來源：萌典' : '來源：AI（不是辭典）';
     els.extra.textContent = (data.extraReadings || [])
       .map(function (r) { return '又讀 ' + r.zhuyin + '：' + r.gloss; }).join('　');
     els.expl.textContent = data.explanation || '';
@@ -164,9 +174,11 @@ var LookupCard = (function () {
     });
     renderActions(term, data);
     renderImage(term, data);
-    els.note.textContent = data.source === 'moedict'
-      ? '資料來源：萌典；例句為辭典原文，僅供教學參考'
-      : '內容由 AI 生成，僅供教學參考';
+    els.note.textContent = data.source === 'concised'
+      ? '資料來源：教育部《國語辭典簡編本》（2014 版，2026-06-26 下載）；例句為辭典原文'
+      : data.source === 'moedict'
+        ? '資料來源：萌典；例句為辭典原文，僅供教學參考'
+        : '內容由 AI 生成，不是辭典，僅供教學參考；讀音與詞義請以簡編本為準';
   }
 
   function renderImage(term, data) {
@@ -212,14 +224,24 @@ var LookupCard = (function () {
 
   function isStale(term, mySeq) { return mySeq !== seq || term !== activeTerm; }
 
+  /* 查教育部《國語辭典簡編本》離線資料（zhu-concised-words.js，第一次查才載入）——不再連萌典 */
+  var concisedPromise = null;
+  function loadConcised() {
+    if (window.ZhuConcisedWords) return Promise.resolve(window.ZhuConcisedWords);
+    if (concisedPromise) return concisedPromise;
+    concisedPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'zhu-concised-words.js';
+      s.onload = function () { window.ZhuConcisedWords ? resolve(window.ZhuConcisedWords) : reject(new Error('LOAD')); };
+      s.onerror = function () { concisedPromise = null; reject(new Error('LOAD')); };
+      document.head.appendChild(s);
+    });
+    return concisedPromise;
+  }
+
   function fetchMoedict(term, mySeq) {
-    return fetch('https://www.moedict.tw/uni/' + encodeURIComponent(term), {
-      headers: { 'Accept': 'application/json' }
-    }).then(function (r) {
-      if (!r.ok) throw new Error('NOT_FOUND');
-      return r.json();
-    }).then(function (raw) {
-      var data = LookupCore.normalizeMoedict(raw, term);
+    return loadConcised().then(function (dict) {
+      var data = LookupCore.normalizeConcised(dict[term], term);
       if (!data) throw new Error('NOT_FOUND');
       if (isStale(term, mySeq)) return null;
       currentMoedictData = data;
@@ -283,7 +305,8 @@ var LookupCard = (function () {
     if (data.imageStatus === 'ready') { renderImage(term, data); return; }
     data.imageStatus = 'pending';
     renderImage(term, data);
-    var action = data.source === 'moedict' ? 'lookupImageMoedict' : 'lookupImage';
+    // 辭典來源（簡編本）用「依辭典解釋產生示意圖」；GAS 的 action 名稱沿用 lookupImageMoedict，內容與來源無關
+    var action = data.source === 'ai' ? 'lookupImage' : 'lookupImageMoedict';
     var payload = { action: action, term: term, v: 1 };
     if (action === 'lookupImageMoedict') payload.explanation = data.explanation || '';
     post(payload).then(function (res) {
@@ -321,11 +344,11 @@ var LookupCard = (function () {
     activeTerm = term;
     currentMoedictData = null;
     openModal(term);
-    renderLoading('先查萌典…');
+    renderLoading('查教育部《國語辭典簡編本》…');
     fetchMoedict(term, mySeq).catch(function (err) {
       if (isStale(term, mySeq)) return;
       renderMoedictUnavailable(term, err && err.message === 'NOT_FOUND'
-        ? '萌典找不到這個詞' : '萌典查詢失敗');
+        ? '簡編本（離線資料）查不到這個詞，可以到官方辭典網站查：' : '辭典資料載入失敗，請重新整理後再試。');
     });
   }
 

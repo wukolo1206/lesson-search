@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>國語字音形 — 課堂講義</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <link rel="stylesheet" href="guided-py.css?v=20261115e">
-  <link rel="stylesheet" href="class-themes.css?v=20261115e">
-  <script src="class-themes.js?v=20261115e"></script>
+  <link rel="stylesheet" href="guided-py.css?v=20261115f">
+  <link rel="stylesheet" href="class-themes.css?v=20261115f">
+  <script src="class-themes.js?v=20261115f"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -962,6 +962,18 @@ function openFromUrl() {
   }
 }
 
+/* ═══ 全班成效紀錄（class-results.js）：題目卡上顯示第一次上課 → 最近一次 ═══ */
+function renderResults(qid) {
+  if (!window.ClassResults) return;
+  document.querySelectorAll(qid ? '.res-line[data-res="' + qid + '"]' : '.res-line').forEach(el => {
+    const t = ClassResults.line(el.getAttribute('data-res'));
+    el.textContent = t ? '📊 ' + t : '';
+    el.style.display = t ? '' : 'none';
+  });
+}
+window.addEventListener('class-results-change', e => renderResults(e.detail && e.detail.qid));
+window.addEventListener('storage', e => { if (e.key === 'ziyin_class_results_v1') renderResults(); });
+
 /* ═══ 教學記憶（localStorage）════════════════════════════ */
 const STORAGE_KEY = 'taught_questions_v1';
 let TAUGHT = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
@@ -1223,6 +1235,7 @@ function renderList() {
     return;
   }
   grid.innerHTML = SHOWN.map(q => unitHtml(q)).join('');
+  renderResults();
 }
 
 function unitHtml(q) {
@@ -1252,6 +1265,7 @@ function unitHtml(q) {
       : window.GuidedXJ && GuidedXJ.qualifies(q) ? `<button class="btn-guided" onclick="GuidedXJ.open('${esc(uid)}')" title="依學扶教材《國字會分工》的步驟，帶學生發現「一邊是意思，一邊是聲音」">✏️ 一起動腦</button>` : ''}
     ${(q._py.length || q._cz.length || q._xj.length) ? `<a class="btn-zhu" href="zhu.html?q=${encodeURIComponent(uid)}" title="用這一題的考點字打開字主板：擴展語詞、寫寫看">✍️ 寫寫看</a>` : ''}
     <div class="unit-title">${esc(q['題目重點'])}</div>
+    <div class="res-line" data-res="${esc(uid)}" title="全班在一起動腦／換個句子第一次答對的情形（這台電腦的紀錄）"></div>
   </div>
   <div class="table-section">
     ${buildListTables(q)}
@@ -2317,14 +2331,15 @@ loadData();
 <style>
   td.lk-w { cursor: pointer; text-decoration: underline dotted #999; text-underline-offset: 3px; }
 </style>
-<script src="guided-py.js?v=20261115e"></script>
-<script src="guided-cz.js?v=20261115e"></script>
-<script src="guided-cy-data.js?v=20261115e"></script>
-<script src="guided-cy.js?v=20261115e"></script>
-<script src="guided-xj-data.js?v=20261115e"></script>
-<script src="guided-xj.js?v=20261115e"></script>
-<script src="guided-apply-data.js?v=20261115e"></script>
-<script src="guided-apply.js?v=20261115e"></script>
+<script src="class-results.js?v=20261115f"></script>
+<script src="guided-py.js?v=20261115f"></script>
+<script src="guided-cz.js?v=20261115f"></script>
+<script src="guided-cy-data.js?v=20261115f"></script>
+<script src="guided-cy.js?v=20261115f"></script>
+<script src="guided-xj-data.js?v=20261115f"></script>
+<script src="guided-xj.js?v=20261115f"></script>
+<script src="guided-apply-data.js?v=20261115f"></script>
+<script src="guided-apply.js?v=20261115f"></script>
 <script>
 if (window.GuidedPY) GuidedPY.configure({ getAll: function () { return ALL; }, parseOptions: parseOptions, getAnswer: getAnswer });
 if (window.GuidedCZ) GuidedCZ.configure({ getAll: function () { return ALL; } });

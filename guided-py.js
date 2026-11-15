@@ -463,6 +463,7 @@
     if (act === 'final') {
       var ok = String(v) === String(ans(S.q));
       if (S.finalPick == null) S.finalFirst = ok;
+      if (S.finalPick == null && root.ClassResults) root.ClassResults.add(S.m.uid, 'guided', ok ? 1 : 0, 1);
       S.finalPick = v; S.finalOk = ok;
       tone(ok);
       return render();

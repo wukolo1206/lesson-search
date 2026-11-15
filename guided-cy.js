@@ -583,6 +583,7 @@
     if (act === 'final') {
       var ok = i === S.m.ans;
       if (S.finalPick == null) S.finalFirst = ok;
+      if (S.finalPick == null && root.ClassResults) root.ClassResults.add(S.m.uid, 'guided', ok ? 1 : 0, 1);
       S.finalPick = i; S.finalOk = ok; tone(ok);
       return render();
     }

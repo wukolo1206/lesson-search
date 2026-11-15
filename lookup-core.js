@@ -22,6 +22,7 @@ var LookupCore = (function () {
     });
   }
 
+  // 查字頁網址帶詞：lookup.html?q=詞（線上版已有，2026-11-15 合併回本機）
   function queryTerm(search) {
     var raw = '';
     try {
@@ -147,7 +148,39 @@ var LookupCore = (function () {
     };
   }
 
-  return { normalizeTerm: normalizeTerm, isValidTerm: isValidTerm, queryTerm: queryTerm,
+  /* 教育部《國語辭典簡編本》離線資料（zhu-concised-words.js：[[注音, 釋義], …]）→ 解釋卡資料 */
+  var CONCISED_SEARCH = 'https:/' + '/dict.concised.moe.edu.tw/search.jsp?md=1&word=';
+  function normalizeConcised(entries, term) {
+    if (!entries || !entries.length) return null;
+    function split(text) {
+      var senses = [], examples = [];
+      String(text || '').split(/\r?\n/).forEach(function (line) {
+        var parts = line.split('[例]');
+        if (parts[0].trim()) senses.push(parts[0].trim());
+        if (parts[1]) parts[1].split('｜').forEach(function (ex) { ex = ex.trim(); if (ex) examples.push(ex); });
+      });
+      return { senses: senses, examples: examples };
+    }
+    var first = split(entries[0][1]);
+    var extra = entries.slice(1).map(function (e) {
+      return { zhuyin: String(e[0] || ''), gloss: split(e[1]).senses.join(' ') };
+    }).filter(function (r) { return r.zhuyin || r.gloss; });
+    var normalizedTerm = String(term || '').trim();
+    return {
+      term: normalizedTerm,
+      zhuyin: String(entries[0][0] || ''),
+      explanation: first.senses.join('\n'),
+      examples: first.examples.slice(0, 3),
+      extraReadings: extra,
+      imageSuitable: null,
+      imageStatus: 'none',
+      imageFileId: '',
+      source: 'concised',
+      sourceUrl: CONCISED_SEARCH + encodeURIComponent(normalizedTerm)
+    };
+  }
+
+  return { normalizeTerm: normalizeTerm, isValidTerm: isValidTerm, queryTerm: queryTerm, normalizeConcised: normalizeConcised, CONCISED_SEARCH: CONCISED_SEARCH,
     splitHighlight: splitHighlight, fileIdOk: fileIdOk, thumbUrl: thumbUrl,
     makeCache: makeCache, pollDelay: pollDelay, normalizeMoedict: normalizeMoedict, TTL: TTL };
 })();

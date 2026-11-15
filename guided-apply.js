@@ -120,6 +120,7 @@
     if (allDone()) {
       var n = S.list.length, f = 0;
       for (var i = 0; i < n; i++) if (S.first[i]) f++;
+      if (!S.recorded && root.ClassResults) { root.ClassResults.add(S.uid, 'apply', f, n); S.recorded = true; }
       var nx = S.opts.next, mod = S.opts.mod;
       body += '<div class="gp-sum"><div class="gp-frame-lbl">📋 換個句子的學習紀錄（給老師看）</div>' +
         '<div>新句子一次就答對：' + f + ' / ' + n + ' 句</div></div>' +
